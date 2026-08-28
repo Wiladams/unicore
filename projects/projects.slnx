@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ucdbgen/ucdbgen.vcxproj" Id="8ed5fe35-0558-457e-96a7-652eaa728a86" />
+</Solution>
