@@ -3,24 +3,20 @@
   "WorkspaceRootPath": "C:\\repos\\unicore\\projects\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:ucdbgen\\unicode_database.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\test_unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\CORE\\CORE_NAMETABLE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:CORE\\CORE_NAMETABLE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\CORE\\CORE_HASH.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:CORE\\CORE_HASH.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unipiper.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database_generator.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:ucdbgen\\unicode_database_generator.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unicode_script_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -35,63 +31,51 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "unicode_database.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database.h",
-              "RelativeDocumentMoniker": "ucdbgen\\unicode_database.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database.h",
-              "RelativeToolTip": "ucdbgen\\unicode_database.h",
-              "ViewState": "AgIAAEcBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Title": "test_unicode_bidi_analysis.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h",
+              "RelativeDocumentMoniker": "unipiper\\test_unicode_bidi_analysis.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h",
+              "RelativeToolTip": "unipiper\\test_unicode_bidi_analysis.h",
+              "ViewState": "AgIAAAERAAAAAAAAAAAIwBsRAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-28T02:12:58.889Z",
+              "WhenOpened": "2026-08-31T04:10:08.768Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "core_nametable.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\core\\core_nametable.h",
-              "RelativeDocumentMoniker": "core\\core_nametable.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\core\\core_nametable.h",
-              "RelativeToolTip": "core\\core_nametable.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAJAAAAAAAAAA==",
+              "Title": "unicode_bidi_analysis.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h",
+              "RelativeDocumentMoniker": "unipiper\\unicode_bidi_analysis.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h",
+              "RelativeToolTip": "unipiper\\unicode_bidi_analysis.h",
+              "ViewState": "AgIAAB4HAAAAAAAAAAAIwDAHAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-28T01:58:21.357Z"
+              "WhenOpened": "2026-08-30T13:48:32.268Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "core_hash.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\core\\core_hash.h",
-              "RelativeDocumentMoniker": "core\\core_hash.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\core\\core_hash.h",
-              "RelativeToolTip": "core\\core_hash.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-28T01:57:25.671Z"
+              "Title": "unipiper.cpp",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp",
+              "RelativeDocumentMoniker": "unipiper\\unipiper.cpp",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp",
+              "RelativeToolTip": "unipiper\\unipiper.cpp",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABgAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-08-30T03:09:02.335Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "unicode_database_generator.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database_generator.h",
-              "RelativeDocumentMoniker": "ucdbgen\\unicode_database_generator.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbgen\\unicode_database_generator.h",
-              "RelativeToolTip": "ucdbgen\\unicode_database_generator.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Title": "unicode_script_analysis.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h",
+              "RelativeDocumentMoniker": "unipiper\\unicode_script_analysis.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h",
+              "RelativeToolTip": "unipiper\\unicode_script_analysis.h",
+              "ViewState": "AgIAAB8AAAAAAAAAAAAIwDIAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-28T01:30:35.588Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "ucdbgen.cpp",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
-              "RelativeDocumentMoniker": "ucdbgen\\ucdbgen.cpp",
-              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
-              "RelativeToolTip": "ucdbgen\\ucdbgen.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAsAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-08-28T01:23:50.802Z"
+              "WhenOpened": "2026-08-30T02:55:18.403Z"
             }
           ]
         }

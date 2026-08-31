@@ -10,6 +10,7 @@
 #include "unicode_decomposition_data.h"
 #include "unicode_composition_data.h"
 #include "unicode_value_table8_data.h"
+#include "unicode_script_extensions_data.h"
 
 
 namespace waavs
@@ -73,10 +74,13 @@ namespace waavs
     // 1.6 
     //      adds Indic_Conjunct_Break VALUE8 property
     //
+    // 1.7:
+    //      adds Script as a semantic VALUE8 property
+    //      adds Script_Extensions sparse range/set storage
     // ========================================================================
 
     static constexpr uint16_t kUnicodeDatabaseFormatMajor = 1;
-    static constexpr uint16_t kUnicodeDatabaseFormatMinor = 6;
+    static constexpr uint16_t kUnicodeDatabaseFormatMinor = 7;
 
 
     // ========================================================================
@@ -283,6 +287,50 @@ namespace waavs
         uint32_t compositionOffset;
     };
 
+    // ========================================================================
+// UnicodeDatabaseHeader17Extension
+//
+// Header extension introduced by format 1.7.
+//
+// This structure begins immediately after UnicodeDatabaseHeader.
+//
+// scriptExtensionsOffset:
+//
+//      Absolute database offset of UnicodeScriptExtensionsSection.
+//
+//      Zero means Script_Extensions storage is absent.
+//
+// reserved:
+//
+//      Must be zero.
+// ========================================================================
+
+    struct UnicodeDatabaseHeader17Extension
+    {
+        uint32_t scriptExtensionsOffset;
+        uint32_t reserved[3];
+    };
+
+    static_assert(
+        sizeof(UnicodeDatabaseHeader17Extension) == 16,
+        "UnicodeDatabaseHeader17Extension must be exactly 16 bytes");
+
+    static_assert(
+        offsetof(UnicodeDatabaseHeader17Extension, scriptExtensionsOffset) == 0,
+        "UnicodeDatabaseHeader17Extension scriptExtensionsOffset must begin at byte offset 0");
+
+    static_assert(
+        offsetof(UnicodeDatabaseHeader17Extension, reserved) == 4,
+        "UnicodeDatabaseHeader17Extension reserved must begin at byte offset 4");
+
+    static_assert(
+        std::is_trivially_copyable<UnicodeDatabaseHeader17Extension>::value,
+        "UnicodeDatabaseHeader17Extension must be trivially copyable");
+
+    static_assert(
+        std::is_standard_layout<UnicodeDatabaseHeader17Extension>::value,
+        "UnicodeDatabaseHeader17Extension must have standard layout");
+
 
     // ========================================================================
     // UnicodeBlockRecord
@@ -366,8 +414,10 @@ namespace waavs
         UnicodeValueProperty8BidiClass = 3,
         UnicodeValueProperty8GraphemeClusterBreak = 4,
         UnicodeValueProperty8IndicConjunctBreak = 5,
+        UnicodeValueProperty8Script = 6,
 
-        UnicodeValueProperty8MAX = UnicodeValueProperty8IndicConjunctBreak
+
+        UnicodeValueProperty8MAX = UnicodeValueProperty8Script
     };
 
 
@@ -517,6 +567,49 @@ namespace waavs
     static_assert(
         std::is_standard_layout<UnicodeCompositionSection>::value,
         "UnicodeCompositionSection must have standard layout");
+
+    // ========================================================================
+// UnicodeScriptExtensionsSection
+//
+// Persistent descriptor for Script_Extensions.
+//
+// rangeOffset:
+//
+//      Absolute database offset of:
+//
+//          UnicodeScriptExtensionRange[]
+//
+// rangeCount:
+//
+//      Number of explicit Script_Extensions ranges.
+//
+// setOffset:
+//
+//      Absolute database offset of:
+//
+//          UnicodeScriptSet[]
+//
+// setCount:
+//
+//      Number of unique deduplicated Script sets.
+//
+// Only explicit ScriptExtensions.txt entries are stored.
+//
+// Code points not covered by a range implicitly have:
+//
+//      Script_Extensions(cp) = { Script(cp) }
+//
+// ========================================================================
+
+    struct UnicodeScriptExtensionsSection
+    {
+        uint32_t rangeOffset;
+        uint32_t rangeCount;
+
+        uint32_t setOffset;
+        uint32_t setCount;
+    };
+
 
 
     // ========================================================================
@@ -722,4 +815,73 @@ namespace waavs
         std::is_standard_layout<UnicodeDecompositionSection>::value,
         "UnicodeDecompositionSection must have standard layout");
 
+    //
+    // ABI check - UnicodeScriptExtensionsSection
+    static_assert(
+        sizeof(UnicodeScriptExtensionsSection) == 16,
+        "UnicodeScriptExtensionsSection must be exactly 16 bytes");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionsSection, rangeOffset) == 0,
+        "UnicodeScriptExtensionsSection rangeOffset must begin at byte offset 0");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionsSection, rangeCount) == 4,
+        "UnicodeScriptExtensionsSection rangeCount must begin at byte offset 4");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionsSection, setOffset) == 8,
+        "UnicodeScriptExtensionsSection setOffset must begin at byte offset 8");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionsSection, setCount) == 12,
+        "UnicodeScriptExtensionsSection setCount must begin at byte offset 12");
+
+    static_assert(
+        std::is_trivially_copyable<UnicodeScriptExtensionsSection>::value,
+        "UnicodeScriptExtensionsSection must be trivially copyable");
+
+    static_assert(
+        std::is_standard_layout<UnicodeScriptExtensionsSection>::value,
+        "UnicodeScriptExtensionsSection must have standard layout");
+
+    static_assert(
+        sizeof(UnicodeScriptSet) == 32,
+        "UnicodeScriptSet must be exactly 32 bytes");
+
+    static_assert(
+        sizeof(UnicodeScriptExtensionRange) == 12,
+        "UnicodeScriptExtensionRange must be exactly 12 bytes");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionRange, first) == 0,
+        "UnicodeScriptExtensionRange first must begin at byte offset 0");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionRange, last) == 4,
+        "UnicodeScriptExtensionRange last must begin at byte offset 4");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionRange, setIndex) == 8,
+        "UnicodeScriptExtensionRange setIndex must begin at byte offset 8");
+
+    static_assert(
+        offsetof(UnicodeScriptExtensionRange, reserved) == 10,
+        "UnicodeScriptExtensionRange reserved must begin at byte offset 10");
+
+    static_assert(
+        std::is_trivially_copyable<UnicodeScriptSet>::value,
+        "UnicodeScriptSet must be trivially copyable");
+
+    static_assert(
+        std::is_standard_layout<UnicodeScriptSet>::value,
+        "UnicodeScriptSet must have standard layout");
+
+    static_assert(
+        std::is_trivially_copyable<UnicodeScriptExtensionRange>::value,
+        "UnicodeScriptExtensionRange must be trivially copyable");
+
+    static_assert(
+        std::is_standard_layout<UnicodeScriptExtensionRange>::value,
+        "UnicodeScriptExtensionRange must have standard layout");
 } // namespace waavs

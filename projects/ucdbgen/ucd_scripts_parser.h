@@ -4,7 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <vector>
 
 #include "core_nametable.h"
@@ -12,9 +11,10 @@
 
 #include "ucd_parser.h"
 #include "ucd_property_value_aliases_parser.h"
+#include "unicode_value_table8_builder.h"
 #include "unicode_coverage_builder.h"
 #include "unicode_database_builder.h"
-
+#include "unicode_script.h"
 
 namespace waavs
 {
@@ -41,7 +41,11 @@ namespace waavs
 
         CoverageFinalizeFailed,
         CoverageAddFailed,
-        ScriptAddFailed
+        ScriptAddFailed,
+
+        ScriptTableFinalizeFailed,
+        ScriptTableAddFailed,
+        ScriptPropertyAddFailed
     };
 
 
@@ -124,6 +128,15 @@ namespace waavs
 
         case UCDScriptsParseError::ScriptAddFailed:
             return "failed to add Script database record";
+
+        case UCDScriptsParseError::ScriptTableFinalizeFailed:
+            return "failed to finalize Script VALUE8 table";
+
+        case UCDScriptsParseError::ScriptTableAddFailed:
+            return "failed to add Script VALUE8 table";
+
+        case UCDScriptsParseError::ScriptPropertyAddFailed:
+            return "failed to register Script VALUE8 property";
         }
 
         return "unknown Scripts.txt parser error";
@@ -274,7 +287,7 @@ namespace waavs
             return false;
         }
 
-        if (aliases.size() > std::numeric_limits<uint32_t>::max())
+        if (aliases.size() > static_cast<size_t>(kUnicodeScriptIndexInvalid))
         {
             outResult.error = UCDScriptsParseError::StorageFailed;
             return false;
@@ -348,7 +361,9 @@ namespace waavs
         // ====================================================================
         // Parse explicit Script assignments.
         // ====================================================================
-
+        // Dense code-point -> Script index table.
+        // Initialize all code points to Script=Unknown.
+        auto scriptValues = std::make_unique<UnicodeValueTable8Builder>(static_cast<uint8_t>(unknownIndex));
         UnicodeCoverageBuilder assignedCoverage;
 
         UCDParser parser(source);
@@ -452,7 +467,8 @@ namespace waavs
 
             scripts[*indexPtr].coverage.addRange(range.first, range.last);
             assignedCoverage.addRange(range.first, range.last);
-
+            scriptValues->setRange( range.first,  range.last, static_cast<uint8_t>(*indexPtr));
+            
             ++outResult.rangeCount;
 
             outResult.explicitCodePoints +=
@@ -519,6 +535,50 @@ namespace waavs
 
             ++outResult.scriptCount;
         }
+
+        // ====================================================================
+        // Finalize the dense Script VALUE8 lookup.
+        //
+        // Every code point began as Script=Unknown. Explicit Scripts.txt ranges
+        // replaced that default during parsing.
+        // ====================================================================
+
+        UnicodeValueTable8Data scriptTable{};
+
+        if (!scriptValues->finalize(
+            database.valuePagePool8(),
+            scriptTable))
+        {
+            outResult.error =
+                UCDScriptsParseError::ScriptTableFinalizeFailed;
+
+            return false;
+        }
+
+
+        UnicodeValueTable8Index scriptTableIndex;
+
+        if (!database.addValueTable8(
+            scriptTable,
+            scriptTableIndex))
+        {
+            outResult.error =
+                UCDScriptsParseError::ScriptTableAddFailed;
+
+            return false;
+        }
+
+
+        if (!database.addValueProperty8(
+            UnicodeValueProperty8Script,
+            scriptTableIndex))
+        {
+            outResult.error =
+                UCDScriptsParseError::ScriptPropertyAddFailed;
+
+            return false;
+        }
+
 
         return true;
     }

@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+*.ipch
+/projects/.vs/projects.slnx/copilot-chat
+/projects/.vs/projects.slnx/FileContentIndex
+/projects/ucdbgen/ARM64
+/projects/unipiper/ARM64

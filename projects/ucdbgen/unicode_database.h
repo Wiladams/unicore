@@ -19,6 +19,8 @@
 #include "unicode_grapheme_cluster_break.h"
 #include "unicode_indic_conjunct_break.h"
 #include "unicode_value_table8.h"
+#include "unicode_script.h"
+#include "unicode_script_set.h"
 
 
 namespace waavs
@@ -122,6 +124,7 @@ namespace waavs
             mCoverages = nullptr;
             mBlocks = nullptr;
             mScripts = nullptr;
+
             mProperties = nullptr;
 
             mExtendedPictographicCoverage = kUnicodeCoverageIndexInvalid;
@@ -150,6 +153,11 @@ namespace waavs
             mBidiClassTable = kUnicodeValueTable8IndexInvalid;
             mGraphemeClusterBreakTable = kUnicodeValueTable8IndexInvalid;
             mIndicConjunctBreakTable = kUnicodeValueTable8IndexInvalid;
+            mScriptTable = kUnicodeValueTable8IndexInvalid;
+
+            mScriptExtensionsSection = nullptr;
+            mScriptExtensionRanges = nullptr;
+            mScriptSets = nullptr;
         }
 
 
@@ -181,13 +189,28 @@ namespace waavs
         // Format 1.3:
         //
         //      Adds optional canonical-composition storage.
+        // 
+        // Format 1.4:
         //
+        //      Adds Bidi_Class.
+        //
+        // Format 1.5:
+        //
+        //      Adds Grapheme_Cluster_Break.
+        //
+        // Format 1.6:
+        //
+        //      Adds Indic_Conjunct_Break.
+        //
+        // Format 1.7:
+        //
+        //      Adds dense Script VALUE8 lookup.
+        //      Adds optional sparse Script_Extensions storage.
         // ====================================================================
 
         bool reset(const ByteSpan& data) noexcept
         {
             clear();
-
 
             // ================================================================
             // Basic size / architecture checks
@@ -242,28 +265,24 @@ namespace waavs
             // Header / database sizes
             // ================================================================
 
-            if (header->headerSize !=
-                sizeof(UnicodeDatabaseHeader))
-            {
+            size_t expectedHeaderSize = sizeof(UnicodeDatabaseHeader);
+
+            if (header->formatMinor >= 7)
+                expectedHeaderSize += sizeof(UnicodeDatabaseHeader17Extension);
+
+            if (header->headerSize != expectedHeaderSize)
                 return false;
-            }
 
-            if (header->databaseSize <
-                header->headerSize)
-            {
+            if (data.size() < expectedHeaderSize)
                 return false;
-            }
 
-            if (header->databaseSize >
-                data.size())
-            {
+            if (header->databaseSize < header->headerSize)
                 return false;
-            }
 
+            if (header->databaseSize > data.size())
+                return false;
 
-            const size_t databaseSize =
-                static_cast<size_t>(
-                    header->databaseSize);
+            const size_t databaseSize = static_cast<size_t>(header->databaseSize);
 
 
             // ================================================================
@@ -323,6 +342,37 @@ namespace waavs
                 }
             }
 
+            // Read in header 17 extensions if present. 
+            // The script extension section is optional and may be empty.
+            const UnicodeDatabaseHeader17Extension* header17 = nullptr;
+            uint32_t scriptExtensionsOffset = 0;
+
+            if (header->formatMinor >= 7)
+            {
+                header17 = reinterpret_cast<const UnicodeDatabaseHeader17Extension*>(
+                    data.data() + sizeof(UnicodeDatabaseHeader));
+
+                if (!pointerIsAligned(header17, alignof(UnicodeDatabaseHeader17Extension)))
+                    return false;
+
+                if (header17->reserved[0] != 0 ||
+                    header17->reserved[1] != 0 ||
+                    header17->reserved[2] != 0)
+                {
+                    return false;
+                }
+
+                scriptExtensionsOffset = header17->scriptExtensionsOffset;
+            }
+
+            if (header->formatMinor >= 7)
+            {
+                if (header->scriptCount == 0 ||
+                    header->scriptCount > static_cast<uint32_t>(kUnicodeScriptIndexInvalid))
+                {
+                    return false;
+                }
+            }
 
             // ================================================================
             // Validate existing typed sections
@@ -655,6 +705,72 @@ namespace waavs
                 }
             }
 
+            // ================================================================
+// Script_Extensions
+// ================================================================
+
+            const UnicodeScriptExtensionsSection* scriptExtensionsSection = nullptr;
+            const UnicodeScriptExtensionRange* scriptExtensionRanges = nullptr;
+            const UnicodeScriptSet* scriptSets = nullptr;
+
+            if (scriptExtensionsOffset != 0)
+            {
+                if (header->formatMinor < 7)
+                    return false;
+
+                if (!sectionValid<UnicodeScriptExtensionsSection>(
+                    base, databaseSize, scriptExtensionsOffset, 1))
+                {
+                    return false;
+                }
+
+                scriptExtensionsSection =
+                    reinterpret_cast<const UnicodeScriptExtensionsSection*>(
+                        base + scriptExtensionsOffset);
+
+                if (scriptExtensionsSection->rangeOffset == 0 ||
+                    scriptExtensionsSection->rangeCount == 0 ||
+                    scriptExtensionsSection->setOffset == 0 ||
+                    scriptExtensionsSection->setCount == 0)
+                {
+                    return false;
+                }
+
+                if (scriptExtensionsSection->setCount >
+                    static_cast<uint32_t>(kUnicodeScriptSetIndexInvalid))
+                {
+                    return false;
+                }
+
+                if (!sectionValid<UnicodeScriptExtensionRange>(
+                    base, databaseSize, scriptExtensionsSection->rangeOffset,
+                    scriptExtensionsSection->rangeCount))
+                {
+                    return false;
+                }
+
+                if (!sectionValid<UnicodeScriptSet>(
+                    base, databaseSize, scriptExtensionsSection->setOffset,
+                    scriptExtensionsSection->setCount))
+                {
+                    return false;
+                }
+
+                scriptExtensionRanges =
+                    reinterpret_cast<const UnicodeScriptExtensionRange*>(
+                        base + scriptExtensionsSection->rangeOffset);
+
+                scriptSets =
+                    reinterpret_cast<const UnicodeScriptSet*>(
+                        base + scriptExtensionsSection->setOffset);
+
+                if (!validateScriptExtensions(
+                    *scriptExtensionsSection, scriptExtensionRanges,
+                    scriptSets, header->scriptCount))
+                {
+                    return false;
+                }
+            }
 
             // ================================================================
             // Pool-count bounds imposed by persistent references
@@ -788,6 +904,7 @@ namespace waavs
 
                 extendedPictographicCoverage = record.coverageIndex;
             }
+
             // ================================================================
             // Validate VALUE8 property directory and resolve core tables.
             // ================================================================
@@ -797,7 +914,7 @@ namespace waavs
             UnicodeValueTable8Index bidiClassTable = kUnicodeValueTable8IndexInvalid;
             UnicodeValueTable8Index graphemeClusterBreakTable = kUnicodeValueTable8IndexInvalid;
             UnicodeValueTable8Index indicConjunctBreakTable = kUnicodeValueTable8IndexInvalid;
-
+            UnicodeValueTable8Index scriptTable = kUnicodeValueTable8IndexInvalid;
 
             // --------------------------------------------------------------------
             // VALUE8 is an optional database capability.
@@ -822,7 +939,7 @@ namespace waavs
                 header->valueTable8Count, header->formatMinor,
                 generalCategoryTable, combiningClassTable,
                 bidiClassTable, graphemeClusterBreakTable, 
-                indicConjunctBreakTable))
+                indicConjunctBreakTable, scriptTable))
             {
                 return false;
             }
@@ -915,6 +1032,24 @@ namespace waavs
                 }
             }
 
+            if (scriptTable != kUnicodeValueTable8IndexInvalid)
+            {
+                if (header->scriptCount == 0 ||
+                    header->scriptCount > static_cast<uint32_t>(kUnicodeScriptIndexInvalid))
+                {
+                    return false;
+                }
+
+                if (!validateValueTable8Maximum(
+                    valueTables8[scriptTable],
+                    valueMasterPages8, header->valueMasterPage8Count,
+                    valuePages8, header->valuePage8Count,
+                    static_cast<uint8_t>(header->scriptCount - 1u)))
+                {
+                    return false;
+                }
+            }
+
             // ================================================================
             // Commit
             //
@@ -980,6 +1115,7 @@ namespace waavs
             mBidiClassTable = bidiClassTable;
             mGraphemeClusterBreakTable = graphemeClusterBreakTable;
             mIndicConjunctBreakTable = indicConjunctBreakTable;
+            mScriptTable = scriptTable;
 
             // ---------------------------------------------------------------
             // Canonical decomposition
@@ -1022,6 +1158,14 @@ namespace waavs
 
             mCompositionRecords =
                 compositionRecords;
+
+            // ---------------------------------------------------------------
+            // Script_Extensions
+            // ---------------------------------------------------------------
+
+            mScriptExtensionsSection = scriptExtensionsSection;
+            mScriptExtensionRanges = scriptExtensionRanges;
+            mScriptSets = scriptSets;
 
 
             // ---------------------------------------------------------------
@@ -1446,6 +1590,13 @@ namespace waavs
                 kUnicodeValueTable8IndexInvalid;
         }
 
+        [[nodiscard]]
+        bool hasScript() const noexcept
+        {
+            return mScriptTable != kUnicodeValueTable8IndexInvalid;
+        }
+
+
         // Accessors
         [[nodiscard]]
         UnicodeGeneralCategory generalCategory(uint32_t cp) const noexcept
@@ -1514,6 +1665,17 @@ namespace waavs
             return static_cast<UnicodeIndicConjunctBreak>(valueTable8(mIndicConjunctBreakTable).value(cp));
         }
 
+        [[nodiscard]]
+        UnicodeScriptIndex script(uint32_t cp) const noexcept
+        {
+            if (cp >= kUnicodeLimit || mScriptTable == kUnicodeValueTable8IndexInvalid)
+                return kUnicodeScriptIndexInvalid;
+
+            return static_cast<UnicodeScriptIndex>(
+                valueTable8(mScriptTable).value(cp));
+        }
+
+
         // ====================================================================
         // Blocks
         // ====================================================================
@@ -1581,6 +1743,60 @@ namespace waavs
                 record->coverageIndex);
         }
 
+        [[nodiscard]]
+        bool hasScriptExtensions() const noexcept
+        {
+            return mScriptExtensionsSection != nullptr;
+        }
+
+
+        [[nodiscard]]
+        uint32_t scriptExtensionRangeCount() const noexcept
+        {
+            return mScriptExtensionsSection ? mScriptExtensionsSection->rangeCount : 0;
+        }
+
+
+        [[nodiscard]]
+        uint32_t scriptSetCount() const noexcept
+        {
+            return mScriptExtensionsSection ? mScriptExtensionsSection->setCount : 0;
+        }
+
+
+        [[nodiscard]]
+        const UnicodeScriptExtensionRange* scriptExtensionRangeRecord(uint32_t index) const noexcept
+        {
+            if (!mScriptExtensionsSection || index >= mScriptExtensionsSection->rangeCount)
+                return nullptr;
+
+            return &mScriptExtensionRanges[index];
+        }
+
+
+        [[nodiscard]]
+        const UnicodeScriptSet* scriptSet(uint32_t index) const noexcept
+        {
+            if (!mScriptExtensionsSection || index >= mScriptExtensionsSection->setCount)
+                return nullptr;
+
+            return &mScriptSets[index];
+        }
+
+
+        [[nodiscard]]
+        UnicodeScriptSet scriptExtensions(uint32_t cp) const noexcept
+        {
+            if (cp >= kUnicodeLimit)
+                return {};
+
+            const UnicodeScriptExtensionRange* range = findScriptExtensionRange(cp);
+
+            if (range)
+                return mScriptSets[range->setIndex];
+
+            return UnicodeScriptSet::singleton(script(cp));
+        }
 
         // ====================================================================
         // Binary SET properties
@@ -1838,6 +2054,20 @@ namespace waavs
             kUnicodeValueTable8IndexInvalid
         };
 
+        UnicodeValueTable8Index mScriptTable{ kUnicodeValueTable8IndexInvalid };
+
+
+        // ====================================================================
+        // Script_Extensions
+        // ====================================================================
+
+        const UnicodeScriptExtensionsSection* mScriptExtensionsSection{ nullptr };
+        const UnicodeScriptExtensionRange* mScriptExtensionRanges{ nullptr };
+        const UnicodeScriptSet* mScriptSets{ nullptr };
+
+
+        // ====================================================================
+        // Canonical decomposition
         // ====================================================================
         // Canonical decomposition
         // ====================================================================
@@ -1860,6 +2090,41 @@ namespace waavs
 
         const uint8_t* mStringPool{ nullptr };
         uint32_t mStringPoolSize{ 0 };
+
+        // ====================================================================
+        // Script_Extensions lookup
+        // ====================================================================
+
+        [[nodiscard]]
+        const UnicodeScriptExtensionRange* findScriptExtensionRange(uint32_t cp) const noexcept
+        {
+            if (!mScriptExtensionsSection || !mScriptExtensionRanges)
+                return nullptr;
+
+            uint32_t left = 0;
+            uint32_t right = mScriptExtensionsSection->rangeCount;
+
+            while (left < right)
+            {
+                const uint32_t mid = left + ((right - left) >> 1);
+                const UnicodeScriptExtensionRange& range = mScriptExtensionRanges[mid];
+
+                if (cp < range.first)
+                {
+                    right = mid;
+                }
+                else if (cp > range.last)
+                {
+                    left = mid + 1u;
+                }
+                else
+                {
+                    return &range;
+                }
+            }
+
+            return nullptr;
+        }
 
 
         // ====================================================================
@@ -2413,6 +2678,121 @@ namespace waavs
             return true;
         }
 
+        // ====================================================================
+// Script_Extensions validation
+// ====================================================================
+
+        [[nodiscard]]
+        static bool validateScriptExtensions(const UnicodeScriptExtensionsSection& section,
+            const UnicodeScriptExtensionRange* ranges, const UnicodeScriptSet* sets,
+            uint32_t scriptCount) noexcept
+        {
+            if (section.rangeCount == 0 || section.setCount == 0)
+                return false;
+
+            if (!ranges || !sets)
+                return false;
+
+            if (scriptCount == 0 ||
+                scriptCount > static_cast<uint32_t>(kUnicodeScriptIndexInvalid))
+            {
+                return false;
+            }
+
+            if (section.setCount >
+                static_cast<uint32_t>(kUnicodeScriptSetIndexInvalid))
+            {
+                return false;
+            }
+
+
+            // ----------------------------------------------------------------
+            // Script sets
+            // ----------------------------------------------------------------
+
+            for (uint32_t i = 0; i < section.setCount; ++i)
+            {
+                const UnicodeScriptSet& set = sets[i];
+
+                if (set.empty())
+                    return false;
+
+                // Script index 255 is reserved as invalid.
+
+                if ((set.bits[3] & (uint64_t(1) << 63)) != 0)
+                    return false;
+
+                // No set may reference a Script record which does not exist.
+
+                for (uint32_t scriptIndex = scriptCount;
+                    scriptIndex < static_cast<uint32_t>(kUnicodeScriptIndexInvalid);
+                    ++scriptIndex)
+                {
+                    if (set.contains(static_cast<UnicodeScriptIndex>(scriptIndex)))
+                        return false;
+                }
+
+                // Physical Script sets are deduplicated.
+
+                for (uint32_t previous = 0; previous < i; ++previous)
+                {
+                    if (sets[previous] == set)
+                        return false;
+                }
+            }
+
+
+            // ----------------------------------------------------------------
+            // Explicit ranges
+            // ----------------------------------------------------------------
+
+            uint32_t previousLast = 0;
+            bool havePrevious = false;
+
+            for (uint32_t i = 0; i < section.rangeCount; ++i)
+            {
+                const UnicodeScriptExtensionRange& range = ranges[i];
+
+                if (range.first > range.last || range.last >= kUnicodeLimit)
+                    return false;
+
+                if (range.reserved != 0)
+                    return false;
+
+                if (range.setIndex >= section.setCount)
+                    return false;
+
+                if (havePrevious && range.first <= previousLast)
+                    return false;
+
+                previousLast = range.last;
+                havePrevious = true;
+            }
+
+
+            // ----------------------------------------------------------------
+            // Every stored set must actually be referenced.
+            // ----------------------------------------------------------------
+
+            for (uint32_t setIndex = 0; setIndex < section.setCount; ++setIndex)
+            {
+                bool referenced = false;
+
+                for (uint32_t rangeIndex = 0; rangeIndex < section.rangeCount; ++rangeIndex)
+                {
+                    if (ranges[rangeIndex].setIndex == setIndex)
+                    {
+                        referenced = true;
+                        break;
+                    }
+                }
+
+                if (!referenced)
+                    return false;
+            }
+
+            return true;
+        }
 
         // ====================================================================
         // Block validation
@@ -2610,13 +2990,15 @@ namespace waavs
             UnicodeValueTable8Index& outCombiningClass,
             UnicodeValueTable8Index& outBidiClass,
             UnicodeValueTable8Index& outGraphemeClusterBreak,
-            UnicodeValueTable8Index& outIndicConjunctBreak) noexcept
+            UnicodeValueTable8Index& outIndicConjunctBreak,
+            UnicodeValueTable8Index& outScript) noexcept
         {
             outGeneralCategory = kUnicodeValueTable8IndexInvalid;
             outCombiningClass = kUnicodeValueTable8IndexInvalid;
             outBidiClass = kUnicodeValueTable8IndexInvalid;
             outGraphemeClusterBreak = kUnicodeValueTable8IndexInvalid;
             outIndicConjunctBreak = kUnicodeValueTable8IndexInvalid;
+            outScript = kUnicodeValueTable8IndexInvalid;
 
             // ------------------------------------------------------------------------
             // Maximum semantic property understood by each format revision.
@@ -2633,6 +3015,9 @@ namespace waavs
 
             if (formatMinor >= 6)
                 maximumProperty = UnicodeValueProperty8IndicConjunctBreak;
+            
+            if (formatMinor >= 7)
+                maximumProperty = UnicodeValueProperty8Script;
 
             // ------------------------------------------------------------------------
             // Validate directory records and resolve semantic table indices.
@@ -2688,6 +3073,9 @@ namespace waavs
                     outIndicConjunctBreak = record.tableIndex;
                     break;
 
+                case UnicodeValueProperty8Script:
+                    outScript = record.tableIndex;
+                    break;
 
                 default:
                     return false;
@@ -2710,6 +3098,9 @@ namespace waavs
             // 
             // 1.6:
             //     adds Indic_Conjunct_Break
+            // 
+            // 1.7:
+            //     adds Script
             // ------------------------------------------------------------------------
 
             if (formatMinor >= 1)
@@ -2736,6 +3127,12 @@ namespace waavs
             if (formatMinor >= 6)
             {
                 if (outIndicConjunctBreak == kUnicodeValueTable8IndexInvalid)
+                    return false;
+            }
+
+            if (formatMinor >= 7)
+            {
+                if (outScript == kUnicodeValueTable8IndexInvalid)
                     return false;
             }
 

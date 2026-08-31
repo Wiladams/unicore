@@ -149,5 +149,17 @@
     <ClInclude Include="unicode_value_table8_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="unicode_script.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode_script_set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode_script_extensions_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ucd_script_extensions_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

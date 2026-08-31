@@ -45,6 +45,11 @@ namespace waavs
 
         TooManyBlocks,
         TooManyScripts,
+
+        TooManyScriptExtensionRanges,
+        TooManyScriptSets,
+        InvalidScriptExtensions,
+        
         TooManyProperties,
 
         StringPoolTooLarge,
@@ -84,8 +89,7 @@ namespace waavs
     // unicodeDatabaseWriteErrorString
     // ========================================================================
 
-    static inline const char* unicodeDatabaseWriteErrorString(
-        UnicodeDatabaseWriteError error) noexcept
+    static inline const char* unicodeDatabaseWriteErrorString(UnicodeDatabaseWriteError error) noexcept
     {
         switch (error)
         {
@@ -140,6 +144,15 @@ namespace waavs
         case UnicodeDatabaseWriteError::TooManyScripts:
             return "too many Unicode script records";
 
+        case UnicodeDatabaseWriteError::TooManyScriptExtensionRanges:
+            return "too many Unicode Script_Extensions ranges";
+
+        case UnicodeDatabaseWriteError::TooManyScriptSets:
+            return "too many Unicode Script_Extensions sets";
+
+        case UnicodeDatabaseWriteError::InvalidScriptExtensions:
+            return "invalid Unicode Script_Extensions data";
+
         case UnicodeDatabaseWriteError::TooManyProperties:
             return "too many Unicode binary property records";
 
@@ -157,6 +170,8 @@ namespace waavs
 
         case UnicodeDatabaseWriteError::FileWriteFailed:
             return "unable to write Unicode database output file";
+
+
         }
 
         return "unknown Unicode database writer error";
@@ -168,50 +183,55 @@ namespace waavs
     //
     // Serializes UnicodeDatabaseBuilder into the persistent .ucdb format.
     //
-    // Version 1.3 layout currently emitted:
-    //
-    //      UnicodeDatabaseHeader
-    //
-    //      UnicodeBlockRecord[]
-    //      UnicodeScriptRecord[]
-    //      UnicodePropertyRecord[]
-    //      UnicodeValueProperty8Record[]
-    //
-    //      UnicodeCoverageData[]
-    //      UnicodeValueTable8Data[]
-    //
-    //      UnicodeDecompositionSection       optional
-    //      UnicodeCompositionSection         optional
-    //
-    //      alignment
-    //      UnicodeMasterPage[]
-    //
-    //      alignment
-    //      UnicodeBitPage[]
-    //
-    //      alignment
-    //      UnicodeValueMasterPage8[]
-    //
-    //      alignment
-    //      UnicodeValuePage8[]
-    //
-    //      alignment
-    //      UnicodeDecompositionMasterPage[]  optional
-    //
-    //      alignment
-    //      UnicodeDecompositionPage[]        optional
-    //
-    //      alignment
-    //      UnicodeDecompositionRecord[]      optional
-    //
-    //      alignment
-    //      UnicodeCompositionRecord[]        optional
-    //
-    //      UTF-8 string pool
-    //
-    // Section ordering itself is not part of the persistent ABI. Offsets in
-    // UnicodeDatabaseHeader, UnicodeDecompositionSection, and
-    // UnicodeCompositionSection define the physical layout.
+// Version 1.7 layout currently emitted:
+//
+//      UnicodeDatabaseHeader
+//      UnicodeDatabaseHeader17Extension
+//
+//      UnicodeBlockRecord[]
+//      UnicodeScriptRecord[]
+//      UnicodePropertyRecord[]
+//      UnicodeValueProperty8Record[]
+//
+//      UnicodeCoverageData[]
+//      UnicodeValueTable8Data[]
+//
+//      UnicodeDecompositionSection       optional
+//      UnicodeCompositionSection         optional
+//      UnicodeScriptExtensionsSection    optional
+//
+//      UnicodeScriptExtensionRange[]     optional
+//      UnicodeScriptSet[]                optional
+//
+//      alignment
+//      UnicodeMasterPage[]
+//
+//      alignment
+//      UnicodeBitPage[]
+//
+//      alignment
+//      UnicodeValueMasterPage8[]
+//
+//      alignment
+//      UnicodeValuePage8[]
+//
+//      alignment
+//      UnicodeDecompositionMasterPage[]  optional
+//
+//      alignment
+//      UnicodeDecompositionPage[]        optional
+//
+//      alignment
+//      UnicodeDecompositionRecord[]      optional
+//
+//      alignment
+//      UnicodeCompositionRecord[]        optional
+//
+//      UTF-8 string pool
+//
+// Section ordering itself is not part of the persistent ABI. Offsets in
+// UnicodeDatabaseHeader, its version-specific header extensions, and the
+// individual section descriptors define the physical layout.
     //
     // All page pools have already been canonicalized and deduplicated by the
     // corresponding generator-side pool builders.
@@ -239,6 +259,10 @@ namespace waavs
 
             uint32_t decompositionOffset{ 0 };
             uint32_t compositionOffset{ 0 };
+            uint32_t scriptExtensionsOffset{ 0 };
+            
+            uint32_t scriptExtensionRangeOffset{ 0 };
+            uint32_t scriptSetOffset{ 0 };
 
             uint32_t masterPageOffset{ 0 };
             uint32_t bitPageOffset{ 0 };
@@ -448,21 +472,50 @@ namespace waavs
             }
 
 
-            if (database.scriptCount() >
-                std::numeric_limits<uint32_t>::max())
+            if (database.scriptCount() > static_cast<size_t>(kUnicodeScriptIndexInvalid))
             {
-                outResult.error =
-                    UnicodeDatabaseWriteError::TooManyScripts;
+                outResult.error = UnicodeDatabaseWriteError::TooManyScripts;
 
                 return false;
             }
 
 
-            if (database.propertyCount() >
+            // ================================================================
+            // Script_Extensions validation
+            // ================================================================
+
+            if (database.scriptExtensionRangeCount() >
                 std::numeric_limits<uint32_t>::max())
             {
                 outResult.error =
-                    UnicodeDatabaseWriteError::TooManyProperties;
+                    UnicodeDatabaseWriteError::TooManyScriptExtensionRanges;
+
+                return false;
+            }
+
+
+            if (database.scriptSetCount() > static_cast<size_t>(kUnicodeScriptSetIndexInvalid))
+            {
+                outResult.error = UnicodeDatabaseWriteError::TooManyScriptSets;
+
+                return false;
+            }
+
+
+            if (!validateScriptExtensions(database))
+            {
+                outResult.error = UnicodeDatabaseWriteError::InvalidScriptExtensions;
+
+                return false;
+            }
+
+            // ================================================================
+            // Remaining semantic directories
+            // ================================================================
+            if (database.propertyCount() >
+                std::numeric_limits<uint32_t>::max())
+            {
+                outResult.error = UnicodeDatabaseWriteError::TooManyProperties;
 
                 return false;
             }
@@ -472,21 +525,17 @@ namespace waavs
             // String pool
             // ================================================================
 
-            if (database.stringPoolSize() >
-                std::numeric_limits<uint32_t>::max())
+            if (database.stringPoolSize() > std::numeric_limits<uint32_t>::max())
             {
-                outResult.error =
-                    UnicodeDatabaseWriteError::StringPoolTooLarge;
+                outResult.error = UnicodeDatabaseWriteError::StringPoolTooLarge;
 
                 return false;
             }
 
 
-            if (database.stringPool().empty() ||
-                database.stringPool()[0] != 0)
+            if (database.stringPool().empty() || database.stringPool()[0] != 0)
             {
-                outResult.error =
-                    UnicodeDatabaseWriteError::InvalidStringPool;
+                outResult.error = UnicodeDatabaseWriteError::InvalidStringPool;
 
                 return false;
             }
@@ -499,9 +548,7 @@ namespace waavs
             Layout layout{};
 
 
-            if (!calculateLayout(
-                database,
-                layout))
+            if (!calculateLayout( database, layout))
             {
                 outResult.error =
                     UnicodeDatabaseWriteError::DatabaseTooLarge;
@@ -535,99 +582,72 @@ namespace waavs
                 sizeof(header.signature));
 
 
-            header.formatMajor =
-                kUnicodeDatabaseFormatMajor;
+            header.formatMajor = kUnicodeDatabaseFormatMajor;
 
-            header.formatMinor =
-                kUnicodeDatabaseFormatMinor;
+            header.formatMinor = kUnicodeDatabaseFormatMinor;
 
+            header.unicodeMajor = unicodeMajor;
 
-            header.unicodeMajor =
-                unicodeMajor;
+            header.unicodeMinor = unicodeMinor;
 
-            header.unicodeMinor =
-                unicodeMinor;
-
-            header.unicodePatch =
-                unicodePatch;
+            header.unicodePatch = unicodePatch;
 
 
             header.headerSize =
-                static_cast<uint32_t>(
-                    sizeof(UnicodeDatabaseHeader));
+                sizeof(UnicodeDatabaseHeader) +
+                sizeof(UnicodeDatabaseHeader17Extension);
 
-            header.databaseSize =
-                layout.databaseSize;
 
-            header.byteOrder =
-                kUnicodeDatabaseByteOrder;
+            header.databaseSize = layout.databaseSize;
 
-            header.flags =
-                0;
+            header.byteOrder = kUnicodeDatabaseByteOrder;
+
+            header.flags = 0;
 
 
             // ---------------------------------------------------------------
             // SET roots / pools
             // ---------------------------------------------------------------
 
-            header.coverageOffset =
-                layout.coverageOffset;
+            header.coverageOffset = layout.coverageOffset;
 
-            header.coverageCount =
-                static_cast<uint32_t>(
-                    database.coverageCount());
+            header.coverageCount = static_cast<uint32_t>(database.coverageCount());
 
 
-            header.masterPageOffset =
-                layout.masterPageOffset;
+            header.masterPageOffset = layout.masterPageOffset;
 
-            header.masterPageCount =
-                static_cast<uint32_t>(
-                    database.pagePool().masterPageCount());
+            header.masterPageCount = static_cast<uint32_t>(database.pagePool().masterPageCount());
 
 
-            header.bitPageOffset =
-                layout.bitPageOffset;
+            header.bitPageOffset = layout.bitPageOffset;
 
-            header.bitPageCount =
-                static_cast<uint32_t>(
-                    database.pagePool().bitPageCount());
+            header.bitPageCount = static_cast<uint32_t>(database.pagePool().bitPageCount());
 
 
             // ---------------------------------------------------------------
             // Semantic directories
             // ---------------------------------------------------------------
 
-            header.blockOffset =
-                layout.blockOffset;
+            header.blockOffset = layout.blockOffset;
 
-            header.blockCount =
-                static_cast<uint32_t>(
-                    database.blockCount());
+            header.blockCount = static_cast<uint32_t>(database.blockCount());
 
+            header.scriptOffset = layout.scriptOffset;
 
-            header.scriptOffset =
-                layout.scriptOffset;
-
-            header.scriptCount =
-                static_cast<uint32_t>(
-                    database.scriptCount());
+            header.scriptCount = static_cast<uint32_t>(database.scriptCount());
 
 
             header.propertyOffset =
                 layout.propertyOffset;
 
-            header.propertyCount =
-                static_cast<uint32_t>(
-                    database.propertyCount());
+            header.propertyCount = static_cast<uint32_t>(database.propertyCount());
 
 
             // ---------------------------------------------------------------
             // String pool
             // ---------------------------------------------------------------
 
-            header.stringPoolOffset =
-                layout.stringPoolOffset;
+            header.stringPoolOffset = layout.stringPoolOffset;
 
             header.stringPoolSize =
                 static_cast<uint32_t>(
@@ -674,12 +694,9 @@ namespace waavs
             // VALUE8 leaf-page pool
             // ---------------------------------------------------------------
 
-            header.valuePage8Offset =
-                layout.valuePage8Offset;
+            header.valuePage8Offset = layout.valuePage8Offset;
 
-            header.valuePage8Count =
-                static_cast<uint32_t>(
-                    database.valuePagePool8().valuePageCount());
+            header.valuePage8Count =  static_cast<uint32_t>( database.valuePagePool8().valuePageCount());
 
 
             // ---------------------------------------------------------------
@@ -688,10 +705,7 @@ namespace waavs
             // Zero means this database does not contain decomposition data.
             // ---------------------------------------------------------------
 
-            header.decompositionOffset =
-                database.hasDecomposition()
-                ? layout.decompositionOffset
-                : 0;
+            header.decompositionOffset = database.hasDecomposition() ? layout.decompositionOffset  : 0;
 
 
             // ---------------------------------------------------------------
@@ -710,10 +724,24 @@ namespace waavs
             // Write header
             // ---------------------------------------------------------------
 
-            std::memcpy(
-                result.data(),
-                &header,
-                sizeof(header));
+            std::memcpy(result.data(),&header, sizeof(header));
+
+            // ================================================================
+            // Format 1.7 header extension
+            // ================================================================
+
+            UnicodeDatabaseHeader17Extension header17{};
+
+
+            header17.scriptExtensionsOffset =
+                database.scriptExtensionRangeCount() != 0
+                ? layout.scriptExtensionsOffset
+                : 0;
+
+
+            std::memcpy( result.data() + sizeof(UnicodeDatabaseHeader),
+                &header17,
+                sizeof(header17));
 
 
             // ================================================================
@@ -826,6 +854,48 @@ namespace waavs
                     sizeof(section));
             }
 
+            // ================================================================
+            // Script_Extensions descriptor
+            // ================================================================
+
+            if (database.scriptExtensionRangeCount() != 0)
+            {
+                UnicodeScriptExtensionsSection section{};
+
+
+                section.rangeOffset = layout.scriptExtensionRangeOffset;
+
+                section.rangeCount = static_cast<uint32_t>( database.scriptExtensionRangeCount());
+
+
+                section.setOffset = layout.scriptSetOffset;
+
+                section.setCount = static_cast<uint32_t>( database.scriptSetCount());
+
+
+                std::memcpy(result.data() + layout.scriptExtensionsOffset,
+                    &section,
+                    sizeof(section));
+            }
+
+
+            // ================================================================
+            // Script_Extensions data
+            // ================================================================
+
+            if (database.scriptExtensionRangeCount() != 0)
+            {
+                copyArray(
+                    result,
+                    layout.scriptExtensionRangeOffset,
+                    database.scriptExtensionRanges());
+
+
+                copyArray(
+                    result,
+                    layout.scriptSetOffset,
+                    database.scriptSets());
+            }
 
             // ================================================================
             // SET pools
@@ -1052,11 +1122,11 @@ namespace waavs
         // the UnicodeDecompositionSection persistent contract.
         // ====================================================================
 
-        static bool calculateLayout(const UnicodeDatabaseBuilder& database,
-            Layout& outLayout) noexcept
+        static bool calculateLayout(const UnicodeDatabaseBuilder& database, Layout& outLayout) noexcept
         {
             uint64_t cursor =
-                sizeof(UnicodeDatabaseHeader);
+                sizeof(UnicodeDatabaseHeader) +
+                sizeof(UnicodeDatabaseHeader17Extension);
 
 
             // ================================================================
@@ -1204,14 +1274,101 @@ namespace waavs
                 }
             }
 
+            // ================================================================
+            // Script_Extensions descriptor
+            // ================================================================
+
+            if (database.scriptExtensionRangeCount() != 0)
+            {
+                if (!alignCursor(
+                    cursor,
+                    alignof(UnicodeScriptExtensionsSection)))
+                {
+                    return false;
+                }
+
+
+                if (!fitsUint32(cursor))
+                    return false;
+
+
+                outLayout.scriptExtensionsOffset =
+                    static_cast<uint32_t>(cursor);
+
+
+                if (!advanceArray<UnicodeScriptExtensionsSection>(
+                    cursor,
+                    1))
+                {
+                    return false;
+                }
+            }
+
+            // ================================================================
+            // Script_Extensions range array
+            // ================================================================
+
+            if (database.scriptExtensionRangeCount() != 0)
+            {
+                if (!alignCursor(
+                    cursor,
+                    alignof(UnicodeScriptExtensionRange)))
+                {
+                    return false;
+                }
+
+
+                if (!fitsUint32(cursor))
+                    return false;
+
+
+                outLayout.scriptExtensionRangeOffset =
+                    static_cast<uint32_t>(cursor);
+
+
+                if (!advanceArray<UnicodeScriptExtensionRange>(
+                    cursor,
+                    database.scriptExtensionRangeCount()))
+                {
+                    return false;
+                }
+            }
+
+            // ================================================================
+            // Script_Extensions set array
+            // ================================================================
+
+            if (database.scriptSetCount() != 0)
+            {
+                if (!alignCursor(
+                    cursor,
+                    alignof(UnicodeScriptSet)))
+                {
+                    return false;
+                }
+
+
+                if (!fitsUint32(cursor))
+                    return false;
+
+
+                outLayout.scriptSetOffset =
+                    static_cast<uint32_t>(cursor);
+
+
+                if (!advanceArray<UnicodeScriptSet>(
+                    cursor,
+                    database.scriptSetCount()))
+                {
+                    return false;
+                }
+            }
 
             // ================================================================
             // SET master-page pool
             // ================================================================
 
-            if (!alignCursor(
-                cursor,
-                kUnicodeDatabasePoolAlignment))
+            if (!alignCursor( cursor, kUnicodeDatabasePoolAlignment))
             {
                 return false;
             }
@@ -1221,13 +1378,10 @@ namespace waavs
                 return false;
 
 
-            outLayout.masterPageOffset =
-                static_cast<uint32_t>(cursor);
+            outLayout.masterPageOffset = static_cast<uint32_t>(cursor);
 
 
-            if (!advanceArray<UnicodeMasterPage>(
-                cursor,
-                database.pagePool().masterPageCount()))
+            if (!advanceArray<UnicodeMasterPage>( cursor, database.pagePool().masterPageCount()))
             {
                 return false;
             }
@@ -1494,11 +1648,9 @@ namespace waavs
         // ====================================================================
 
         [[nodiscard]]
-        static bool validateDecomposition(
-            const UnicodeDatabaseBuilder& database) noexcept
+        static bool validateDecomposition( const UnicodeDatabaseBuilder& database) noexcept
         {
-            const UnicodeDecompositionPagePoolBuilder& pool =
-                database.decompositionPagePool();
+            const UnicodeDecompositionPagePoolBuilder& pool = database.decompositionPagePool();
 
 
             // ---------------------------------------------------------------
@@ -1515,16 +1667,14 @@ namespace waavs
             }
 
 
-            const size_t recordCount =
-                database.decompositionRecordCount();
+            const size_t recordCount = database.decompositionRecordCount();
 
 
             // ---------------------------------------------------------------
             // Validate decomposition records.
             // ---------------------------------------------------------------
 
-            for (const UnicodeDecompositionRecord& record :
-                database.decompositionRecords())
+            for (const UnicodeDecompositionRecord& record : database.decompositionRecords())
             {
                 if (record.first >= kUnicodeLimit)
                     return false;
@@ -1542,8 +1692,7 @@ namespace waavs
             // Root -> master pages.
             // ---------------------------------------------------------------
 
-            const UnicodeDecompositionData& data =
-                database.decomposition();
+            const UnicodeDecompositionData& data = database.decomposition();
 
 
             for (uint32_t mi = 0; mi < kUnicodeMasterCount; ++mi)
@@ -1565,8 +1714,7 @@ namespace waavs
             // Master pages -> leaf pages.
             // ---------------------------------------------------------------
 
-            for (const UnicodeDecompositionMasterPage& master :
-                pool.masterPages())
+            for (const UnicodeDecompositionMasterPage& master : pool.masterPages())
             {
                 for (uint32_t si = 0; si < kUnicodeSubsPerMaster; ++si)
                 {
@@ -1588,14 +1736,11 @@ namespace waavs
             // Leaf pages -> decomposition records.
             // ---------------------------------------------------------------
 
-            for (const UnicodeDecompositionPage& page :
-                pool.pages())
+            for (const UnicodeDecompositionPage& page : pool.pages())
             {
                 for (uint32_t i = 0; i < kUnicodeSubSize; ++i)
                 {
-                    const UnicodeDecompositionRecordRef ref =
-                        page.mapping[i];
-
+                    const UnicodeDecompositionRecordRef ref = page.mapping[i];
 
                     if (ref == kUnicodeDecompositionRecordNone)
                         continue;
@@ -1604,6 +1749,170 @@ namespace waavs
                     if (unicodeDecompositionRecordIndex(ref) >= recordCount)
                         return false;
                 }
+            }
+
+
+            return true;
+        }
+
+        // ====================================================================
+        // validateScriptExtensions
+        //
+        // Validate the sparse Script_Extensions representation before
+        // serialization.
+        //
+        // An absent dataset has neither ranges nor sets.
+        //
+        // A present dataset requires:
+        //
+        //      - at least one range
+        //      - at least one set
+        //      - ordered, non-overlapping ranges
+        //      - valid set references
+        //      - non-empty sets
+        //      - valid Script indices
+        //      - no duplicate physical sets
+        //      - no unreferenced physical sets
+        // ====================================================================
+
+        [[nodiscard]]
+        static bool validateScriptExtensions( const UnicodeDatabaseBuilder& database) noexcept
+        {
+            const std::vector<UnicodeScriptExtensionRange>& ranges =
+                database.scriptExtensionRanges();
+
+            const std::vector<UnicodeScriptSet>& sets =
+                database.scriptSets();
+
+
+            // ----------------------------------------------------------------
+            // Completely absent is valid.
+            // ----------------------------------------------------------------
+
+            if (ranges.empty() && sets.empty())
+                return true;
+
+
+            // ----------------------------------------------------------------
+            // Partially present is not valid.
+            // ----------------------------------------------------------------
+
+            if (ranges.empty() || sets.empty())
+                return false;
+
+
+            if (database.scriptCount() == 0)
+                return false;
+
+
+            // ----------------------------------------------------------------
+            // Validate physical Script sets.
+            // ----------------------------------------------------------------
+
+            for (size_t i = 0; i < sets.size(); ++i)
+            {
+                const UnicodeScriptSet& set =
+                    sets[i];
+
+
+                if (set.empty())
+                    return false;
+
+                // Script index 255 is permanently reserved as invalid.
+                if ((set.bits[3] & 
+                    (uint64_t(1) << 63)) != 0)
+                    return false;
+
+                // No set may contain an index beyond the Script record array.
+
+                for (uint32_t scriptIndex = static_cast<uint32_t>(database.scriptCount());
+                    scriptIndex <
+                    static_cast<uint32_t>(kUnicodeScriptIndexInvalid);
+                    ++scriptIndex)
+                {
+                    if (set.contains(
+                        static_cast<UnicodeScriptIndex>(scriptIndex)))
+                    {
+                        return false;
+                    }
+
+                }
+
+
+                // Physical sets are expected to have been deduplicated.
+
+                for (size_t previous = 0; previous < i; ++previous)
+                {
+                    if (sets[previous] == set)
+                        return false;
+                }
+            }
+
+
+            // ----------------------------------------------------------------
+            // Validate range ordering and references.
+            // ----------------------------------------------------------------
+
+            uint32_t previousLast = 0;
+            bool havePrevious = false;
+
+
+            for (const UnicodeScriptExtensionRange& range : ranges)
+            {
+                if (range.first > range.last)
+                    return false;
+
+                if (range.last >= kUnicodeLimit)
+                    return false;
+
+                if (range.reserved != 0)
+                    return false;
+
+                if (range.setIndex >= sets.size())
+                    return false;
+
+
+                if (havePrevious &&
+                    range.first <= previousLast)
+                {
+                    return false;
+                }
+
+
+                previousLast =
+                    range.last;
+
+                havePrevious =
+                    true;
+            }
+
+
+            // ----------------------------------------------------------------
+            // Every physical set should be referenced by at least one range.
+            //
+            // The dataset is tiny, so avoid allocating temporary validation
+            // storage and simply scan the range array.
+            // ----------------------------------------------------------------
+
+            for (size_t setIndex = 0;
+                setIndex < sets.size();
+                ++setIndex)
+            {
+                bool referenced = false;
+
+
+                for (const UnicodeScriptExtensionRange& range : ranges)
+                {
+                    if (range.setIndex == setIndex)
+                    {
+                        referenced = true;
+                        break;
+                    }
+                }
+
+
+                if (!referenced)
+                    return false;
             }
 
 

@@ -21,6 +21,7 @@
 #include "ucd_property_value_aliases_parser.h"
 #include "ucd_normalization_props_parser.h"
 #include "ucd_scripts_parser.h"
+#include "ucd_script_extensions_parser.h"
 #include "ucd_unicode_data_parser.h"
 
 #include "unicode_database.h"
@@ -273,6 +274,39 @@ namespace waavs
             return false;
         }
 
+        if (!database.hasScript())
+        {
+            std::printf(
+                "Written database has no Script VALUE8 table\n");
+
+            return false;
+        }
+
+        if (!database.hasScriptExtensions())
+        {
+            std::printf(
+                "Written database has no Script_Extensions data\n");
+
+            return false;
+        }
+
+        if (database.scriptExtensionRangeCount() != 206)
+        {
+            std::printf(
+                "Unexpected Script_Extensions range count: %u\n",
+                database.scriptExtensionRangeCount());
+
+            return false;
+        }
+
+        if (database.scriptSetCount() != 118)
+        {
+            std::printf(
+                "Unexpected Script set count: %u\n",
+                database.scriptSetCount());
+
+            return false;
+        }
 
         if (database.decompositionRecordCount() != 2081)
         {
@@ -419,12 +453,9 @@ namespace waavs
     //
     // ========================================================================
 
-    static inline bool buildUnicodeDatabase17(
-        const char* ucdRoot,
-        const char* outputFilename)
+    static inline bool buildUnicodeDatabase17(const char* ucdRoot, const char* outputFilename)
     {
-        if (!ucdRoot ||
-            !outputFilename)
+        if (!ucdRoot || !outputFilename)
         {
             return false;
         }
@@ -441,8 +472,8 @@ namespace waavs
         database.reserveBlocks(346);
         database.reserveProperties(1);
         database.reserveScripts(176);
-        database.reserveValueProperties8(5);
-        database.reserveValueTables8(5);
+        database.reserveValueProperties8(6);
+        database.reserveValueTables8(6);
 
 
         // ====================================================================
@@ -679,6 +710,35 @@ namespace waavs
                 result.unknownCodePoints);
         }
 
+        // ====================================================================
+        // ScriptExtensions.txt
+        //
+        // Scripts.txt must be parsed first so Script indices are established.
+        // ====================================================================
+
+        {
+            const std::string filename = ucdJoinPath(ucdRoot, "ScriptExtensions.txt");
+
+            UCDSourceFile source;
+
+            if (!ucdLoadFile(filename, source))
+                return false;
+
+            if (!ucdParseScriptExtensions(source.span(), scriptAliases, database))
+            {
+                std::printf(
+                    "ScriptExtensions.txt parse failed\n");
+
+                return false;
+            }
+
+            std::printf(
+                "ScriptExtensions.txt: PASS\n"
+                "  Explicit ranges:      %zu\n"
+                "  Unique Script sets:   %zu\n",
+                database.scriptExtensionRangeCount(),
+                database.scriptSetCount());
+        }
 
         // ====================================================================
         // General_Category
@@ -1413,6 +1473,8 @@ namespace waavs
             "\nDatabase construction complete\n"
             "  Blocks:                   %zu\n"
             "  Scripts:                  %zu\n"
+            "  Script extension ranges:  %zu\n"
+            "  Script sets:              %zu\n"
             "  Binary properties:        %zu\n"
             "  Coverages:                %zu\n"
             "  VALUE8 properties:        %zu\n"
@@ -1422,6 +1484,8 @@ namespace waavs
             "  String pool bytes:        %zu\n",
             database.blockCount(),
             database.scriptCount(),
+            database.scriptExtensionRangeCount(),
+            database.scriptSetCount(),
             database.propertyCount(),
             database.coverageCount(),
             database.valueProperty8Count(),
@@ -1466,6 +1530,27 @@ namespace waavs
         (void)valueStats;
         (void)decompositionStats;
 
+        // ====================================================================
+        // Unicode 17 Script_Extensions invariants
+        // ====================================================================
+
+        if (database.scriptExtensionRangeCount() != 206)
+        {
+            std::printf(
+                "Unexpected Script_Extensions range count: %zu\n",
+                database.scriptExtensionRangeCount());
+
+            return false;
+        }
+
+        if (database.scriptSetCount() != 118)
+        {
+            std::printf(
+                "Unexpected Script_Extensions set count: %zu\n",
+                database.scriptSetCount());
+
+            return false;
+        }
 
         // ====================================================================
         // Serialize real .ucdb file

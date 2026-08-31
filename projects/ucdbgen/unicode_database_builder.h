@@ -18,7 +18,7 @@
 #include "unicode_decomposition_page_pool_builder.h"
 #include "unicode_page_pool_builder.h"
 #include "unicode_value_page_pool_builder8.h"
-
+#include "unicode_script_extensions_data.h"
 
 namespace waavs
 {
@@ -142,6 +142,8 @@ namespace waavs
 
             mBlocks.clear();
             mScripts.clear();
+            mScriptSets.clear();
+            mScriptExtensionRanges.clear();
             mProperties.clear();
 
             mStringPool.clear();
@@ -796,6 +798,66 @@ namespace waavs
             return true;
         }
 
+        bool addScriptSet(const UnicodeScriptSet& set, UnicodeScriptSetIndex& outIndex)
+        {
+            if (set.empty())
+                return false;
+
+            for (size_t i = 0; i < mScriptSets.size(); ++i)
+            {
+                if (mScriptSets[i] == set)
+                {
+                    outIndex =
+                        static_cast<UnicodeScriptSetIndex>(i);
+
+                    return true;
+                }
+            }
+
+            if (mScriptSets.size() >=
+                static_cast<size_t>(kUnicodeScriptSetIndexInvalid))
+            {
+                return false;
+            }
+
+            outIndex =
+                static_cast<UnicodeScriptSetIndex>(
+                    mScriptSets.size());
+
+            mScriptSets.push_back(set);
+
+            return true;
+        }
+
+
+        bool addScriptExtensionRange(uint32_t first, uint32_t last,
+            UnicodeScriptSetIndex setIndex)
+        {
+            if (first > last || last >= kUnicodeLimit)
+                return false;
+
+            if (setIndex >= mScriptSets.size())
+                return false;
+
+            if (!mScriptExtensionRanges.empty())
+            {
+                const UnicodeScriptExtensionRange& previous = mScriptExtensionRanges.back();
+
+                if (first <= previous.last)
+                    return false;
+            }
+
+            UnicodeScriptExtensionRange record{};
+
+            record.first = first;
+            record.last = last;
+            record.setIndex = setIndex;
+            record.reserved = 0;
+
+            mScriptExtensionRanges.push_back(record);
+
+            return true;
+        }
 
         // ====================================================================
         // Binary SET properties
@@ -1034,6 +1096,16 @@ namespace waavs
             return mScripts;
         }
 
+        [[nodiscard]] const std::vector<UnicodeScriptSet>& scriptSets() const noexcept
+        {
+            return mScriptSets;
+        }
+
+        [[nodiscard]] const std::vector<UnicodeScriptExtensionRange>& scriptExtensionRanges() const noexcept
+        {
+            return mScriptExtensionRanges;
+        }
+
 
         [[nodiscard]]
         const std::vector<UnicodePropertyRecord>& properties() const noexcept
@@ -1195,14 +1267,28 @@ namespace waavs
             return mScripts.size();
         }
 
+        // ScriptSet Accessors
 
+        [[nodiscard]]
+        size_t scriptSetCount() const noexcept
+        {
+            return mScriptSets.size();
+        }
+
+        [[nodiscard]]
+        size_t scriptExtensionRangeCount() const noexcept
+        {
+            return mScriptExtensionRanges.size();
+        }
+
+        // Property
         [[nodiscard]]
         size_t propertyCount() const noexcept
         {
             return mProperties.size();
         }
 
-
+        // String pool
         [[nodiscard]]
         size_t stringPoolSize() const noexcept
         {
@@ -1243,8 +1329,13 @@ namespace waavs
         bool mHasComposition{ false };
 
         std::vector<UnicodeBlockRecord> mBlocks;
-        std::vector<UnicodeScriptRecord> mScripts;
         std::vector<UnicodePropertyRecord> mProperties;
+
+        std::vector<UnicodeScriptRecord> mScripts;
+        std::vector<UnicodeScriptSet> mScriptSets;
+        std::vector<UnicodeScriptExtensionRange> mScriptExtensionRanges;
+
+
 
         std::vector<uint8_t> mStringPool;
 
