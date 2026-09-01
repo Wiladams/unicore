@@ -160,8 +160,10 @@ namespace waavs
     //      X10     isolating run sequences and sos/eos
     //      W1      nonspacing mark resolution
     //      W2      EN after AL resolution
-    //
-    // This intentionally does NOT test W3-W7/N/I resolution yet.
+    //      W3      AL to R resolution
+    //      W4      numeric separator resolution
+    // 
+    // This intentionally does NOT test W5-W7/N/I resolution yet.
     // ========================================================================
 
     static bool testUnicodeBidiAnalysis(const ByteSpan& databaseData)
@@ -186,6 +188,18 @@ namespace waavs
 
         uint32_t w3Cases = 0;
         uint32_t w3Passed = 0;
+
+        uint32_t w4Cases = 0;
+        uint32_t w4Passed = 0;
+
+        uint32_t w5Cases = 0;
+        uint32_t w5Passed = 0;
+
+        uint32_t w6Cases = 0;
+        uint32_t w6Passed = 0;
+
+        uint32_t w7Cases = 0;
+        uint32_t w7Passed = 0;
 
         uint32_t streamCases = 0;
         uint32_t streamPassed = 0;
@@ -3483,7 +3497,1879 @@ namespace waavs
 
 
 
+            // ====================================================================
+// W4 numeric-separator resolution
+// ====================================================================
 
+            auto checkW4 =
+                [&](std::initializer_list<UnicodeBidiClass> originalTypeList,
+                    std::initializer_list<UnicodeBidiClass> workingTypeList,
+                    std::initializer_list<UnicodeBidiLevel> levelList,
+                    UnicodeBidiLevel paragraphLevel,
+                    std::initializer_list<UnicodeBidiClass> expectedTypeList,
+                    const char* description) -> bool
+                {
+                    ++w4Cases;
+
+
+                    if (originalTypeList.size() != workingTypeList.size() ||
+                        originalTypeList.size() != levelList.size() ||
+                        originalTypeList.size() != expectedTypeList.size())
+                    {
+                        return fail(
+                            "internal W4 test definition has mismatched lengths");
+                    }
+
+
+                    std::vector<UnicodeBidiClass> originalTypes(
+                        originalTypeList.begin(),
+                        originalTypeList.end());
+
+                    std::vector<UnicodeBidiClass> types(
+                        workingTypeList.begin(),
+                        workingTypeList.end());
+
+                    std::vector<UnicodeBidiLevel> levels(
+                        levelList.begin(),
+                        levelList.end());
+
+                    std::vector<UnicodeBidiClass> expectedTypes(
+                        expectedTypeList.begin(),
+                        expectedTypeList.end());
+
+
+                    std::vector<uint32_t> bidiIndices;
+
+                    for (uint32_t i = 0;
+                        i < static_cast<uint32_t>(types.size());
+                        ++i)
+                    {
+                        bidiIndices.push_back(i);
+                    }
+
+
+                    std::vector<BidiLevelRun> runs;
+                    std::vector<uint32_t> runForPosition;
+                    std::vector<uint32_t> matches;
+                    std::vector<uint32_t> sequenceRunIndices;
+                    std::vector<BidiIsolatingRunSequence> sequences;
+
+
+                    if (!buildBidiLevelRuns(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        levels.empty() ? nullptr : levels.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        runForPosition))
+                    {
+                        return fail("W4 level-run construction failed");
+                    }
+
+
+                    if (!buildBidiIsolateMatches(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        static_cast<uint32_t>(types.size()),
+                        matches))
+                    {
+                        return fail("W4 isolate matching failed");
+                    }
+
+
+                    if (!buildBidiIsolatingRunSequences(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        levels.empty() ? nullptr : levels.data(),
+                        static_cast<uint32_t>(types.size()),
+                        paragraphLevel,
+                        runs,
+                        runForPosition,
+                        matches,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W4 isolating run sequence construction failed");
+                    }
+
+
+                    // W4 runs after W1-W3.
+
+                    if (!resolveBidiWeakTypesW1(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W4 prerequisite W1 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW2(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W4 prerequisite W2 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW3(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size())))
+                    {
+                        return fail("W4 prerequisite W3 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW4(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W4 resolution failed");
+                    }
+
+
+                    for (uint32_t i = 0;
+                        i < static_cast<uint32_t>(types.size());
+                        ++i)
+                    {
+                        if (types[i] == expectedTypes[i])
+                            continue;
+
+
+                        std::printf(
+                            "Unicode bidi analysis: FAIL: %s\n"
+                            "  Index:         %u\n"
+                            "  Expected type: %u\n"
+                            "  Actual type:   %u\n",
+                            description,
+                            i,
+                            static_cast<unsigned>(expectedTypes[i]),
+                            static_cast<unsigned>(types[i]));
+
+                        return false;
+                    }
+
+
+                    ++w4Passed;
+                    return true;
+                };
+
+
+            // --------------------------------------------------------------------
+            // W4 - ES between two EN characters becomes EN.
+            //
+            //      EN ES EN -> EN EN EN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                0,
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+                "W4 ES between EN"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 - CS between two EN characters becomes EN.
+            //
+            //      EN CS EN -> EN EN EN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                0,
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+                "W4 CS between EN"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 - CS between two AN characters becomes AN.
+            //
+            //      AN CS AN -> AN AN AN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::ArabicNumber
+                },
+            {
+                UnicodeBidiClass::ArabicNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::ArabicNumber
+            },
+            {
+                1, 1, 1
+            },
+                1,
+                {
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::ArabicNumber
+                },
+                "W4 CS between AN"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 - ES has no AN rule.
+            //
+            //      AN ES AN -> AN ES AN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::ArabicNumber
+                },
+            {
+                UnicodeBidiClass::ArabicNumber,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::ArabicNumber
+            },
+            {
+                1, 1, 1
+            },
+                1,
+                {
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::ArabicNumber
+                },
+                "W4 ES between AN remains ES"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 - mixed numeric types do not resolve CS.
+            //
+            //      EN CS AN -> EN CS AN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::ArabicNumber
+                },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::ArabicNumber
+            },
+            {
+                1, 1, 1
+            },
+                1,
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::ArabicNumber
+                },
+                "W4 mixed EN CS AN"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 - adjacent separators do not manufacture a numeric run.
+            //
+            //      EN ES ES EN -> EN ES ES EN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0, 0
+            },
+                0,
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::EuropeanSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+                "W4 adjacent separators remain unchanged"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W2-W4 interaction.
+            //
+            // Initial:
+            //
+            //      AL EN CS EN
+            //
+            // W2:
+            //
+            //      AL AN CS AN
+            //
+            // W3:
+            //
+            //      R AN CS AN
+            //
+            // W4:
+            //
+            //      R AN AN AN
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::ArabicLetter,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+            {
+                UnicodeBidiClass::ArabicLetter,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                1, 1, 1, 1
+            },
+                1,
+                {
+                    UnicodeBidiClass::RightToLeft,
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::ArabicNumber,
+                    UnicodeBidiClass::ArabicNumber
+                },
+                "W4 consumes W2 numeric conversion"))
+            {
+                return false;
+            }
+
+
+            // --------------------------------------------------------------------
+            // W4 respects isolating run sequences.
+            //
+            //      EN RLI | EN CS EN | PDI CS EN
+            //      0   0     1  1  1     0  0  0
+            //
+            // Inner isolating run sequence:
+            //
+            //      EN CS EN -> EN EN EN
+            //
+            // Outer isolating run sequence:
+            //
+            //      EN RLI PDI CS EN
+            //
+            // The outer CS follows PDI, not the EN inside the isolate, so it must
+            // remain CS.
+            // --------------------------------------------------------------------
+
+            if (!checkW4(
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::RightToLeftIsolate,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::PopDirectionalIsolate,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::RightToLeftIsolate,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::PopDirectionalIsolate,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 1, 1, 1, 0, 0, 0
+            },
+                0,
+                {
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::RightToLeftIsolate,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::EuropeanNumber,
+                    UnicodeBidiClass::PopDirectionalIsolate,
+                    UnicodeBidiClass::CommonSeparator,
+                    UnicodeBidiClass::EuropeanNumber
+                },
+                "W4 isolate contents remain separate"))
+            {
+                return false;
+            }
+
+
+
+
+            // ====================================================================
+// W5 European-terminator resolution
+// ====================================================================
+
+            auto checkW5 =
+                [&](std::initializer_list<UnicodeBidiClass> originalTypeList,
+                    std::initializer_list<UnicodeBidiClass> workingTypeList,
+                    std::initializer_list<UnicodeBidiLevel> levelList,
+                    UnicodeBidiLevel paragraphLevel,
+                    std::initializer_list<UnicodeBidiClass> expectedTypeList,
+                    const char* description) -> bool
+                {
+                    ++w5Cases;
+
+
+                    if (originalTypeList.size() != workingTypeList.size() ||
+                        originalTypeList.size() != levelList.size() ||
+                        originalTypeList.size() != expectedTypeList.size())
+                    {
+                        return fail(
+                            "internal W5 test definition has mismatched lengths");
+                    }
+
+
+                    std::vector<UnicodeBidiClass> originalTypes(
+                        originalTypeList.begin(),
+                        originalTypeList.end());
+
+                    std::vector<UnicodeBidiClass> types(
+                        workingTypeList.begin(),
+                        workingTypeList.end());
+
+                    std::vector<UnicodeBidiLevel> levels(
+                        levelList.begin(),
+                        levelList.end());
+
+                    std::vector<UnicodeBidiClass> expectedTypes(
+                        expectedTypeList.begin(),
+                        expectedTypeList.end());
+
+
+                    std::vector<uint32_t> bidiIndices;
+
+                    for (uint32_t i = 0;
+                        i < static_cast<uint32_t>(types.size());
+                        ++i)
+                    {
+                        bidiIndices.push_back(i);
+                    }
+
+
+                    std::vector<BidiLevelRun> runs;
+                    std::vector<uint32_t> runForPosition;
+                    std::vector<uint32_t> matches;
+                    std::vector<uint32_t> sequenceRunIndices;
+                    std::vector<BidiIsolatingRunSequence> sequences;
+
+
+                    if (!buildBidiLevelRuns(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        levels.empty() ? nullptr : levels.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        runForPosition))
+                    {
+                        return fail("W5 level-run construction failed");
+                    }
+
+
+                    if (!buildBidiIsolateMatches(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        static_cast<uint32_t>(types.size()),
+                        matches))
+                    {
+                        return fail("W5 isolate matching failed");
+                    }
+
+
+                    if (!buildBidiIsolatingRunSequences(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        levels.empty() ? nullptr : levels.data(),
+                        static_cast<uint32_t>(types.size()),
+                        paragraphLevel,
+                        runs,
+                        runForPosition,
+                        matches,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W5 isolating run sequence construction failed");
+                    }
+
+
+                    // W5 runs after W1-W4.
+
+                    if (!resolveBidiWeakTypesW1(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        originalTypes.empty() ? nullptr : originalTypes.data(),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W5 prerequisite W1 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW2(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W5 prerequisite W2 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW3(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size())))
+                    {
+                        return fail("W5 prerequisite W3 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW4(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W5 prerequisite W4 resolution failed");
+                    }
+
+
+                    if (!resolveBidiWeakTypesW5(
+                        bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                        static_cast<uint32_t>(bidiIndices.size()),
+                        types.empty() ? nullptr : types.data(),
+                        static_cast<uint32_t>(types.size()),
+                        runs,
+                        sequenceRunIndices,
+                        sequences))
+                    {
+                        return fail("W5 resolution failed");
+                    }
+
+
+                    for (uint32_t i = 0;
+                        i < static_cast<uint32_t>(types.size());
+                        ++i)
+                    {
+                        if (types[i] == expectedTypes[i])
+                            continue;
+
+
+                        std::printf(
+                            "Unicode bidi analysis: FAIL: %s\n"
+                            "  Index:         %u\n"
+                            "  Expected type: %u\n"
+                            "  Actual type:   %u\n",
+                            description,
+                            i,
+                            static_cast<unsigned>(expectedTypes[i]),
+                            static_cast<unsigned>(types[i]));
+
+                        return false;
+                    }
+
+
+                    ++w5Passed;
+                    return true;
+                };
+
+
+                // --------------------------------------------------------------------
+// W5 - ET sequence following EN becomes EN.
+//
+//      EN ET ET -> EN EN EN
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W5 ET sequence after EN"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+// W5 - ET sequence preceding EN becomes EN.
+//
+//      ET ET EN -> EN EN EN
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+            {
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W5 ET sequence before EN"))
+                {
+                    return false;
+                }
+
+                // --------------------------------------------------------------------
+// W5 - ET sequence surrounded by EN.
+//
+//      EN ET ET EN -> EN EN EN EN
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W5 ET sequence surrounded by EN"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+// W5 - ET without adjacent EN remains ET.
+//
+//      R ET ET R -> R ET ET R
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::RightToLeft,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::RightToLeft
+                    },
+            {
+                UnicodeBidiClass::RightToLeft,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::RightToLeft
+            },
+            {
+                1, 1, 1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::RightToLeft,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::RightToLeft
+                    },
+                    "W5 isolated ET sequence remains ET"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+// W5 - AN does not trigger ET conversion.
+//
+//      AN ET ET -> AN ET ET
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::ArabicNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::ArabicNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                1, 1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::ArabicNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+                    "W5 AN does not resolve ET"))
+                {
+                    return false;
+                }
+
+                // --------------------------------------------------------------------
+// W4 feeds W5.
+//
+// Initial:
+//
+//      EN CS EN ET ET
+//
+// W4:
+//
+//      EN EN EN ET ET
+//
+// W5:
+//
+//      EN EN EN EN EN
+// --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::CommonSeparator,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                0, 0, 0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W5 consumes W4 EN conversion"))
+                {
+                    return false;
+                }
+
+                // --------------------------------------------------------------------
+                // W2 can remove the EN that W5 would otherwise use.
+                //
+                // Initial:
+                //
+                //      AL EN ET
+                //
+                // W2:
+                //
+                //      AL AN ET
+                //
+                // W3:
+                //
+                //      R AN ET
+                //
+                // W5 must therefore leave ET unchanged.
+                // --------------------------------------------------------------------
+
+                if (!checkW5(
+                    {
+                        UnicodeBidiClass::ArabicLetter,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::ArabicLetter,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                1, 1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::RightToLeft,
+                        UnicodeBidiClass::ArabicNumber,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+                    "W5 respects W2 EN to AN conversion"))
+                {
+                    return false;
+                }
+
+
+                // ====================================================================
+                // W6 separator and terminator resolution
+                // ====================================================================
+
+                auto checkW6 =
+                    [&](std::initializer_list<UnicodeBidiClass> originalTypeList,
+                        std::initializer_list<UnicodeBidiClass> workingTypeList,
+                        std::initializer_list<UnicodeBidiLevel> levelList,
+                        UnicodeBidiLevel paragraphLevel,
+                        std::initializer_list<UnicodeBidiClass> expectedTypeList,
+                        const char* description) -> bool
+                    {
+                        ++w6Cases;
+
+
+                        if (originalTypeList.size() != workingTypeList.size() ||
+                            originalTypeList.size() != levelList.size() ||
+                            originalTypeList.size() != expectedTypeList.size())
+                        {
+                            return fail(
+                                "internal W6 test definition has mismatched lengths");
+                        }
+
+
+                        std::vector<UnicodeBidiClass> originalTypes(
+                            originalTypeList.begin(),
+                            originalTypeList.end());
+
+                        std::vector<UnicodeBidiClass> types(
+                            workingTypeList.begin(),
+                            workingTypeList.end());
+
+                        std::vector<UnicodeBidiLevel> levels(
+                            levelList.begin(),
+                            levelList.end());
+
+                        std::vector<UnicodeBidiClass> expectedTypes(
+                            expectedTypeList.begin(),
+                            expectedTypeList.end());
+
+
+                        std::vector<uint32_t> bidiIndices;
+
+                        for (uint32_t i = 0;
+                            i < static_cast<uint32_t>(types.size());
+                            ++i)
+                        {
+                            bidiIndices.push_back(i);
+                        }
+
+
+                        std::vector<BidiLevelRun> runs;
+                        std::vector<uint32_t> runForPosition;
+                        std::vector<uint32_t> matches;
+                        std::vector<uint32_t> sequenceRunIndices;
+                        std::vector<BidiIsolatingRunSequence> sequences;
+
+
+                        if (!buildBidiLevelRuns(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            levels.empty() ? nullptr : levels.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            runForPosition))
+                        {
+                            return fail("W6 level-run construction failed");
+                        }
+
+
+                        if (!buildBidiIsolateMatches(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            static_cast<uint32_t>(types.size()),
+                            matches))
+                        {
+                            return fail("W6 isolate matching failed");
+                        }
+
+
+                        if (!buildBidiIsolatingRunSequences(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            levels.empty() ? nullptr : levels.data(),
+                            static_cast<uint32_t>(types.size()),
+                            paragraphLevel,
+                            runs,
+                            runForPosition,
+                            matches,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W6 isolating run sequence construction failed");
+                        }
+
+
+                        // W6 runs after W1-W5.
+
+                        if (!resolveBidiWeakTypesW1(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W6 prerequisite W1 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW2(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W6 prerequisite W2 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW3(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size())))
+                        {
+                            return fail("W6 prerequisite W3 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW4(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W6 prerequisite W4 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW5(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W6 prerequisite W5 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW6(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size())))
+                        {
+                            return fail("W6 resolution failed");
+                        }
+
+
+                        for (uint32_t i = 0;
+                            i < static_cast<uint32_t>(types.size());
+                            ++i)
+                        {
+                            if (types[i] == expectedTypes[i])
+                                continue;
+
+
+                            std::printf(
+                                "Unicode bidi analysis: FAIL: %s\n"
+                                "  Index:         %u\n"
+                                "  Expected type: %u\n"
+                                "  Actual type:   %u\n",
+                                description,
+                                i,
+                                static_cast<unsigned>(expectedTypes[i]),
+                                static_cast<unsigned>(types[i]));
+
+                            return false;
+                        }
+
+
+                        ++w6Passed;
+                        return true;
+                };
+
+
+                // --------------------------------------------------------------------
+// W6 - remaining ET becomes ON.
+//
+//      AN ET -> AN ON
+// --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::ArabicNumber,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::ArabicNumber,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::ArabicNumber,
+                        UnicodeBidiClass::OtherNeutral
+                    },
+                    "W6 AN ET"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W6 - remaining ES becomes ON.
+                //
+                //      L ES EN -> L ON EN
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::LeftToRight,
+                        UnicodeBidiClass::EuropeanSeparator,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+            {
+                UnicodeBidiClass::LeftToRight,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::LeftToRight,
+                        UnicodeBidiClass::OtherNeutral,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W6 L ES EN"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W6 - remaining CS between unlike numbers becomes ON.
+                //
+                //      EN CS AN -> EN ON AN
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::CommonSeparator,
+                        UnicodeBidiClass::ArabicNumber
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::ArabicNumber
+            },
+            {
+                1, 1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::OtherNeutral,
+                        UnicodeBidiClass::ArabicNumber
+                    },
+                    "W6 EN CS AN"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W6 - leading ET not adjacent to EN becomes ON.
+                //
+                //      ET AN -> ON AN
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::ArabicNumber
+                    },
+            {
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::ArabicNumber
+            },
+            {
+                1, 1
+            },
+                    1,
+                    {
+                        UnicodeBidiClass::OtherNeutral,
+                        UnicodeBidiClass::ArabicNumber
+                    },
+                    "W6 ET AN"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W6 converts all three remaining weak punctuation types.
+                //
+                //      ES ET CS -> ON ON ON
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::EuropeanSeparator,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::CommonSeparator
+                    },
+            {
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::CommonSeparator
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::OtherNeutral,
+                        UnicodeBidiClass::OtherNeutral,
+                        UnicodeBidiClass::OtherNeutral
+                    },
+                    "W6 converts all remaining separators"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W4 result survives W6.
+                //
+                //      EN CS EN
+                //
+                // W4:
+                //
+                //      EN EN EN
+                //
+                // W6 must not alter the resolved middle EN.
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::CommonSeparator,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::CommonSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W6 preserves W4 CS conversion"))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------------------
+                // W5 result survives W6.
+                //
+                //      EN ET ET
+                //
+                // W5:
+                //
+                //      EN EN EN
+                //
+                // W6 must not convert those resolved EN values to ON.
+                // --------------------------------------------------------------------
+
+                if (!checkW6(
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanTerminator,
+                        UnicodeBidiClass::EuropeanTerminator
+                    },
+            {
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                0, 0, 0
+            },
+                    0,
+                    {
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber,
+                        UnicodeBidiClass::EuropeanNumber
+                    },
+                    "W6 preserves W5 ET conversion"))
+                {
+                    return false;
+                }
+
+
+                // ====================================================================
+// W7 European-number strong-direction resolution
+// ====================================================================
+
+                auto checkW7 =
+                    [&](std::initializer_list<UnicodeBidiClass> originalTypeList,
+                        std::initializer_list<UnicodeBidiClass> workingTypeList,
+                        std::initializer_list<UnicodeBidiLevel> levelList,
+                        UnicodeBidiLevel paragraphLevel,
+                        std::initializer_list<UnicodeBidiClass> expectedTypeList,
+                        const char* description) -> bool
+                    {
+                        ++w7Cases;
+
+
+                        if (originalTypeList.size() != workingTypeList.size() ||
+                            originalTypeList.size() != levelList.size() ||
+                            originalTypeList.size() != expectedTypeList.size())
+                        {
+                            return fail(
+                                "internal W7 test definition has mismatched lengths");
+                        }
+
+
+                        std::vector<UnicodeBidiClass> originalTypes(
+                            originalTypeList.begin(),
+                            originalTypeList.end());
+
+                        std::vector<UnicodeBidiClass> types(
+                            workingTypeList.begin(),
+                            workingTypeList.end());
+
+                        std::vector<UnicodeBidiLevel> levels(
+                            levelList.begin(),
+                            levelList.end());
+
+                        std::vector<UnicodeBidiClass> expectedTypes(
+                            expectedTypeList.begin(),
+                            expectedTypeList.end());
+
+
+                        std::vector<uint32_t> bidiIndices;
+
+                        for (uint32_t i = 0;
+                            i < static_cast<uint32_t>(types.size());
+                            ++i)
+                        {
+                            bidiIndices.push_back(i);
+                        }
+
+
+                        std::vector<BidiLevelRun> runs;
+                        std::vector<uint32_t> runForPosition;
+                        std::vector<uint32_t> matches;
+                        std::vector<uint32_t> sequenceRunIndices;
+                        std::vector<BidiIsolatingRunSequence> sequences;
+
+
+                        if (!buildBidiLevelRuns(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            levels.empty() ? nullptr : levels.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            runForPosition))
+                        {
+                            return fail("W7 level-run construction failed");
+                        }
+
+
+                        if (!buildBidiIsolateMatches(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            static_cast<uint32_t>(types.size()),
+                            matches))
+                        {
+                            return fail("W7 isolate matching failed");
+                        }
+
+
+                        if (!buildBidiIsolatingRunSequences(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            levels.empty() ? nullptr : levels.data(),
+                            static_cast<uint32_t>(types.size()),
+                            paragraphLevel,
+                            runs,
+                            runForPosition,
+                            matches,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 isolating run sequence construction failed");
+                        }
+
+
+                        // W7 runs after W1-W6.
+
+                        if (!resolveBidiWeakTypesW1(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            originalTypes.empty() ? nullptr : originalTypes.data(),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 prerequisite W1 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW2(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 prerequisite W2 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW3(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size())))
+                        {
+                            return fail("W7 prerequisite W3 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW4(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 prerequisite W4 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW5(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 prerequisite W5 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW6(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size())))
+                        {
+                            return fail("W7 prerequisite W6 resolution failed");
+                        }
+
+
+                        if (!resolveBidiWeakTypesW7(
+                            bidiIndices.empty() ? nullptr : bidiIndices.data(),
+                            static_cast<uint32_t>(bidiIndices.size()),
+                            types.empty() ? nullptr : types.data(),
+                            static_cast<uint32_t>(types.size()),
+                            runs,
+                            sequenceRunIndices,
+                            sequences))
+                        {
+                            return fail("W7 resolution failed");
+                        }
+
+
+                        for (uint32_t i = 0;
+                            i < static_cast<uint32_t>(types.size());
+                            ++i)
+                        {
+                            if (types[i] == expectedTypes[i])
+                                continue;
+
+
+                            std::printf(
+                                "Unicode bidi analysis: FAIL: %s\n"
+                                "  Index:         %u\n"
+                                "  Expected type: %u\n"
+                                "  Actual type:   %u\n",
+                                description,
+                                i,
+                                static_cast<unsigned>(expectedTypes[i]),
+                                static_cast<unsigned>(types[i]));
+
+                            return false;
+                        }
+
+
+                        ++w7Passed;
+                        return true;
+                    };
+
+                    // --------------------------------------------------------------------
+// W7 - EN following strong L becomes L.
+//
+//      L ON EN -> L ON L
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::LeftToRight,
+                UnicodeBidiClass::OtherNeutral,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::LeftToRight
+                        },
+                        "W7 EN after L"))
+                    {
+                        return false;
+                    }
+
+                    // --------------------------------------------------------------------
+// W7 - EN following strong R remains EN.
+//
+//      R ON EN -> R ON EN
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::RightToLeft,
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::RightToLeft,
+                UnicodeBidiClass::OtherNeutral,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                1, 1, 1
+            },
+                        1,
+                        {
+                            UnicodeBidiClass::RightToLeft,
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+                        "W7 EN after R"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W7 - sos acts as the initial strong type.
+//
+// Level zero gives sos=L.
+//
+//      ON EN -> ON L
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::OtherNeutral,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::LeftToRight
+                        },
+                        "W7 L sos converts EN"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W7 - R sos leaves EN unchanged.
+//
+// Level one with paragraph level zero gives sos=R.
+//
+//      ON EN -> ON EN
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::OtherNeutral,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                1, 1
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+                        "W7 R sos preserves EN"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W2 removes an EN before W7 can process it.
+//
+// Initial:
+//
+//      AL EN
+//
+// W2:
+//
+//      AL AN
+//
+// W3:
+//
+//      R AN
+//
+// W7 has no EN to convert.
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::ArabicLetter,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::ArabicLetter,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                1, 1
+            },
+                        1,
+                        {
+                            UnicodeBidiClass::RightToLeft,
+                            UnicodeBidiClass::ArabicNumber
+                        },
+                        "W7 preserves W2 EN to AN conversion"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W5 feeds W7.
+//
+// Initial:
+//
+//      L EN ET ET
+//
+// W5:
+//
+//      L EN EN EN
+//
+// W7:
+//
+//      L L L L
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::EuropeanNumber,
+                            UnicodeBidiClass::EuropeanTerminator,
+                            UnicodeBidiClass::EuropeanTerminator
+                        },
+            {
+                UnicodeBidiClass::LeftToRight,
+                UnicodeBidiClass::EuropeanNumber,
+                UnicodeBidiClass::EuropeanTerminator,
+                UnicodeBidiClass::EuropeanTerminator
+            },
+            {
+                0, 0, 0, 0
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::LeftToRight
+                        },
+                        "W7 consumes W5 EN conversion"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W6 feeds W7.
+//
+// Initial:
+//
+//      L ES EN
+//
+// W6:
+//
+//      L ON EN
+//
+// W7 searches through ON and finds L:
+//
+//      L ON L
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::EuropeanSeparator,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::LeftToRight,
+                UnicodeBidiClass::EuropeanSeparator,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 0
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::OtherNeutral,
+                            UnicodeBidiClass::LeftToRight
+                        },
+                        "W7 searches through W6 neutral"))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------------------
+// W7 preserves strong state across constituent runs of one isolating
+// run sequence without leaking strong types from the nested isolate.
+//
+//      L RLI | R | PDI EN
+//      0  0    1    0   0
+//
+// Outer isolating run sequence:
+//
+//      L RLI PDI EN
+//
+// Inner isolating run sequence:
+//
+//      R
+//
+// Therefore the previous strong type for the outer EN is L, not the
+// R inside the isolate:
+//
+//      EN -> L
+// --------------------------------------------------------------------
+
+                    if (!checkW7(
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::RightToLeftIsolate,
+                            UnicodeBidiClass::RightToLeft,
+                            UnicodeBidiClass::PopDirectionalIsolate,
+                            UnicodeBidiClass::EuropeanNumber
+                        },
+            {
+                UnicodeBidiClass::LeftToRight,
+                UnicodeBidiClass::RightToLeftIsolate,
+                UnicodeBidiClass::RightToLeft,
+                UnicodeBidiClass::PopDirectionalIsolate,
+                UnicodeBidiClass::EuropeanNumber
+            },
+            {
+                0, 0, 1, 0, 0
+            },
+                        0,
+                        {
+                            UnicodeBidiClass::LeftToRight,
+                            UnicodeBidiClass::RightToLeftIsolate,
+                            UnicodeBidiClass::RightToLeft,
+                            UnicodeBidiClass::PopDirectionalIsolate,
+                            UnicodeBidiClass::LeftToRight
+                        },
+                        "W7 strong state does not leak from isolate"))
+                    {
+                        return false;
+                    }
 
 
 
@@ -4350,6 +6236,14 @@ namespace waavs
             "  W2 passed:           %u\n"
             "  W3 cases:            %u\n"
             "  W3 passed:           %u\n"
+            "  W4 cases:            %u\n"
+            "  W4 passed:           %u\n"
+            "  W5 cases:            %u\n"
+            "  W5 passed:           %u\n"
+            "  W6 cases:            %u\n"
+            "  W6 passed:           %u\n"
+            "  W7 cases:            %u\n"
+            "  W7 passed:           %u\n"
             "  Stream cases:        %u\n"
             "  Stream passed:       %u\n",
             helperCases,
@@ -4366,6 +6260,14 @@ namespace waavs
             w2Passed,
             w3Cases,
             w3Passed,
+            w4Cases,
+            w4Passed,
+            w5Cases,
+            w5Passed,
+            w6Cases,
+            w6Passed,
+            w7Cases,
+            w7Passed,
             streamCases,
             streamPassed);
 
@@ -4378,6 +6280,10 @@ namespace waavs
             w1Passed == w1Cases &&
             w2Passed == w2Cases &&
             w3Passed == w3Cases &&
+            w4Passed == w4Cases &&
+            w5Passed == w5Cases &&
+            w6Passed == w6Cases &&
+            w7Passed == w7Cases &&
             streamPassed == streamCases;
     }
 

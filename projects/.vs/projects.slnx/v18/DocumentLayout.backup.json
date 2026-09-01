@@ -36,7 +36,7 @@
               "RelativeDocumentMoniker": "unipiper\\test_unicode_bidi_analysis.h",
               "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h",
               "RelativeToolTip": "unipiper\\test_unicode_bidi_analysis.h",
-              "ViewState": "AgIAAAERAAAAAAAAAAAIwBsRAAAiAAAAAAAAAA==",
+              "ViewState": "AgIAAHwYAAAAAAAAAAAswI0YAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2026-08-31T04:10:08.768Z",
               "EditorCaption": ""
@@ -49,7 +49,7 @@
               "RelativeDocumentMoniker": "unipiper\\unicode_bidi_analysis.h",
               "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h",
               "RelativeToolTip": "unipiper\\unicode_bidi_analysis.h",
-              "ViewState": "AgIAAB4HAAAAAAAAAAAIwDAHAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAHAJAAAAAAAAAAAYwHoJAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2026-08-30T13:48:32.268Z",
               "EditorCaption": ""
@@ -64,8 +64,7 @@
               "RelativeToolTip": "unipiper\\unipiper.cpp",
               "ViewState": "AgIAAAMAAAAAAAAAAAAAABgAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-08-30T03:09:02.335Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-30T03:09:02.335Z"
             },
             {
               "$type": "Document",

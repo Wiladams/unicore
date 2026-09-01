@@ -1747,21 +1747,21 @@ namespace waavs
 
 
     // ========================================================================
-// resolveBidiWeakTypesW3
-//
-// UAX #9 W3.
-//
-// Change every remaining Arabic Letter type to Right-to-Left:
-//
-//      AL -> R
-//
-// W2 must already have been applied, because W2 still needs to distinguish
-// AL from R when deciding whether EN becomes AN.
-//
-// This rule has no contextual dependency, so scanning the post-X9 scalar
-// sequence is equivalent to processing each isolating run sequence
-// separately.
-// ========================================================================
+    // resolveBidiWeakTypesW3
+    //
+    // UAX #9 W3.
+    //
+    // Change every remaining Arabic Letter type to Right-to-Left:
+    //
+    //      AL -> R
+    //
+    // W2 must already have been applied, because W2 still needs to distinguish
+    // AL from R when deciding whether EN becomes AN.
+    //
+    // This rule has no contextual dependency, so scanning the post-X9 scalar
+    // sequence is equivalent to processing each isolating run sequence
+    // separately.
+    // ========================================================================
 
     [[nodiscard]]
     static inline bool resolveBidiWeakTypesW3(const uint32_t* bidiIndices,
@@ -1791,6 +1791,593 @@ namespace waavs
 
         return true;
     }
+
+
+    // ========================================================================
+// resolveBidiWeakTypesW4
+//
+// UAX #9 W4.
+//
+// Resolve numeric separators inside each isolating run sequence:
+//
+//      EN ES EN -> EN EN EN
+//      EN CS EN -> EN EN EN
+//      AN CS AN -> AN AN AN
+//
+// The previous and next characters are those in the isolating run
+// sequence, so adjacency may cross constituent level-run boundaries.
+//
+// W1-W3 must already have been applied to the working type array.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiWeakTypesW4(const uint32_t* bidiIndices,
+        uint32_t bidiCount, UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !types ||
+            runs.empty() ||
+            sequences.empty())
+        {
+            return false;
+        }
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            if (sequence.runCount == 0)
+                return false;
+
+            if (sequence.runOffset > sequenceRunIndices.size() ||
+                sequence.runCount >
+                sequenceRunIndices.size() - sequence.runOffset)
+            {
+                return false;
+            }
+
+
+            UnicodeBidiClass previousType =
+                sequence.sos;
+
+            bool hasPreviousCharacter = false;
+
+
+            for (uint32_t sequenceRun = 0;
+                sequenceRun < sequence.runCount;
+                ++sequenceRun)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                for (uint32_t position = run.begin;
+                    position < run.end;
+                    ++position)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    UnicodeBidiClass& type =
+                        types[scalarIndex];
+
+
+                    // --------------------------------------------------------
+                    // Locate the next character in this isolating run
+                    // sequence. It may be in the same level run or at the
+                    // beginning of the next constituent level run.
+                    // --------------------------------------------------------
+
+                    UnicodeBidiClass nextType =
+                        sequence.eos;
+
+                    bool hasNextCharacter = false;
+
+
+                    if (position + 1u < run.end)
+                    {
+                        const uint32_t nextScalarIndex =
+                            bidiIndices[position + 1u];
+
+                        if (nextScalarIndex >= scalarCount)
+                            return false;
+
+                        nextType =
+                            types[nextScalarIndex];
+
+                        hasNextCharacter =
+                            true;
+                    }
+                    else if (sequenceRun + 1u < sequence.runCount)
+                    {
+                        const uint32_t nextRunListIndex =
+                            sequence.runOffset +
+                            sequenceRun +
+                            1u;
+
+                        const uint32_t nextRunIndex =
+                            sequenceRunIndices[nextRunListIndex];
+
+                        if (nextRunIndex >= runs.size())
+                            return false;
+
+
+                        const BidiLevelRun& nextRun =
+                            runs[nextRunIndex];
+
+                        if (nextRun.begin >= nextRun.end ||
+                            nextRun.end > bidiCount)
+                        {
+                            return false;
+                        }
+
+
+                        const uint32_t nextScalarIndex =
+                            bidiIndices[nextRun.begin];
+
+                        if (nextScalarIndex >= scalarCount)
+                            return false;
+
+
+                        nextType =
+                            types[nextScalarIndex];
+
+                        hasNextCharacter =
+                            true;
+                    }
+
+
+                    // --------------------------------------------------------
+                    // W4
+                    // --------------------------------------------------------
+
+                    if (hasPreviousCharacter &&
+                        hasNextCharacter)
+                    {
+                        if (type == UnicodeBidiClass::EuropeanSeparator)
+                        {
+                            if (previousType ==
+                                UnicodeBidiClass::EuropeanNumber &&
+                                nextType ==
+                                UnicodeBidiClass::EuropeanNumber)
+                            {
+                                type =
+                                    UnicodeBidiClass::EuropeanNumber;
+                            }
+                        }
+                        else if (type == UnicodeBidiClass::CommonSeparator)
+                        {
+                            if (previousType ==
+                                UnicodeBidiClass::EuropeanNumber &&
+                                nextType ==
+                                UnicodeBidiClass::EuropeanNumber)
+                            {
+                                type =
+                                    UnicodeBidiClass::EuropeanNumber;
+                            }
+                            else if (previousType ==
+                                UnicodeBidiClass::ArabicNumber &&
+                                nextType ==
+                                UnicodeBidiClass::ArabicNumber)
+                            {
+                                type =
+                                    UnicodeBidiClass::ArabicNumber;
+                            }
+                        }
+                    }
+
+
+                    previousType =
+                        type;
+
+                    hasPreviousCharacter =
+                        true;
+                }
+            }
+        }
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+// resolveBidiWeakTypesW5
+//
+// UAX #9 W5.
+//
+// A sequence of European Terminators adjacent to a European Number
+// becomes European Number:
+//
+//      ET ET EN -> EN EN EN
+//      EN ET ET -> EN EN EN
+//
+// A forward pass resolves ET sequences following EN. A backward pass
+// resolves ET sequences preceding EN.
+//
+// Processing is performed independently for each isolating run sequence.
+//
+// W1-W4 must already have been applied to the working type array.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiWeakTypesW5(const uint32_t* bidiIndices,
+        uint32_t bidiCount, UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !types ||
+            runs.empty() ||
+            sequences.empty())
+        {
+            return false;
+        }
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            if (sequence.runCount == 0)
+                return false;
+
+            if (sequence.runOffset > sequenceRunIndices.size() ||
+                sequence.runCount >
+                sequenceRunIndices.size() - sequence.runOffset)
+            {
+                return false;
+            }
+
+
+            // ---------------------------------------------------------------
+            // Forward pass.
+            //
+            //      EN ET ET -> EN EN EN
+            // ---------------------------------------------------------------
+
+            UnicodeBidiClass previousType =
+                sequence.sos;
+
+
+            for (uint32_t sequenceRun = 0;
+                sequenceRun < sequence.runCount;
+                ++sequenceRun)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                for (uint32_t position = run.begin;
+                    position < run.end;
+                    ++position)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    UnicodeBidiClass& type =
+                        types[scalarIndex];
+
+
+                    if (type == UnicodeBidiClass::EuropeanTerminator &&
+                        previousType == UnicodeBidiClass::EuropeanNumber)
+                    {
+                        type =
+                            UnicodeBidiClass::EuropeanNumber;
+                    }
+
+
+                    previousType =
+                        type;
+                }
+            }
+
+
+            // ---------------------------------------------------------------
+            // Backward pass.
+            //
+            //      ET ET EN -> EN EN EN
+            // ---------------------------------------------------------------
+
+            UnicodeBidiClass nextType =
+                sequence.eos;
+
+
+            for (uint32_t sequenceRun = sequence.runCount;
+                sequenceRun-- > 0;)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                for (uint32_t position = run.end;
+                    position-- > run.begin;)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    UnicodeBidiClass& type =
+                        types[scalarIndex];
+
+
+                    if (type == UnicodeBidiClass::EuropeanTerminator &&
+                        nextType == UnicodeBidiClass::EuropeanNumber)
+                    {
+                        type =
+                            UnicodeBidiClass::EuropeanNumber;
+                    }
+
+
+                    nextType =
+                        type;
+                }
+            }
+        }
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+// resolveBidiWeakTypesW6
+//
+// UAX #9 W6.
+//
+// All separators and terminators remaining after W4 and W5 become
+// Other Neutral:
+//
+//      ES -> ON
+//      ET -> ON
+//      CS -> ON
+//
+// W4 and W5 must already have been applied, because those rules consume
+// the numeric separators and terminators that should retain numeric types.
+//
+// This rule has no contextual dependency, so scanning the post-X9 scalar
+// sequence is equivalent to processing each isolating run sequence
+// separately.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiWeakTypesW6(const uint32_t* bidiIndices,
+        uint32_t bidiCount, UnicodeBidiClass* types,
+        uint32_t scalarCount) noexcept
+    {
+        if (bidiCount == 0)
+            return true;
+
+        if (!bidiIndices || !types)
+            return false;
+
+
+        for (uint32_t position = 0; position < bidiCount; ++position)
+        {
+            const uint32_t scalarIndex =
+                bidiIndices[position];
+
+            if (scalarIndex >= scalarCount)
+                return false;
+
+
+            UnicodeBidiClass& type =
+                types[scalarIndex];
+
+
+            if (type == UnicodeBidiClass::EuropeanSeparator ||
+                type == UnicodeBidiClass::EuropeanTerminator ||
+                type == UnicodeBidiClass::CommonSeparator)
+            {
+                type =
+                    UnicodeBidiClass::OtherNeutral;
+            }
+        }
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // resolveBidiWeakTypesW7
+    //
+    // UAX #9 W7.
+    //
+    // For each European Number, search backward through its isolating run
+    // sequence until the first strong type R, L, or sos is found.
+    //
+    // If that strong type is L:
+    //
+    //      EN -> L
+    //
+    // A forward pass maintaining the most recent strong L or R is equivalent
+    // to performing a separate backward search for each EN.
+    //
+    // W1-W6 must already have been applied to the working type array.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiWeakTypesW7(const uint32_t* bidiIndices,
+        uint32_t bidiCount, UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !types ||
+            runs.empty() ||
+            sequences.empty())
+        {
+            return false;
+        }
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            if (sequence.runCount == 0)
+                return false;
+
+            if (sequence.runOffset > sequenceRunIndices.size() ||
+                sequence.runCount >
+                sequenceRunIndices.size() - sequence.runOffset)
+            {
+                return false;
+            }
+
+
+            // sos is always L or R and therefore provides the initial
+            // strong direction for W7.
+
+            UnicodeBidiClass previousStrong =
+                sequence.sos;
+
+
+            for (uint32_t sequenceRun = 0;
+                sequenceRun < sequence.runCount;
+                ++sequenceRun)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                for (uint32_t position = run.begin;
+                    position < run.end;
+                    ++position)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    UnicodeBidiClass& type =
+                        types[scalarIndex];
+
+
+                    // --------------------------------------------------------
+                    // W7
+                    // --------------------------------------------------------
+
+                    if (type == UnicodeBidiClass::EuropeanNumber &&
+                        previousStrong == UnicodeBidiClass::LeftToRight)
+                    {
+                        type =
+                            UnicodeBidiClass::LeftToRight;
+                    }
+
+
+                    // --------------------------------------------------------
+                    // Remember the most recent strong L or R.
+                    //
+                    // AL no longer exists here because W3 converted AL to R.
+                    // --------------------------------------------------------
+
+                    if (type == UnicodeBidiClass::LeftToRight ||
+                        type == UnicodeBidiClass::RightToLeft)
+                    {
+                        previousStrong =
+                            type;
+                    }
+                }
+            }
+        }
+
+
+        return true;
+    }
+
+
+
+
+
+
 
 
 
@@ -1836,9 +2423,9 @@ namespace waavs
     //
     //      P1-P3
     //      X1-X10
-    //      W1-W3
+    //      W1-W7
     //
-    // W4-W7, N0-N2, and I1-I2 remain to be implemented.
+    // N0-N2, and I1-I2 remain to be implemented.
     // ========================================================================
 
     template<typename Source>
@@ -2082,6 +2669,94 @@ namespace waavs
                 mStatus = TextStreamStatus::InvalidInput;
                 return false;
             }
+
+
+            // ================================================================
+            // W4
+            //
+            // Resolve ES and CS when they occur between compatible numbers.
+            // ================================================================
+
+            if (!resolveBidiWeakTypesW4(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // W5
+            //
+            // Change ET sequences adjacent to EN into EN.
+            // ================================================================
+
+            if (!resolveBidiWeakTypesW5(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // W6
+            //
+            // Change all remaining ES, ET, and CS types to ON.
+            // ================================================================
+
+            if (!resolveBidiWeakTypesW6(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size())))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // W7
+            //
+            // Change EN to L when the preceding strong type in the isolating
+            // run sequence is L.
+            // ================================================================
+
+            if (!resolveBidiWeakTypesW7(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+
+
+
+
 
 
             return emitParagraph(out);
