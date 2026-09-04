@@ -63,6 +63,186 @@
     <ClInclude Include="test_unicode_bidi_analysis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="test_unicode_bidi_bd16.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_inspection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_resolution.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_trailing_nsm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_i1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_i2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode_shaping_run_itemizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_shaping_run_itemizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_text_pipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_shaping_run_context.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_grapheme_bidi_levels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="font_run.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="font_support.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="font_run_itemizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\opentyper\font_interfaces.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_font_support.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_font_run_itemizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_shaping_glyph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_shaping_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_nominal_glyphs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_nominal_glyphs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_feature_plan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_feature_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_feature_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_layout_feature_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_layout_feature_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_feature_lookup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_coverage_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_single_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_single_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_single_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_lookup_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_feature_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_feature_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_multiple_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_multiple_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_multiple_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_ligature_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_alternate_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_alternate_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_alternate_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_extension_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_extension_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_extension_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_classdef_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gdef_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gdef_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_mark_glyph_sets_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_mark_glyph_sets_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_lookup_glyph_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_lookup_glyph_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_filtering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_sequence_lookup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_gsub_context_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_context_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="unipiper.cpp">

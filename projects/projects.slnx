@@ -4,6 +4,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="opentyper/opentyper.vcxproj" Id="4612048e-6b19-4fee-9e74-82d1d930ed01" />
   <Project Path="ucdbdemo/ucdbdemo.vcxproj" Id="d1426e41-f1d6-4a15-ab87-cbfd7c0fc43a" />
   <Project Path="ucdbgen/ucdbgen.vcxproj" Id="8ed5fe35-0558-457e-96a7-652eaa728a86" />
   <Project Path="unipiper/unipiper.vcxproj" Id="b9754748-1dee-4360-ac33-077eec4cef95" />

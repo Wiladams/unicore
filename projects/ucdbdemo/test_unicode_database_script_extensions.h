@@ -81,8 +81,13 @@ namespace waavs
         if (!header)
             return fail("runtime database has no header");
 
-        if (header->formatMajor != 1 || header->formatMinor != 7)
-            return fail("database is not format 1.7");
+        if (header->formatMajor != 1 || header->formatMinor != 0)
+            return fail("database is not format 1.0");
+
+        if (header->headerSize != kUnicodeDatabaseHeaderSize)
+            return fail("database does not have the expected 512-byte header");
+
+
 
         if (database.unicodeMajor() != 17 ||
             database.unicodeMinor() != 0 ||

@@ -144,6 +144,8 @@ namespace waavs
             mScripts.clear();
             mScriptSets.clear();
             mScriptExtensionRanges.clear();
+            mBidiBrackets.clear();
+
             mProperties.clear();
 
             mStringPool.clear();
@@ -860,6 +862,60 @@ namespace waavs
         }
 
         // ====================================================================
+        // Bidi brackets
+        //
+        // Sparse persistent records from BidiBrackets.txt.
+        //
+        // Records must be added in strictly increasing code-point order.
+        // Only explicit Open and Close records are stored. Code points with
+        // Bidi_Paired_Bracket_Type=None are implicit and consume no storage.
+        // ====================================================================
+
+        bool addBidiBracket(uint32_t codePoint, uint32_t pairedCodePoint,
+            UnicodeBidiPairedBracketType type)
+        {
+            if (codePoint >= kUnicodeLimit ||
+                pairedCodePoint >= kUnicodeLimit)
+            {
+                return false;
+            }
+
+            if (codePoint == pairedCodePoint)
+                return false;
+
+            if (type != UnicodeBidiPairedBracketType::Open &&
+                type != UnicodeBidiPairedBracketType::Close)
+            {
+                return false;
+            }
+
+            if (!mBidiBrackets.empty())
+            {
+                const UnicodeBidiBracketRecord& previous =
+                    mBidiBrackets.back();
+
+                if (codePoint <= previous.codePoint)
+                    return false;
+            }
+
+            if (mBidiBrackets.size() >=
+                static_cast<size_t>(std::numeric_limits<uint32_t>::max()))
+            {
+                return false;
+            }
+
+            UnicodeBidiBracketRecord record{};
+
+            record.codePoint = codePoint;
+            record.pairedCodePoint = pairedCodePoint;
+            record.type = static_cast<uint8_t>(type);
+
+            mBidiBrackets.push_back(record);
+
+            return true;
+        }
+
+        // ====================================================================
         // Binary SET properties
         // ====================================================================
 
@@ -1006,6 +1062,10 @@ namespace waavs
             mScripts.reserve(count);
         }
 
+        void reserveBidiBrackets(size_t count)
+        {
+            mBidiBrackets.reserve(count);
+        }
 
         void reserveProperties(size_t count)
         {
@@ -1108,6 +1168,12 @@ namespace waavs
 
 
         [[nodiscard]]
+        const std::vector<UnicodeBidiBracketRecord>& bidiBrackets() const noexcept
+        {
+            return mBidiBrackets;
+        }
+
+        [[nodiscard]]
         const std::vector<UnicodePropertyRecord>& properties() const noexcept
         {
             return mProperties;
@@ -1185,6 +1251,14 @@ namespace waavs
             return mBlocks.empty()
                 ? nullptr
                 : mBlocks.data();
+        }
+
+        [[nodiscard]]
+        const UnicodeBidiBracketRecord* bidiBracketData() const noexcept
+        {
+            return mBidiBrackets.empty()
+                ? nullptr
+                : mBidiBrackets.data();
         }
 
 
@@ -1281,6 +1355,12 @@ namespace waavs
             return mScriptExtensionRanges.size();
         }
 
+        [[nodiscard]]
+        size_t bidiBracketCount() const noexcept
+        {
+            return mBidiBrackets.size();
+        }
+
         // Property
         [[nodiscard]]
         size_t propertyCount() const noexcept
@@ -1334,6 +1414,8 @@ namespace waavs
         std::vector<UnicodeScriptRecord> mScripts;
         std::vector<UnicodeScriptSet> mScriptSets;
         std::vector<UnicodeScriptExtensionRange> mScriptExtensionRanges;
+        
+        std::vector<UnicodeBidiBracketRecord> mBidiBrackets;
 
 
 

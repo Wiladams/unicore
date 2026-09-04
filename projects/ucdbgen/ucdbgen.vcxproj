@@ -210,9 +210,16 @@
     <ClCompile Include="ucdbgen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\core\unicode_coverage.h" />
+    <ClInclude Include="..\core\unicode_coverage_builder.h" />
+    <ClInclude Include="..\core\unicode_coverage_data.h" />
+    <ClInclude Include="..\core\unicode_coverage_storage.h" />
+    <ClInclude Include="..\core\unicode_page_pool_builder.h" />
+    <ClInclude Include="ucd_bidi_brackets_parser.h" />
     <ClInclude Include="ucd_bidi_class_parser.h" />
     <ClInclude Include="ucd_blocks_parser.h" />
     <ClInclude Include="ucd_combining_class_parser.h" />
+    <ClInclude Include="ucd_default_ignorable_parser.h" />
     <ClInclude Include="ucd_extended_pictographic_parser.h" />
     <ClInclude Include="ucd_general_category_parser.h" />
     <ClInclude Include="ucd_grapheme_cluster_break_parser.h" />
@@ -232,9 +239,7 @@
     <ClInclude Include="unicode_composition.h" />
     <ClInclude Include="unicode_composition_builder.h" />
     <ClInclude Include="unicode_composition_data.h" />
-    <ClInclude Include="unicode_coverage.h" />
-    <ClInclude Include="unicode_coverage_builder.h" />
-    <ClInclude Include="unicode_coverage_data.h" />
+    <ClInclude Include="unicode_coverage_storage.h" />
     <ClInclude Include="unicode_database.h" />
     <ClInclude Include="unicode_database_builder.h" />
     <ClInclude Include="unicode_database_format.h" />
@@ -248,7 +253,6 @@
     <ClInclude Include="unicode_grapheme_cluster_break.h" />
     <ClInclude Include="unicode_indic_conjunct_break.h" />
     <ClInclude Include="unicode_normalizer.h" />
-    <ClInclude Include="unicode_page_pool_builder.h" />
     <ClInclude Include="unicode_script.h" />
     <ClInclude Include="unicode_script_extensions_data.h" />
     <ClInclude Include="unicode_script_set.h" />

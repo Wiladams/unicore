@@ -3,20 +3,16 @@
   "WorkspaceRootPath": "C:\\repos\\unicore\\projects\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\test_unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unicode_bidi_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unipiper.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\unicode_script_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\test_opentype_gsub_context_view.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\test_opentype_gsub_context_view.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|C:\\repos\\unicore\\projects\\unipiper\\opentype_gsub_context_view.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{B9754748-1DEE-4360-AC33-077EEC4CEF95}|unipiper\\unipiper.vcxproj|solutionrelative:unipiper\\opentype_gsub_context_view.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,57 +22,46 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "test_unicode_bidi_analysis.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h",
-              "RelativeDocumentMoniker": "unipiper\\test_unicode_bidi_analysis.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\test_unicode_bidi_analysis.h",
-              "RelativeToolTip": "unipiper\\test_unicode_bidi_analysis.h",
-              "ViewState": "AgIAAHwYAAAAAAAAAAAswI0YAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-31T04:10:08.768Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "unicode_bidi_analysis.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h",
-              "RelativeDocumentMoniker": "unipiper\\unicode_bidi_analysis.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unicode_bidi_analysis.h",
-              "RelativeToolTip": "unipiper\\unicode_bidi_analysis.h",
-              "ViewState": "AgIAAHAJAAAAAAAAAAAYwHoJAAAGAAAAAAAAAA==",
+              "Title": "test_opentype_gsub_context_view.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\test_opentype_gsub_context_view.h",
+              "RelativeDocumentMoniker": "unipiper\\test_opentype_gsub_context_view.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\test_opentype_gsub_context_view.h",
+              "RelativeToolTip": "unipiper\\test_opentype_gsub_context_view.h",
+              "ViewState": "AgIAAPcCAAAAAAAAAAAUwBQDAAAUAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-30T13:48:32.268Z",
+              "WhenOpened": "2026-09-04T16:28:34.44Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
+              "Title": "opentype_gsub_context_view.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\opentype_gsub_context_view.h",
+              "RelativeDocumentMoniker": "unipiper\\opentype_gsub_context_view.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\opentype_gsub_context_view.h",
+              "RelativeToolTip": "unipiper\\opentype_gsub_context_view.h",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-09-04T16:23:45.347Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "unipiper.cpp",
               "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp",
               "RelativeDocumentMoniker": "unipiper\\unipiper.cpp",
               "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unipiper.cpp",
               "RelativeToolTip": "unipiper\\unipiper.cpp",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAAABgAAAAGAAAAAAAAAA==",
+              "ViewState": "AgIAAF0AAAAAAAAAAAAAAHUAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-08-30T03:09:02.335Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "unicode_script_analysis.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h",
-              "RelativeDocumentMoniker": "unipiper\\unicode_script_analysis.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\unipiper\\unicode_script_analysis.h",
-              "RelativeToolTip": "unipiper\\unicode_script_analysis.h",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAIwDIAAAAKAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-08-30T02:55:18.403Z"
+              "WhenOpened": "2026-09-03T05:27:10.231Z",
+              "EditorCaption": ""
             }
           ]
         }

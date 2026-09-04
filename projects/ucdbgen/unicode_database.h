@@ -128,6 +128,7 @@ namespace waavs
             mProperties = nullptr;
 
             mExtendedPictographicCoverage = kUnicodeCoverageIndexInvalid;
+            mDefaultIgnorableCodePointCoverage = kUnicodeCoverageIndexInvalid;
 
             mValueTables8 = nullptr;
             mValueProperties8 = nullptr;
@@ -158,6 +159,9 @@ namespace waavs
             mScriptExtensionsSection = nullptr;
             mScriptExtensionRanges = nullptr;
             mScriptSets = nullptr;
+
+            mBidiBrackets = nullptr;
+            mBidiBracketCount = 0;
         }
 
 
@@ -248,14 +252,8 @@ namespace waavs
             // Format version
             // ================================================================
 
-            if (header->formatMajor !=
-                kUnicodeDatabaseFormatMajor)
-            {
-                return false;
-            }
-
-            if (header->formatMinor >
-                kUnicodeDatabaseFormatMinor)
+            if (header->formatMajor != kUnicodeDatabaseFormatMajor ||
+                header->formatMinor != kUnicodeDatabaseFormatMinor)
             {
                 return false;
             }
@@ -264,11 +262,9 @@ namespace waavs
             // ================================================================
             // Header / database sizes
             // ================================================================
+            static constexpr size_t expectedHeaderSize =
+                sizeof(UnicodeDatabaseHeader);
 
-            size_t expectedHeaderSize = sizeof(UnicodeDatabaseHeader);
-
-            if (header->formatMinor >= 7)
-                expectedHeaderSize += sizeof(UnicodeDatabaseHeader17Extension);
 
             if (header->headerSize != expectedHeaderSize)
                 return false;
@@ -289,8 +285,7 @@ namespace waavs
             // Endian marker
             // ================================================================
 
-            if (header->byteOrder !=
-                kUnicodeDatabaseByteOrder)
+            if (header->byteOrder != kUnicodeDatabaseByteOrder)
             {
                 return false;
             }
@@ -302,68 +297,28 @@ namespace waavs
 
 
             // ================================================================
-            // Version-specific extension fields
-            //
-            // In older format revisions these header words were not yet
-            // defined. A database claiming an older revision must therefore
-            // leave the corresponding offsets zero.
+            // Reserved header fields
             // ================================================================
 
-            if (header->formatMinor < 2 &&
-                header->decompositionOffset != 0)
+            if (header->reserved0 != 0)
+                return false;
+
+            for (uint32_t value : header->reserved)
+            {
+                if (value != 0)
+                    return false;
+            }
+
+
+            // Script is a required capability of consolidated format 1.0.
+
+            if (header->scriptCount == 0 ||
+                header->scriptCount > static_cast<uint32_t>(kUnicodeScriptIndexInvalid))
             {
                 return false;
             }
 
-            if (header->formatMinor < 3 &&
-                header->compositionOffset != 0)
-            {
-                return false;
-            }
 
-
-            // ---------------------------------------------------------------
-            // In format 1.0 the bytes now occupied by the VALUE8 section
-            // descriptors were not defined and therefore must remain zero.
-            // ---------------------------------------------------------------
-
-            if (header->formatMinor == 0)
-            {
-                if (header->valueProperty8Offset != 0 ||
-                    header->valueProperty8Count != 0 ||
-                    header->valueTable8Offset != 0 ||
-                    header->valueTable8Count != 0 ||
-                    header->valueMasterPage8Offset != 0 ||
-                    header->valueMasterPage8Count != 0 ||
-                    header->valuePage8Offset != 0 ||
-                    header->valuePage8Count != 0)
-                {
-                    return false;
-                }
-            }
-
-            // Read in header 17 extensions if present. 
-            // The script extension section is optional and may be empty.
-            const UnicodeDatabaseHeader17Extension* header17 = nullptr;
-            uint32_t scriptExtensionsOffset = 0;
-
-            if (header->formatMinor >= 7)
-            {
-                header17 = reinterpret_cast<const UnicodeDatabaseHeader17Extension*>(
-                    data.data() + sizeof(UnicodeDatabaseHeader));
-
-                if (!pointerIsAligned(header17, alignof(UnicodeDatabaseHeader17Extension)))
-                    return false;
-
-                if (header17->reserved[0] != 0 ||
-                    header17->reserved[1] != 0 ||
-                    header17->reserved[2] != 0)
-                {
-                    return false;
-                }
-
-                scriptExtensionsOffset = header17->scriptExtensionsOffset;
-            }
 
             if (header->formatMinor >= 7)
             {
@@ -493,8 +448,7 @@ namespace waavs
             // These are not committed to the object until validation completes.
             // ================================================================
 
-            const uint8_t* base =
-                data.data();
+            const uint8_t* base = data.data();
 
 
             const auto* coverages =
@@ -557,8 +511,6 @@ namespace waavs
 
             if (header->decompositionOffset != 0)
             {
-                if (header->formatMinor < 2)
-                    return false;
 
                 if (!sectionValid<UnicodeDecompositionSection>(
                     base,
@@ -659,8 +611,6 @@ namespace waavs
 
             if (header->compositionOffset != 0)
             {
-                if (header->formatMinor < 3)
-                    return false;
 
                 if (!sectionValid<UnicodeCompositionSection>(
                     base,
@@ -706,27 +656,25 @@ namespace waavs
             }
 
             // ================================================================
-// Script_Extensions
-// ================================================================
+            // Script_Extensions
+            // ================================================================
 
             const UnicodeScriptExtensionsSection* scriptExtensionsSection = nullptr;
             const UnicodeScriptExtensionRange* scriptExtensionRanges = nullptr;
             const UnicodeScriptSet* scriptSets = nullptr;
 
-            if (scriptExtensionsOffset != 0)
+            if (header->scriptExtensionsOffset != 0)
             {
-                if (header->formatMinor < 7)
-                    return false;
 
                 if (!sectionValid<UnicodeScriptExtensionsSection>(
-                    base, databaseSize, scriptExtensionsOffset, 1))
+                    base, databaseSize, header->scriptExtensionsOffset, 1))
                 {
                     return false;
                 }
 
                 scriptExtensionsSection =
                     reinterpret_cast<const UnicodeScriptExtensionsSection*>(
-                        base + scriptExtensionsOffset);
+                        base + header->scriptExtensionsOffset);
 
                 if (scriptExtensionsSection->rangeOffset == 0 ||
                     scriptExtensionsSection->rangeCount == 0 ||
@@ -771,6 +719,50 @@ namespace waavs
                     return false;
                 }
             }
+
+
+            // ================================================================
+            // Bidi brackets
+            // ================================================================
+
+            const UnicodeBidiBracketRecord* bidiBrackets = nullptr;
+
+
+            // Offset and count must either both be zero or both be present.
+
+            if ((header->bidiBracketsOffset == 0) !=
+                (header->bidiBracketsCount == 0))
+            {
+                return false;
+            }
+
+
+            if (header->bidiBracketsCount != 0)
+            {
+                if (!sectionValid<UnicodeBidiBracketRecord>(
+                    base,
+                    databaseSize,
+                    header->bidiBracketsOffset,
+                    header->bidiBracketsCount))
+                {
+                    return false;
+                }
+
+
+                bidiBrackets =
+                    reinterpret_cast<const UnicodeBidiBracketRecord*>(
+                        base + header->bidiBracketsOffset);
+
+
+                if (!validateBidiBrackets(
+                    bidiBrackets,
+                    header->bidiBracketsCount))
+                {
+                    return false;
+                }
+            }
+
+
 
             // ================================================================
             // Pool-count bounds imposed by persistent references
@@ -885,24 +877,70 @@ namespace waavs
             UnicodeCoverageIndex extendedPictographicCoverage =
                 kUnicodeCoverageIndexInvalid;
 
+            UnicodeCoverageIndex defaultIgnorableCodePointCoverage =
+                kUnicodeCoverageIndexInvalid;
+
+
             for (uint32_t i = 0; i < header->propertyCount; ++i)
             {
-                const UnicodePropertyRecord& record = properties[i];
+                const UnicodePropertyRecord& record =
+                    properties[i];
 
-                if (record.source != UnicodePropertySourceEmojiData)
-                    continue;
 
-                if (!stringEquals(
-                    record.nameOffset, stringPool, header->stringPoolSize,
-                    "Extended_Pictographic"))
+                // ---------------------------------------------------------------
+                // Extended_Pictographic
+                // ---------------------------------------------------------------
+
+                if (record.source ==
+                    UnicodePropertySourceEmojiData)
                 {
-                    continue;
+                    if (stringEquals(
+                        record.nameOffset,
+                        stringPool,
+                        header->stringPoolSize,
+                        "Extended_Pictographic"))
+                    {
+                        if (extendedPictographicCoverage !=
+                            kUnicodeCoverageIndexInvalid)
+                        {
+                            return false;
+                        }
+
+
+                        extendedPictographicCoverage =
+                            record.coverageIndex;
+
+                        continue;
+                    }
                 }
 
-                if (extendedPictographicCoverage != kUnicodeCoverageIndexInvalid)
-                    return false;
 
-                extendedPictographicCoverage = record.coverageIndex;
+                // ---------------------------------------------------------------
+                // Default_Ignorable_Code_Point
+                // ---------------------------------------------------------------
+
+                if (record.source ==
+                    UnicodePropertySourceDerivedCoreProperties)
+                {
+                    if (stringEquals(
+                        record.nameOffset,
+                        stringPool,
+                        header->stringPoolSize,
+                        "Default_Ignorable_Code_Point"))
+                    {
+                        if (defaultIgnorableCodePointCoverage !=
+                            kUnicodeCoverageIndexInvalid)
+                        {
+                            return false;
+                        }
+
+
+                        defaultIgnorableCodePointCoverage =
+                            record.coverageIndex;
+
+                        continue;
+                    }
+                }
             }
 
             // ================================================================
@@ -936,7 +974,7 @@ namespace waavs
 
 
             if (!validateValueProperties8(valueProperties8, header->valueProperty8Count,
-                header->valueTable8Count, header->formatMinor,
+                header->valueTable8Count,
                 generalCategoryTable, combiningClassTable,
                 bidiClassTable, graphemeClusterBreakTable, 
                 indicConjunctBreakTable, scriptTable))
@@ -1076,7 +1114,7 @@ namespace waavs
             mPools.bitPageCount = header->bitPageCount;
 
             mExtendedPictographicCoverage = extendedPictographicCoverage;
-
+            mDefaultIgnorableCodePointCoverage = defaultIgnorableCodePointCoverage;
 
             // ---------------------------------------------------------------
             // VALUE8
@@ -1167,6 +1205,12 @@ namespace waavs
             mScriptExtensionRanges = scriptExtensionRanges;
             mScriptSets = scriptSets;
 
+            // ---------------------------------------------------------------
+            // Bidi brackets
+            // ---------------------------------------------------------------
+
+            mBidiBrackets = bidiBrackets;
+            mBidiBracketCount = header->bidiBracketsCount;
 
             // ---------------------------------------------------------------
             // Strings
@@ -1798,6 +1842,84 @@ namespace waavs
             return UnicodeScriptSet::singleton(script(cp));
         }
 
+
+        // ====================================================================
+        // Bidi brackets
+        // ====================================================================
+
+        [[nodiscard]]
+        bool hasBidiBrackets() const noexcept
+        {
+            return mBidiBracketCount != 0;
+        }
+
+
+        [[nodiscard]]
+        uint32_t bidiBracketCount() const noexcept
+        {
+            return mBidiBracketCount;
+        }
+
+
+        [[nodiscard]]
+        const UnicodeBidiBracketRecord* bidiBracketRecord(
+            uint32_t index) const noexcept
+        {
+            if (!mBidiBrackets ||
+                index >= mBidiBracketCount)
+            {
+                return nullptr;
+            }
+
+            return &mBidiBrackets[index];
+        }
+
+
+        [[nodiscard]]
+        const UnicodeBidiBracketRecord* bidiBracket(
+            uint32_t cp) const noexcept
+        {
+            if (!mBidiBrackets ||
+                cp >= kUnicodeLimit)
+            {
+                return nullptr;
+            }
+
+
+            uint32_t first = 0;
+            uint32_t last = mBidiBracketCount;
+
+
+            while (first < last)
+            {
+                const uint32_t middle =
+                    first + ((last - first) >> 1);
+
+                const UnicodeBidiBracketRecord& record =
+                    mBidiBrackets[middle];
+
+
+                if (record.codePoint < cp)
+                {
+                    first = middle + 1;
+                }
+                else if (record.codePoint > cp)
+                {
+                    last = middle;
+                }
+                else
+                {
+                    return &record;
+                }
+            }
+
+
+            return nullptr;
+        }
+
+
+
+
         // ====================================================================
         // Binary SET properties
         // ====================================================================
@@ -1860,6 +1982,49 @@ namespace waavs
             return coverage(mExtendedPictographicCoverage).contains(cp);
         }
 
+
+        // ====================================================================
+// Default_Ignorable_Code_Point
+// ====================================================================
+
+        [[nodiscard]]
+        bool hasDefaultIgnorableCodePoint() const noexcept
+        {
+            return
+                mDefaultIgnorableCodePointCoverage !=
+                kUnicodeCoverageIndexInvalid;
+        }
+
+
+        [[nodiscard]]
+        UnicodeCoverage defaultIgnorableCodePointCoverage() const noexcept
+        {
+            if (mDefaultIgnorableCodePointCoverage ==
+                kUnicodeCoverageIndexInvalid)
+            {
+                return {};
+            }
+
+
+            return coverage(
+                mDefaultIgnorableCodePointCoverage);
+        }
+
+
+        [[nodiscard]]
+        bool isDefaultIgnorableCodePoint(uint32_t cp) const noexcept
+        {
+            if (mDefaultIgnorableCodePointCoverage ==
+                kUnicodeCoverageIndexInvalid)
+            {
+                return false;
+            }
+
+
+            return coverage(
+                mDefaultIgnorableCodePointCoverage)
+                .contains(cp);
+        }
 
         // ====================================================================
         // Database strings
@@ -2024,6 +2189,7 @@ namespace waavs
         UnicodeCoveragePools mPools{};
 
         UnicodeCoverageIndex mExtendedPictographicCoverage{ kUnicodeCoverageIndexInvalid };
+        UnicodeCoverageIndex mDefaultIgnorableCodePointCoverage{ kUnicodeCoverageIndexInvalid };
 
         // ====================================================================
         // VALUE8 data
@@ -2065,9 +2231,13 @@ namespace waavs
         const UnicodeScriptExtensionRange* mScriptExtensionRanges{ nullptr };
         const UnicodeScriptSet* mScriptSets{ nullptr };
 
-
         // ====================================================================
-        // Canonical decomposition
+        // Bidi brackets
+        // ====================================================================
+
+        const UnicodeBidiBracketRecord* mBidiBrackets{ nullptr };
+        uint32_t mBidiBracketCount{ 0 };
+
         // ====================================================================
         // Canonical decomposition
         // ====================================================================
@@ -2679,8 +2849,8 @@ namespace waavs
         }
 
         // ====================================================================
-// Script_Extensions validation
-// ====================================================================
+        // Script_Extensions validation
+        // ====================================================================
 
         [[nodiscard]]
         static bool validateScriptExtensions(const UnicodeScriptExtensionsSection& section,
@@ -2793,6 +2963,146 @@ namespace waavs
 
             return true;
         }
+
+        // ====================================================================
+// validateBidiBrackets
+// ====================================================================
+
+        [[nodiscard]]
+        static bool validateBidiBrackets(
+            const UnicodeBidiBracketRecord* records,
+            uint32_t count) noexcept
+        {
+            if (count == 0)
+                return true;
+
+            if (!records)
+                return false;
+
+
+            // ---------------------------------------------------------------
+            // Basic record validity and ordering.
+            // ---------------------------------------------------------------
+
+            for (uint32_t i = 0; i < count; ++i)
+            {
+                const UnicodeBidiBracketRecord& record =
+                    records[i];
+
+
+                if (record.codePoint >= kUnicodeLimit ||
+                    record.pairedCodePoint >= kUnicodeLimit)
+                {
+                    return false;
+                }
+
+
+                if (record.codePoint == record.pairedCodePoint)
+                    return false;
+
+
+                if (record.reserved[0] != 0 ||
+                    record.reserved[1] != 0 ||
+                    record.reserved[2] != 0)
+                {
+                    return false;
+                }
+
+
+                const UnicodeBidiPairedBracketType type =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        record.type);
+
+
+                if (type != UnicodeBidiPairedBracketType::Open &&
+                    type != UnicodeBidiPairedBracketType::Close)
+                {
+                    return false;
+                }
+
+
+                if (i != 0 &&
+                    records[i - 1].codePoint >= record.codePoint)
+                {
+                    return false;
+                }
+            }
+
+
+            // ---------------------------------------------------------------
+            // Reciprocal pair validation.
+            // ---------------------------------------------------------------
+
+            for (uint32_t i = 0; i < count; ++i)
+            {
+                const UnicodeBidiBracketRecord& record =
+                    records[i];
+
+                uint32_t first = 0;
+                uint32_t last = count;
+
+                const UnicodeBidiBracketRecord* paired =
+                    nullptr;
+
+
+                while (first < last)
+                {
+                    const uint32_t middle =
+                        first + ((last - first) >> 1);
+
+                    const UnicodeBidiBracketRecord& candidate =
+                        records[middle];
+
+
+                    if (candidate.codePoint < record.pairedCodePoint)
+                    {
+                        first = middle + 1;
+                    }
+                    else if (candidate.codePoint > record.pairedCodePoint)
+                    {
+                        last = middle;
+                    }
+                    else
+                    {
+                        paired = &candidate;
+                        break;
+                    }
+                }
+
+
+                if (!paired)
+                    return false;
+
+
+                if (paired->pairedCodePoint != record.codePoint)
+                    return false;
+
+
+                const UnicodeBidiPairedBracketType type =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        record.type);
+
+                const UnicodeBidiPairedBracketType pairedType =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        paired->type);
+
+
+                if (type == UnicodeBidiPairedBracketType::Open)
+                {
+                    if (pairedType != UnicodeBidiPairedBracketType::Close)
+                        return false;
+                }
+                else
+                {
+                    if (pairedType != UnicodeBidiPairedBracketType::Open)
+                        return false;
+                }
+            }
+
+
+            return true;
+        }
+
 
         // ====================================================================
         // Block validation
@@ -2985,7 +3295,7 @@ namespace waavs
 
         [[nodiscard]]
         static bool validateValueProperties8(const UnicodeValueProperty8Record* records,
-            uint32_t count, uint32_t tableCount, uint16_t formatMinor,
+            uint32_t count, uint32_t tableCount,
             UnicodeValueTable8Index& outGeneralCategory,
             UnicodeValueTable8Index& outCombiningClass,
             UnicodeValueTable8Index& outBidiClass,
@@ -3004,20 +3314,8 @@ namespace waavs
             // Maximum semantic property understood by each format revision.
             // ------------------------------------------------------------------------
 
-            uint16_t maximumProperty =
-                UnicodeValueProperty8CanonicalCombiningClass;
-
-            if (formatMinor >= 4)
-                maximumProperty = UnicodeValueProperty8BidiClass;
-
-            if (formatMinor >= 5)
-                maximumProperty = UnicodeValueProperty8GraphemeClusterBreak;
-
-            if (formatMinor >= 6)
-                maximumProperty = UnicodeValueProperty8IndicConjunctBreak;
-            
-            if (formatMinor >= 7)
-                maximumProperty = UnicodeValueProperty8Script;
+            static constexpr uint16_t maximumProperty =
+                UnicodeValueProperty8MAX;
 
             // ------------------------------------------------------------------------
             // Validate directory records and resolve semantic table indices.
@@ -3084,59 +3382,30 @@ namespace waavs
 
 
             // ------------------------------------------------------------------------
-            // Format contracts.
-            //
-            // 1.1 - 1.3:
-            //     General_Category
-            //     Canonical_Combining_Class
-            //
-            // 1.4:
-            //     adds Bidi_Class
-            //
-            // 1.5:
-            //     adds Grapheme_Cluster_Break
-            // 
-            // 1.6:
-            //     adds Indic_Conjunct_Break
-            // 
-            // 1.7:
-            //     adds Script
-            // ------------------------------------------------------------------------
+            // Consolidated format 1.0 requires all currently defined
+            // semantic VALUE8 properties.
 
-            if (formatMinor >= 1)
-            {
-                if (outGeneralCategory == kUnicodeValueTable8IndexInvalid)
-                    return false;
+            if (outGeneralCategory == kUnicodeValueTable8IndexInvalid)
+                return false;
 
-                if (outCombiningClass == kUnicodeValueTable8IndexInvalid)
-                    return false;
-            }
+            if (outCombiningClass == kUnicodeValueTable8IndexInvalid)
+                return false;
 
-            if (formatMinor >= 4)
-            {
-                if (outBidiClass == kUnicodeValueTable8IndexInvalid)
-                    return false;
-            }
+            if (outBidiClass == kUnicodeValueTable8IndexInvalid)
+                return false;
 
-            if (formatMinor >= 5)
-            {
-                if (outGraphemeClusterBreak == kUnicodeValueTable8IndexInvalid)
-                    return false;
-            }
+            if (outGraphemeClusterBreak == kUnicodeValueTable8IndexInvalid)
+                return false;
 
-            if (formatMinor >= 6)
-            {
-                if (outIndicConjunctBreak == kUnicodeValueTable8IndexInvalid)
-                    return false;
-            }
+            if (outIndicConjunctBreak == kUnicodeValueTable8IndexInvalid)
+                return false;
 
-            if (formatMinor >= 7)
-            {
-                if (outScript == kUnicodeValueTable8IndexInvalid)
-                    return false;
-            }
+            if (outScript == kUnicodeValueTable8IndexInvalid)
+                return false;
+
 
             return true;
+
         }
 
 

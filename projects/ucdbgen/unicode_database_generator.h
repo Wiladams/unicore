@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "ucd_blocks_parser.h"
+#include "ucd_bidi_brackets_parser.h"
 #include "ucd_bidi_class_parser.h"
 #include "ucd_combining_class_parser.h"
 #include "ucd_extended_pictographic_parser.h"
@@ -23,6 +24,7 @@
 #include "ucd_scripts_parser.h"
 #include "ucd_script_extensions_parser.h"
 #include "ucd_unicode_data_parser.h"
+#include "ucd_default_ignorable_parser.h"
 
 #include "unicode_database.h"
 #include "unicode_database_builder.h"
@@ -242,6 +244,13 @@ namespace waavs
         if (!database.hasExtendedPictographic())
         {
             std::printf( "Written database has no Extended_Pictographic property\n");
+
+            return false;
+        }
+
+        if (!database.hasDefaultIgnorableCodePoint())
+        {
+            std::printf("Written database has no Default_Ignorable_Code_Point property\n");
 
             return false;
         }
@@ -470,7 +479,8 @@ namespace waavs
 
         // Some inexpensive generator-side reservations.
         database.reserveBlocks(346);
-        database.reserveProperties(1);
+        database.reserveBidiBrackets(128);
+        database.reserveProperties(2);
         database.reserveScripts(176);
         database.reserveValueProperties8(6);
         database.reserveValueTables8(6);
@@ -649,6 +659,124 @@ namespace waavs
                 result.rangeCount,
                 result.codePoints);
         }
+
+
+        // ========================================================================
+        // Default_Ignorable_Code_Point
+        //
+        // Persist the DerivedCoreProperties.txt binary property as a normal
+        // database SET property.
+        // ========================================================================
+
+        {
+            const std::string filename =
+                ucdJoinPath(
+                    ucdRoot,
+                    "DerivedCoreProperties.txt");
+
+
+            UCDSourceFile source;
+
+            if (!ucdLoadFile(
+                filename,
+                source))
+            {
+                return false;
+            }
+
+
+            UnicodeCoverageBuilder coverage;
+            UCDDefaultIgnorableCodePointParseResult result;
+
+
+            if (!ucdParseDefaultIgnorableCodePoint(
+                source.span(),
+                coverage,
+                result))
+            {
+                std::printf(
+                    "DerivedCoreProperties.txt "
+                    "Default_Ignorable_Code_Point parse failed\n"
+                    "  Error: %s\n"
+                    "  Line:  %u\n",
+                    ucdDefaultIgnorableCodePointParseErrorString(
+                        result.error),
+                    result.lineNumber);
+
+                return false;
+            }
+
+
+            UnicodeCoverageData coverageData{};
+
+            if (!coverage.finalize(
+                database.pagePool(),
+                coverageData))
+            {
+                std::printf(
+                    "Default_Ignorable_Code_Point "
+                    "coverage finalization failed\n");
+
+                return false;
+            }
+
+
+            UnicodeCoverageIndex coverageIndex;
+
+            if (!database.addCoverage(
+                coverageData,
+                coverageIndex))
+            {
+                std::printf(
+                    "Unable to add "
+                    "Default_Ignorable_Code_Point coverage\n");
+
+                return false;
+            }
+
+
+            InternedKey name =
+                WSNameSet::INTERN(
+                    "Default_Ignorable_Code_Point");
+
+            if (!name)
+            {
+                std::printf(
+                    "Unable to intern "
+                    "Default_Ignorable_Code_Point name\n");
+
+                return false;
+            }
+
+
+            if (!database.addProperty(
+                name,
+                coverageIndex,
+                UnicodePropertySourceDerivedCoreProperties))
+            {
+                std::printf(
+                    "Unable to register "
+                    "Default_Ignorable_Code_Point property\n");
+
+                return false;
+            }
+
+
+            std::printf(
+                "DerivedCoreProperties.txt "
+                "Default_Ignorable_Code_Point: PASS\n"
+                "  Ranges:      %u\n"
+                "  Codepoints:  %zu\n",
+                result.rangeCount,
+                result.codePoints);
+        }
+
+
+
+
+
+
+
 
         // ====================================================================
         // Scripts.txt
@@ -1031,6 +1159,62 @@ namespace waavs
                 result.explicitCodePoints,
                 result.defaultedCodePoints);
         }
+
+        // ====================================================================
+// BidiBrackets.txt
+// ====================================================================
+
+        {
+            const std::string filename =
+                ucdJoinPath(
+                    ucdRoot,
+                    "BidiBrackets.txt");
+
+
+            UCDSourceFile source;
+
+
+            if (!ucdLoadFile(
+                filename,
+                source))
+            {
+                return false;
+            }
+
+
+            UCDBidiBracketsParseResult result;
+
+
+            if (!ucdParseBidiBrackets(
+                source.span(),
+                database,
+                result))
+            {
+                std::printf(
+                    "BidiBrackets.txt parse failed\n"
+                    "  Error:      %s\n"
+                    "  Line:       %u\n"
+                    "  Code point: U+%04X\n",
+                    ucdBidiBracketsParseErrorString(
+                        result.error),
+                    result.lineNumber,
+                    result.errorCodePoint);
+
+                return false;
+            }
+
+
+            std::printf(
+                "BidiBrackets.txt: PASS\n"
+                "  Records: %u\n"
+                "  Open:    %u\n"
+                "  Close:   %u\n",
+                result.recordCount,
+                result.openCount,
+                result.closeCount);
+        }
+
+
 
         // ========================================================================
         // Grapheme_Cluster_Break

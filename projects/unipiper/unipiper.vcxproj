@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -123,7 +123,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,7 +140,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -176,7 +176,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -195,7 +195,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; ../ucdbgen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../core; ../ucdbgen;../opentyper;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -208,12 +208,71 @@
   <ItemGroup>
     <ClInclude Include="..\core\core_utf8.h" />
     <ClInclude Include="..\core\lang_span.h" />
+    <ClInclude Include="..\opentyper\font_interfaces.h" />
+    <ClInclude Include="font_run.h" />
+    <ClInclude Include="font_run_itemizer.h" />
+    <ClInclude Include="font_support.h" />
+    <ClInclude Include="opentype_classdef_view.h" />
+    <ClInclude Include="opentype_coverage_view.h" />
+    <ClInclude Include="opentype_feature_lookup.h" />
+    <ClInclude Include="opentype_feature_plan.h" />
+    <ClInclude Include="opentype_feature_selection.h" />
+    <ClInclude Include="opentype_gdef_view.h" />
+    <ClInclude Include="opentype_gsub_alternate_view.h" />
+    <ClInclude Include="opentype_gsub_context_view.h" />
+    <ClInclude Include="opentype_gsub_extension_view.h" />
+    <ClInclude Include="opentype_gsub_feature_apply.h" />
+    <ClInclude Include="opentype_gsub_ligature_view.h" />
+    <ClInclude Include="opentype_gsub_lookup_apply.h" />
+    <ClInclude Include="opentype_gsub_multiple_view.h" />
+    <ClInclude Include="opentype_gsub_single_apply.h" />
+    <ClInclude Include="opentype_gsub_single_view.h" />
+    <ClInclude Include="opentype_layout_feature_selection.h" />
+    <ClInclude Include="opentype_lookup_glyph_filter.h" />
+    <ClInclude Include="opentype_mark_glyph_sets_view.h" />
+    <ClInclude Include="opentype_nominal_glyphs.h" />
+    <ClInclude Include="opentype_sequence_lookup.h" />
+    <ClInclude Include="opentype_shaping_buffer.h" />
+    <ClInclude Include="opentype_shaping_glyph.h" />
+    <ClInclude Include="test_font_run_itemizer.h" />
+    <ClInclude Include="test_font_support.h" />
     <ClInclude Include="test_grapheme_break_conformance.h" />
     <ClInclude Include="test_grapheme_property_stream.h" />
     <ClInclude Include="test_grapheme_stream.h" />
+    <ClInclude Include="test_opentype_feature_selection.h" />
+    <ClInclude Include="test_opentype_gdef_view.h" />
+    <ClInclude Include="test_opentype_gsub_alternate_apply.h" />
+    <ClInclude Include="test_opentype_gsub_alternate_view.h" />
+    <ClInclude Include="test_opentype_gsub_context_view.h" />
+    <ClInclude Include="test_opentype_gsub_extension_apply.h" />
+    <ClInclude Include="test_opentype_gsub_extension_view.h" />
+    <ClInclude Include="test_opentype_gsub_feature_apply.h" />
+    <ClInclude Include="test_opentype_gsub_ligature_apply.h" />
+    <ClInclude Include="test_opentype_gsub_ligature_filtering.h" />
+    <ClInclude Include="test_opentype_gsub_ligature_view.h" />
+    <ClInclude Include="test_opentype_gsub_multiple_apply.h" />
+    <ClInclude Include="test_opentype_gsub_multiple_view.h" />
+    <ClInclude Include="test_opentype_gsub_single_view.h" />
+    <ClInclude Include="test_opentype_layout_feature_selection.h" />
+    <ClInclude Include="test_opentype_lookup_glyph_filter.h" />
+    <ClInclude Include="test_opentype_mark_glyph_sets_view.h" />
+    <ClInclude Include="test_opentype_nominal_glyphs.h" />
     <ClInclude Include="test_unicode_bidi_analysis.h" />
+    <ClInclude Include="test_unicode_bidi_bd16.h" />
+    <ClInclude Include="test_unicode_bidi_i1.h" />
+    <ClInclude Include="test_unicode_bidi_i2.h" />
+    <ClInclude Include="test_unicode_bidi_n0.h" />
+    <ClInclude Include="test_unicode_bidi_n0_inspection.h" />
+    <ClInclude Include="test_unicode_bidi_n0_resolution.h" />
+    <ClInclude Include="test_unicode_bidi_n0_trailing_nsm.h" />
+    <ClInclude Include="test_unicode_bidi_n1.h" />
+    <ClInclude Include="test_unicode_bidi_n2.h" />
+    <ClInclude Include="test_unicode_grapheme_bidi_levels.h" />
     <ClInclude Include="test_unicode_nfc_stream.h" />
     <ClInclude Include="test_unicode_script_analysis.h" />
+    <ClInclude Include="test_unicode_shaping_run_context.h" />
+    <ClInclude Include="test_unicode_shaping_run_itemizer.h" />
+    <ClInclude Include="test_unicode_text_pipeline.h" />
     <ClInclude Include="test_utf8_scalar_stream.h" />
     <ClInclude Include="unicode_bidi_analysis.h" />
     <ClInclude Include="unicode_grapheme_property_stream.h" />
@@ -222,6 +281,7 @@
     <ClInclude Include="unicode_scalar_stream.h" />
     <ClInclude Include="unicode_script_analysis.h" />
     <ClInclude Include="unicode_shaping_run.h" />
+    <ClInclude Include="unicode_shaping_run_itemizer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="unipiper.cpp" />

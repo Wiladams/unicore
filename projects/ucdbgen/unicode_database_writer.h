@@ -50,6 +50,9 @@ namespace waavs
         TooManyScriptSets,
         InvalidScriptExtensions,
         
+        TooManyBidiBrackets,
+        InvalidBidiBrackets,
+
         TooManyProperties,
 
         StringPoolTooLarge,
@@ -153,6 +156,12 @@ namespace waavs
         case UnicodeDatabaseWriteError::InvalidScriptExtensions:
             return "invalid Unicode Script_Extensions data";
 
+        case UnicodeDatabaseWriteError::TooManyBidiBrackets:
+            return "too many Unicode bidi bracket records";
+
+        case UnicodeDatabaseWriteError::InvalidBidiBrackets:
+            return "invalid Unicode bidi bracket data";
+
         case UnicodeDatabaseWriteError::TooManyProperties:
             return "too many Unicode binary property records";
 
@@ -183,55 +192,52 @@ namespace waavs
     //
     // Serializes UnicodeDatabaseBuilder into the persistent .ucdb format.
     //
-// Version 1.7 layout currently emitted:
-//
-//      UnicodeDatabaseHeader
-//      UnicodeDatabaseHeader17Extension
-//
-//      UnicodeBlockRecord[]
-//      UnicodeScriptRecord[]
-//      UnicodePropertyRecord[]
-//      UnicodeValueProperty8Record[]
-//
-//      UnicodeCoverageData[]
-//      UnicodeValueTable8Data[]
-//
-//      UnicodeDecompositionSection       optional
-//      UnicodeCompositionSection         optional
-//      UnicodeScriptExtensionsSection    optional
-//
-//      UnicodeScriptExtensionRange[]     optional
-//      UnicodeScriptSet[]                optional
-//
-//      alignment
-//      UnicodeMasterPage[]
-//
-//      alignment
-//      UnicodeBitPage[]
-//
-//      alignment
-//      UnicodeValueMasterPage8[]
-//
-//      alignment
-//      UnicodeValuePage8[]
-//
-//      alignment
-//      UnicodeDecompositionMasterPage[]  optional
-//
-//      alignment
-//      UnicodeDecompositionPage[]        optional
-//
-//      alignment
-//      UnicodeDecompositionRecord[]      optional
-//
-//      alignment
-//      UnicodeCompositionRecord[]        optional
-//
-//      UTF-8 string pool
-//
-// Section ordering itself is not part of the persistent ABI. Offsets in
-// UnicodeDatabaseHeader, its version-specific header extensions, and the
-// individual section descriptors define the physical layout.
+    // Version 1.0 layout currently emitted:
+    //
+    //      UnicodeDatabaseHeader
+    //      UnicodeBlockRecord[]
+    //      UnicodeScriptRecord[]
+    //      UnicodePropertyRecord[]
+    //      UnicodeValueProperty8Record[]
+    //      UnicodeCoverageData[]
+    //      UnicodeValueTable8Data[]
+    //
+    //      UnicodeDecompositionSection       optional
+    //      UnicodeCompositionSection         optional
+    //      UnicodeScriptExtensionsSection    optional
+    //
+    //      UnicodeScriptExtensionRange[]     optional
+    //      UnicodeScriptSet[]                optional
+    //
+    //      alignment
+    //      UnicodeMasterPage[]
+    //
+    //      alignment
+    //      UnicodeBitPage[]
+    //
+    //      alignment
+    //      UnicodeValueMasterPage8[]
+    //
+    //      alignment
+    //      UnicodeValuePage8[]
+    //
+    //      alignment
+    //      UnicodeDecompositionMasterPage[]  optional
+    //
+    //      alignment
+    //      UnicodeDecompositionPage[]        optional
+    //
+    //      alignment
+    //      UnicodeDecompositionRecord[]      optional
+    //
+    //      alignment
+    //      UnicodeCompositionRecord[]        optional
+    //
+    //      UTF-8 string pool
+    //
+    // Section ordering itself is not part of the persistent ABI. Offsets in
+    // UnicodeDatabaseHeader, and the individual section descriptors 
+    // define the physical layout.
     //
     // All page pools have already been canonicalized and deduplicated by the
     // corresponding generator-side pool builders.
@@ -260,6 +266,7 @@ namespace waavs
             uint32_t decompositionOffset{ 0 };
             uint32_t compositionOffset{ 0 };
             uint32_t scriptExtensionsOffset{ 0 };
+            uint32_t bidiBracketsOffset{ 0 };
             
             uint32_t scriptExtensionRangeOffset{ 0 };
             uint32_t scriptSetOffset{ 0 };
@@ -510,6 +517,29 @@ namespace waavs
             }
 
             // ================================================================
+            // Bidi bracket validation
+            // ================================================================
+
+            if (database.bidiBracketCount() >
+                std::numeric_limits<uint32_t>::max())
+            {
+                outResult.error =
+                    UnicodeDatabaseWriteError::TooManyBidiBrackets;
+
+                return false;
+            }
+
+
+            if (!validateBidiBrackets(database))
+            {
+                outResult.error =
+                    UnicodeDatabaseWriteError::InvalidBidiBrackets;
+
+                return false;
+            }
+
+
+            // ================================================================
             // Remaining semantic directories
             // ================================================================
             if (database.propertyCount() >
@@ -592,11 +622,7 @@ namespace waavs
 
             header.unicodePatch = unicodePatch;
 
-
-            header.headerSize =
-                sizeof(UnicodeDatabaseHeader) +
-                sizeof(UnicodeDatabaseHeader17Extension);
-
+            header.headerSize = sizeof(UnicodeDatabaseHeader);
 
             header.databaseSize = layout.databaseSize;
 
@@ -719,29 +745,28 @@ namespace waavs
                 ? layout.compositionOffset
                 : 0;
 
-
-            // ---------------------------------------------------------------
-            // Write header
-            // ---------------------------------------------------------------
-
-            std::memcpy(result.data(),&header, sizeof(header));
-
-            // ================================================================
-            // Format 1.7 header extension
-            // ================================================================
-
-            UnicodeDatabaseHeader17Extension header17{};
-
-
-            header17.scriptExtensionsOffset =
+            header.scriptExtensionsOffset =
                 database.scriptExtensionRangeCount() != 0
                 ? layout.scriptExtensionsOffset
                 : 0;
 
+            // ---------------------------------------------------------------
+            // Bidi brackets
+            // ---------------------------------------------------------------
 
-            std::memcpy( result.data() + sizeof(UnicodeDatabaseHeader),
-                &header17,
-                sizeof(header17));
+            header.bidiBracketsOffset =
+                database.bidiBracketCount() != 0
+                ? layout.bidiBracketsOffset
+                : 0;
+
+            header.bidiBracketsCount =
+                static_cast<uint32_t>(
+                    database.bidiBracketCount());
+
+            // ---------------------------------------------------------------
+            // Write header
+            // ---------------------------------------------------------------
+            std::memcpy( result.data(), &header, sizeof(header));
 
 
             // ================================================================
@@ -895,6 +920,18 @@ namespace waavs
                     result,
                     layout.scriptSetOffset,
                     database.scriptSets());
+            }
+
+            // ================================================================
+            // Bidi bracket records
+            // ================================================================
+
+            if (database.bidiBracketCount() != 0)
+            {
+                copyArray(
+                    result,
+                    layout.bidiBracketsOffset,
+                    database.bidiBrackets());
             }
 
             // ================================================================
@@ -1124,9 +1161,7 @@ namespace waavs
 
         static bool calculateLayout(const UnicodeDatabaseBuilder& database, Layout& outLayout) noexcept
         {
-            uint64_t cursor =
-                sizeof(UnicodeDatabaseHeader) +
-                sizeof(UnicodeDatabaseHeader17Extension);
+            uint64_t cursor = sizeof(UnicodeDatabaseHeader);
 
 
             // ================================================================
@@ -1363,6 +1398,38 @@ namespace waavs
                     return false;
                 }
             }
+
+
+            // ================================================================
+            // Bidi bracket record array
+            // ================================================================
+
+            if (database.bidiBracketCount() != 0)
+            {
+                if (!alignCursor(
+                    cursor,
+                    alignof(UnicodeBidiBracketRecord)))
+                {
+                    return false;
+                }
+
+
+                if (!fitsUint32(cursor))
+                    return false;
+
+
+                outLayout.bidiBracketsOffset =
+                    static_cast<uint32_t>(cursor);
+
+
+                if (!advanceArray<UnicodeBidiBracketRecord>(
+                    cursor,
+                    database.bidiBracketCount()))
+                {
+                    return false;
+                }
+            }
+
 
             // ================================================================
             // SET master-page pool
@@ -1913,6 +1980,166 @@ namespace waavs
 
                 if (!referenced)
                     return false;
+            }
+
+
+            return true;
+        }
+
+        // ====================================================================
+// validateBidiBrackets
+//
+// Validate the sparse BidiBrackets.txt representation before
+// serialization.
+//
+// A present dataset requires:
+//
+//      - valid Unicode code points
+//      - no self-pairs
+//      - Open or Close type only
+//      - zero reserved bytes
+//      - strictly increasing code-point order
+//      - reciprocal pair mappings
+//      - reciprocal Open/Close types
+// ====================================================================
+
+        [[nodiscard]]
+        static bool validateBidiBrackets(
+            const UnicodeDatabaseBuilder& database) noexcept
+        {
+            const std::vector<UnicodeBidiBracketRecord>& records =
+                database.bidiBrackets();
+
+
+            if (records.empty())
+                return true;
+
+
+            // ---------------------------------------------------------------
+            // Basic record validity and ordering.
+            // ---------------------------------------------------------------
+
+            uint32_t previousCodePoint = 0;
+            bool havePrevious = false;
+
+
+            for (const UnicodeBidiBracketRecord& record : records)
+            {
+                if (record.codePoint >= kUnicodeLimit ||
+                    record.pairedCodePoint >= kUnicodeLimit)
+                {
+                    return false;
+                }
+
+
+                if (record.codePoint == record.pairedCodePoint)
+                    return false;
+
+
+                const UnicodeBidiPairedBracketType type =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        record.type);
+
+
+                if (type != UnicodeBidiPairedBracketType::Open &&
+                    type != UnicodeBidiPairedBracketType::Close)
+                {
+                    return false;
+                }
+
+
+                if (record.reserved[0] != 0 ||
+                    record.reserved[1] != 0 ||
+                    record.reserved[2] != 0)
+                {
+                    return false;
+                }
+
+
+                if (havePrevious &&
+                    record.codePoint <= previousCodePoint)
+                {
+                    return false;
+                }
+
+
+                previousCodePoint =
+                    record.codePoint;
+
+                havePrevious =
+                    true;
+            }
+
+
+            // ---------------------------------------------------------------
+            // Reciprocal pair validation.
+            //
+            // Records are strictly sorted by codePoint, so use binary search.
+            // ---------------------------------------------------------------
+
+            for (const UnicodeBidiBracketRecord& record : records)
+            {
+                size_t first = 0;
+                size_t last = records.size();
+
+                const UnicodeBidiBracketRecord* paired =
+                    nullptr;
+
+
+                while (first < last)
+                {
+                    const size_t middle =
+                        first + ((last - first) >> 1);
+
+                    const UnicodeBidiBracketRecord& candidate =
+                        records[middle];
+
+
+                    if (candidate.codePoint <
+                        record.pairedCodePoint)
+                    {
+                        first = middle + 1;
+                    }
+                    else if (candidate.codePoint >
+                        record.pairedCodePoint)
+                    {
+                        last = middle;
+                    }
+                    else
+                    {
+                        paired = &candidate;
+                        break;
+                    }
+                }
+
+
+                if (!paired)
+                    return false;
+
+
+                if (paired->pairedCodePoint != record.codePoint)
+                    return false;
+
+
+                const UnicodeBidiPairedBracketType type =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        record.type);
+
+                const UnicodeBidiPairedBracketType pairedType =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        paired->type);
+
+
+                if (type == UnicodeBidiPairedBracketType::Open)
+                {
+                    if (pairedType != UnicodeBidiPairedBracketType::Close)
+                        return false;
+                }
+                else
+                {
+                    if (pairedType != UnicodeBidiPairedBracketType::Open)
+                        return false;
+                }
             }
 
 

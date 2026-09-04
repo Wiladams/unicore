@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <algorithm>
 
 #include "unicode_bidi_class.h"
 #include "unicode_database.h"
@@ -111,6 +112,43 @@ namespace waavs
     };
 
     // ========================================================================
+    // BidiBracketPair
+    //
+    // One BD16 paired-bracket match.
+    //
+    // Positions are positions in the post-X9 bidi sequence.
+    // ========================================================================
+
+    struct BidiBracketPair
+    {
+        uint32_t openPosition{ 0 };
+        uint32_t closePosition{ 0 };
+    };
+
+    // ========================================================================
+    // BidiBracketStrongTypes
+    //
+    // Strong-direction evidence found inside one N0 bracket pair.
+    //
+    // EN and AN contribute to rightToLeft, as required by N0.
+    // ========================================================================
+
+    struct BidiBracketStrongTypes
+    {
+        bool leftToRight{ false };
+        bool rightToLeft{ false };
+
+        [[nodiscard]] bool empty() const noexcept {
+            return !leftToRight && !rightToLeft;
+        }
+
+        [[nodiscard]] bool mixed() const noexcept {
+            return leftToRight && rightToLeft;
+        }
+    };
+
+
+    // ========================================================================
     // ScriptClusterInfo
     //
     // Temporary Script information retained through bidi analysis for later
@@ -147,6 +185,7 @@ namespace waavs
     struct BidiParagraphView
     {
         const UnicodeScalar* scalars{ nullptr };
+        const UnicodeBidiClass* originalTypes{ nullptr };
         const UnicodeBidiLevel* levels{ nullptr };
         uint32_t scalarCount{ 0 };
 
@@ -2374,8 +2413,1509 @@ namespace waavs
     }
 
 
+    // ========================================================================
+    // bidiBracketCodePointsEquivalent
+    //
+    // BD16 bracket matching normally compares code points directly.
+    //
+    // U+3009 RIGHT ANGLE BRACKET and U+232A RIGHT-POINTING ANGLE BRACKET are
+    // canonically equivalent for BD16 matching.
+    // ========================================================================
+
+    [[nodiscard]]
+    static constexpr bool bidiBracketCodePointsEquivalent(
+        uint32_t a, uint32_t b) noexcept
+    {
+        if (a == b)
+            return true;
+
+        return
+            (a == 0x3009u && b == 0x232Au) ||
+            (a == 0x232Au && b == 0x3009u);
+    }
 
 
+    // ========================================================================
+    // buildBidiBracketPairs
+    //
+    // UAX #9 BD14-BD16.
+    //
+    // Discover paired brackets in one isolating run sequence.
+    //
+    // This performs pair discovery only. It does not apply N0 or modify the
+    // working bidi types.
+    //
+    // Brackets participate only when their current working type is ON.
+    //
+    // BD16 requires a fixed stack of exactly 63 entries. If another opening
+    // bracket is encountered when that stack is full, the resulting pair list
+    // for this isolating run sequence is empty.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool buildBidiBracketPairs(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeScalar* scalars, const UnicodeBidiClass* types,
+        uint32_t scalarCount, const UnicodeDatabase& database,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const BidiIsolatingRunSequence& sequence,
+        std::vector<BidiBracketPair>& pairs)
+    {
+        pairs.clear();
+
+        if (bidiCount == 0)
+            return true;
+
+        if (!bidiIndices ||
+            !scalars ||
+            !types ||
+            !database.hasBidiBrackets())
+        {
+            return false;
+        }
+
+        if (sequence.runCount == 0)
+            return false;
+
+        if (sequence.runOffset > sequenceRunIndices.size() ||
+            sequence.runCount >
+            sequenceRunIndices.size() - sequence.runOffset)
+        {
+            return false;
+        }
+
+
+        struct StackEntry
+        {
+            uint32_t pairedCodePoint{ 0 };
+            uint32_t position{ 0 };
+        };
+
+
+        std::array<StackEntry, 63> stack{};
+        uint32_t stackSize = 0;
+
+
+        for (uint32_t sequenceRun = 0;
+            sequenceRun < sequence.runCount;
+            ++sequenceRun)
+        {
+            const uint32_t runListIndex =
+                sequence.runOffset + sequenceRun;
+
+            const uint32_t runIndex =
+                sequenceRunIndices[runListIndex];
+
+            if (runIndex >= runs.size())
+                return false;
+
+
+            const BidiLevelRun& run =
+                runs[runIndex];
+
+            if (run.begin >= run.end ||
+                run.end > bidiCount)
+            {
+                return false;
+            }
+
+
+            for (uint32_t position = run.begin;
+                position < run.end;
+                ++position)
+            {
+                const uint32_t scalarIndex =
+                    bidiIndices[position];
+
+                if (scalarIndex >= scalarCount)
+                    return false;
+
+
+                // BD14/BD15 require the current bidi type to be ON.
+
+                if (types[scalarIndex] !=
+                    UnicodeBidiClass::OtherNeutral)
+                {
+                    continue;
+                }
+
+
+                const uint32_t cp =
+                    scalars[scalarIndex].value;
+
+                const UnicodeBidiBracketRecord* bracket =
+                    database.bidiBracket(cp);
+
+                if (!bracket)
+                    continue;
+
+
+                const UnicodeBidiPairedBracketType bracketType =
+                    static_cast<UnicodeBidiPairedBracketType>(
+                        bracket->type);
+
+
+                // ------------------------------------------------------------
+                // Opening paired bracket
+                // ------------------------------------------------------------
+
+                if (bracketType ==
+                    UnicodeBidiPairedBracketType::Open)
+                {
+                    if (stackSize >= stack.size())
+                    {
+                        // BD16 specifies an empty list for the sequence when
+                        // the fixed 63-entry stack overflows.
+
+                        pairs.clear();
+                        return true;
+                    }
+
+
+                    stack[stackSize++] = StackEntry{
+                        bracket->pairedCodePoint,
+                        position
+                    };
+
+                    continue;
+                }
+
+
+                // ------------------------------------------------------------
+                // Closing paired bracket
+                // ------------------------------------------------------------
+
+                if (bracketType !=
+                    UnicodeBidiPairedBracketType::Close)
+                {
+                    return false;
+                }
+
+                if (stackSize == 0)
+                    continue;
+
+
+                uint32_t stackIndex =
+                    stackSize;
+
+                while (stackIndex != 0)
+                {
+                    --stackIndex;
+
+                    const StackEntry& entry =
+                        stack[stackIndex];
+
+                    if (!bidiBracketCodePointsEquivalent(
+                        cp,
+                        entry.pairedCodePoint))
+                    {
+                        continue;
+                    }
+
+
+                    pairs.push_back(BidiBracketPair{
+                        entry.position,
+                        position
+                        });
+
+
+                    // Pop the matched opener and everything above it.
+
+                    stackSize =
+                        stackIndex;
+
+                    break;
+                }
+            }
+        }
+
+
+        // BD16 requires ordering by opening bracket position. Nested pairs are
+        // discovered in closing-bracket order, so this sort is necessary.
+
+        std::sort(
+            pairs.begin(),
+            pairs.end(),
+            [](const BidiBracketPair& a,
+                const BidiBracketPair& b) noexcept
+            {
+                return a.openPosition < b.openPosition;
+            });
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // inspectBidiBracketPairContents
+    //
+    // N0 enclosed-strong inspection for one BD16 bracket pair.
+    //
+    // Scan only characters belonging to this isolating run sequence between
+    // the opening and closing bracket.
+    //
+    // Strong types contribute as follows:
+    //
+    //      L       -> leftToRight
+    //      R       -> rightToLeft
+    //      EN, AN  -> rightToLeft
+    //
+    // All other current working bidi types are ignored.
+    //
+    // This helper performs inspection only. It does not modify bidi types.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool inspectBidiBracketPairContents(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const BidiIsolatingRunSequence& sequence,
+        const BidiBracketPair& pair,
+        BidiBracketStrongTypes& strongTypes)
+    {
+        strongTypes = {};
+
+        if (!bidiIndices || !types)
+            return false;
+
+        if (pair.openPosition >= pair.closePosition ||
+            pair.closePosition >= bidiCount)
+        {
+            return false;
+        }
+
+        if (sequence.runCount == 0)
+            return false;
+
+        if (sequence.runOffset > sequenceRunIndices.size() ||
+            sequence.runCount >
+            sequenceRunIndices.size() - sequence.runOffset)
+        {
+            return false;
+        }
+
+
+        bool foundOpen = false;
+        bool foundClose = false;
+
+
+        for (uint32_t sequenceRun = 0;
+            sequenceRun < sequence.runCount;
+            ++sequenceRun)
+        {
+            const uint32_t runListIndex =
+                sequence.runOffset + sequenceRun;
+
+            const uint32_t runIndex =
+                sequenceRunIndices[runListIndex];
+
+            if (runIndex >= runs.size())
+                return false;
+
+
+            const BidiLevelRun& run =
+                runs[runIndex];
+
+            if (run.begin >= run.end ||
+                run.end > bidiCount)
+            {
+                return false;
+            }
+
+
+            for (uint32_t position = run.begin;
+                position < run.end;
+                ++position)
+            {
+                if (!foundOpen)
+                {
+                    if (position == pair.openPosition)
+                        foundOpen = true;
+
+                    continue;
+                }
+
+
+                if (position == pair.closePosition)
+                {
+                    foundClose = true;
+                    break;
+                }
+
+
+                const uint32_t scalarIndex =
+                    bidiIndices[position];
+
+                if (scalarIndex >= scalarCount)
+                    return false;
+
+
+                const UnicodeBidiClass type =
+                    types[scalarIndex];
+
+
+                switch (type)
+                {
+                case UnicodeBidiClass::LeftToRight:
+                    strongTypes.leftToRight = true;
+                    break;
+
+                case UnicodeBidiClass::RightToLeft:
+                case UnicodeBidiClass::EuropeanNumber:
+                case UnicodeBidiClass::ArabicNumber:
+                    strongTypes.rightToLeft = true;
+                    break;
+
+                default:
+                    break;
+                }
+
+
+                // Once both directions have been found, additional characters
+                // cannot change the result of this inspection.
+
+                if (strongTypes.mixed())
+                    return true;
+            }
+
+
+            if (foundClose)
+                break;
+        }
+
+
+        return foundOpen && foundClose;
+    }
+
+
+    // ========================================================================
+// resolveBidiBracketPairN0
+//
+// UAX #9 N0 resolution for one BD16 bracket pair.
+//
+// The pair list must be processed in ascending opening-position order.
+//
+// This helper:
+//
+//      1. Inspects strong types enclosed by the pair.
+//      2. Resolves immediately to the embedding direction when that
+//         direction occurs inside the pair.
+//      3. Otherwise, when only the opposite direction occurs inside,
+//         finds the preceding strong context.
+//      4. Leaves the pair unchanged when no strong type occurs inside.
+//
+// EN and AN are treated as R throughout N0.
+//
+// Trailing original-NSM handling required by N0 is intentionally not
+// performed here.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiBracketPairN0(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const BidiIsolatingRunSequence& sequence,
+        const BidiBracketPair& pair)
+    {
+        if (!bidiIndices || !types)
+            return false;
+
+        if (pair.openPosition >= pair.closePosition ||
+            pair.closePosition >= bidiCount)
+        {
+            return false;
+        }
+
+
+        const uint32_t openScalarIndex =
+            bidiIndices[pair.openPosition];
+
+        const uint32_t closeScalarIndex =
+            bidiIndices[pair.closePosition];
+
+        if (openScalarIndex >= scalarCount ||
+            closeScalarIndex >= scalarCount)
+        {
+            return false;
+        }
+
+
+        // BD16 pairs consist only of brackets whose current type was ON.
+        // A pair position should therefore still be ON when N0 reaches it.
+
+        if (types[openScalarIndex] != UnicodeBidiClass::OtherNeutral ||
+            types[closeScalarIndex] != UnicodeBidiClass::OtherNeutral)
+        {
+            return false;
+        }
+
+
+        // --------------------------------------------------------------------
+        // N0a - inspect enclosed strong types.
+        // --------------------------------------------------------------------
+
+        BidiBracketStrongTypes strongTypes{};
+
+        if (!inspectBidiBracketPairContents(
+            bidiIndices,
+            bidiCount,
+            types,
+            scalarCount,
+            runs,
+            sequenceRunIndices,
+            sequence,
+            pair,
+            strongTypes))
+        {
+            return false;
+        }
+
+
+        // No strong type enclosed by the pair.
+        //
+        // N0 leaves both brackets unchanged. N1/N2 will resolve them later.
+
+        if (strongTypes.empty())
+            return true;
+
+
+        const UnicodeBidiClass embeddingType =
+            bidiTypeFromLevel(sequence.level);
+
+        const UnicodeBidiClass oppositeType =
+            embeddingType == UnicodeBidiClass::LeftToRight
+            ? UnicodeBidiClass::RightToLeft
+            : UnicodeBidiClass::LeftToRight;
+
+
+        const bool containsEmbeddingType =
+            embeddingType == UnicodeBidiClass::LeftToRight
+            ? strongTypes.leftToRight
+            : strongTypes.rightToLeft;
+
+
+        // --------------------------------------------------------------------
+        // N0b
+        //
+        // If the enclosed text contains a strong type matching the embedding
+        // direction, both brackets take the embedding direction.
+        // --------------------------------------------------------------------
+
+        if (containsEmbeddingType)
+        {
+            types[openScalarIndex] = embeddingType;
+            types[closeScalarIndex] = embeddingType;
+
+            return true;
+        }
+
+
+        // --------------------------------------------------------------------
+        // N0c
+        //
+        // There is enclosed strong text, but none matches the embedding
+        // direction. Therefore the enclosed strong direction is opposite.
+        //
+        // Find the preceding strong type in this isolating run sequence.
+        // sos supplies the context when no earlier strong type exists.
+        //
+        // EN and AN act as R.
+        // --------------------------------------------------------------------
+
+        UnicodeBidiClass precedingStrong =
+            sequence.sos;
+
+        bool foundOpen = false;
+
+
+        if (sequence.runCount == 0)
+            return false;
+
+        if (sequence.runOffset > sequenceRunIndices.size() ||
+            sequence.runCount >
+            sequenceRunIndices.size() - sequence.runOffset)
+        {
+            return false;
+        }
+
+
+        for (uint32_t sequenceRun = 0;
+            sequenceRun < sequence.runCount;
+            ++sequenceRun)
+        {
+            const uint32_t runListIndex =
+                sequence.runOffset + sequenceRun;
+
+            const uint32_t runIndex =
+                sequenceRunIndices[runListIndex];
+
+            if (runIndex >= runs.size())
+                return false;
+
+
+            const BidiLevelRun& run =
+                runs[runIndex];
+
+            if (run.begin >= run.end ||
+                run.end > bidiCount)
+            {
+                return false;
+            }
+
+
+            for (uint32_t position = run.begin;
+                position < run.end;
+                ++position)
+            {
+                if (position == pair.openPosition)
+                {
+                    foundOpen = true;
+                    break;
+                }
+
+
+                const uint32_t scalarIndex =
+                    bidiIndices[position];
+
+                if (scalarIndex >= scalarCount)
+                    return false;
+
+
+                const UnicodeBidiClass type =
+                    types[scalarIndex];
+
+
+                if (type == UnicodeBidiClass::LeftToRight)
+                {
+                    precedingStrong =
+                        UnicodeBidiClass::LeftToRight;
+                }
+                else if (type == UnicodeBidiClass::RightToLeft ||
+                    type == UnicodeBidiClass::EuropeanNumber ||
+                    type == UnicodeBidiClass::ArabicNumber)
+                {
+                    precedingStrong =
+                        UnicodeBidiClass::RightToLeft;
+                }
+            }
+
+
+            if (foundOpen)
+                break;
+        }
+
+
+        if (!foundOpen)
+            return false;
+
+
+        // --------------------------------------------------------------------
+        // N0c1 / N0c2
+        //
+        // If preceding context is opposite the embedding direction, use that
+        // opposite direction. Otherwise use the embedding direction.
+        // --------------------------------------------------------------------
+
+        const UnicodeBidiClass resolvedType =
+            precedingStrong == oppositeType
+            ? oppositeType
+            : embeddingType;
+
+
+        types[openScalarIndex] = resolvedType;
+        types[closeScalarIndex] = resolvedType;
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // applyBidiBracketTrailingNsmN0
+    //
+    // Apply the trailing-NSM portion of UAX #9 N0 for one resolved bracket.
+    //
+    // Any immediately following characters whose original bidi type was NSM
+    // take the L or R type assigned to the preceding bracket by N0.
+    //
+    // Adjacency is adjacency in the isolating run sequence, so the scan may
+    // continue across constituent level-run boundaries.
+    //
+    // originalTypes must contain the Bidi_Class values from before W1.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool applyBidiBracketTrailingNsmN0(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeBidiClass* originalTypes,
+        UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const BidiIsolatingRunSequence& sequence,
+        uint32_t bracketPosition)
+    {
+        if (!bidiIndices ||
+            !originalTypes ||
+            !types ||
+            bracketPosition >= bidiCount)
+        {
+            return false;
+        }
+
+        if (sequence.runCount == 0)
+            return false;
+
+        if (sequence.runOffset > sequenceRunIndices.size() ||
+            sequence.runCount >
+            sequenceRunIndices.size() - sequence.runOffset)
+        {
+            return false;
+        }
+
+
+        const uint32_t bracketScalarIndex =
+            bidiIndices[bracketPosition];
+
+        if (bracketScalarIndex >= scalarCount)
+            return false;
+
+
+        const UnicodeBidiClass bracketType =
+            types[bracketScalarIndex];
+
+        if (bracketType != UnicodeBidiClass::LeftToRight &&
+            bracketType != UnicodeBidiClass::RightToLeft)
+        {
+            return false;
+        }
+
+
+        bool foundBracket = false;
+
+
+        for (uint32_t sequenceRun = 0;
+            sequenceRun < sequence.runCount;
+            ++sequenceRun)
+        {
+            const uint32_t runListIndex =
+                sequence.runOffset + sequenceRun;
+
+            const uint32_t runIndex =
+                sequenceRunIndices[runListIndex];
+
+            if (runIndex >= runs.size())
+                return false;
+
+
+            const BidiLevelRun& run =
+                runs[runIndex];
+
+            if (run.begin >= run.end ||
+                run.end > bidiCount)
+            {
+                return false;
+            }
+
+
+            for (uint32_t position = run.begin;
+                position < run.end;
+                ++position)
+            {
+                if (!foundBracket)
+                {
+                    if (position == bracketPosition)
+                        foundBracket = true;
+
+                    continue;
+                }
+
+
+                const uint32_t scalarIndex =
+                    bidiIndices[position];
+
+                if (scalarIndex >= scalarCount)
+                    return false;
+
+
+                // N0 refers specifically to the bidi type prior to W1.
+
+                if (originalTypes[scalarIndex] !=
+                    UnicodeBidiClass::NonspacingMark)
+                {
+                    return true;
+                }
+
+
+                types[scalarIndex] =
+                    bracketType;
+            }
+        }
+
+
+        return foundBracket;
+    }
+
+    // ========================================================================
+    // resolveBidiNeutralTypesN0
+    //
+    // UAX #9 N0.
+    //
+    // Process paired brackets independently for each isolating run sequence.
+    //
+    // For each sequence:
+    //
+    //      1. Discover the complete BD16 bracket-pair list.
+    //      2. Process pairs in ascending opening-position order.
+    //      3. Apply trailing original-NSM propagation to brackets which
+    //         changed to L or R under N0.
+    //
+    // Pair discovery is completed before any pair is resolved. This preserves
+    // the BD16 pair list while allowing earlier N0 resolutions to influence
+    // the processing of later pairs.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiNeutralTypesN0(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeScalar* scalars,
+        const UnicodeBidiClass* originalTypes,
+        UnicodeBidiClass* types, uint32_t scalarCount,
+        const UnicodeDatabase& database,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !scalars ||
+            !originalTypes ||
+            !types ||
+            runs.empty() ||
+            sequences.empty() ||
+            !database.hasBidiBrackets())
+        {
+            return false;
+        }
+
+
+        std::vector<BidiBracketPair> pairs;
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            // ---------------------------------------------------------------
+            // BD16
+            //
+            // Discover all pairs before changing any bracket types.
+            // buildBidiBracketPairs() returns them in ascending opening-
+            // position order, as required by N0.
+            // ---------------------------------------------------------------
+
+            if (!buildBidiBracketPairs(
+                bidiIndices,
+                bidiCount,
+                scalars,
+                types,
+                scalarCount,
+                database,
+                runs,
+                sequenceRunIndices,
+                sequence,
+                pairs))
+            {
+                return false;
+            }
+
+
+            // ---------------------------------------------------------------
+            // N0
+            //
+            // Process pairs sequentially. Changes made by an earlier pair
+            // remain visible while resolving later pairs.
+            // ---------------------------------------------------------------
+
+            for (const BidiBracketPair& pair : pairs)
+            {
+                if (pair.openPosition >= bidiCount ||
+                    pair.closePosition >= bidiCount)
+                {
+                    return false;
+                }
+
+
+                const uint32_t openScalarIndex =
+                    bidiIndices[pair.openPosition];
+
+                const uint32_t closeScalarIndex =
+                    bidiIndices[pair.closePosition];
+
+                if (openScalarIndex >= scalarCount ||
+                    closeScalarIndex >= scalarCount)
+                {
+                    return false;
+                }
+
+
+                if (!resolveBidiBracketPairN0(
+                    bidiIndices,
+                    bidiCount,
+                    types,
+                    scalarCount,
+                    runs,
+                    sequenceRunIndices,
+                    sequence,
+                    pair))
+                {
+                    return false;
+                }
+
+
+                const UnicodeBidiClass resolvedType =
+                    types[openScalarIndex];
+
+
+                // -----------------------------------------------------------
+                // No enclosed strong type.
+                //
+                // N0 left the pair as ON. N1/N2 will resolve it later.
+                // -----------------------------------------------------------
+
+                if (resolvedType ==
+                    UnicodeBidiClass::OtherNeutral)
+                {
+                    if (types[closeScalarIndex] !=
+                        UnicodeBidiClass::OtherNeutral)
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+
+                // -----------------------------------------------------------
+                // A BD16 pair began as ON/ON. Therefore L or R here means
+                // this pair changed under N0.
+                // -----------------------------------------------------------
+
+                if (resolvedType != UnicodeBidiClass::LeftToRight &&
+                    resolvedType != UnicodeBidiClass::RightToLeft)
+                {
+                    return false;
+                }
+
+                if (types[closeScalarIndex] != resolvedType)
+                    return false;
+
+
+                // -----------------------------------------------------------
+                // N0 trailing original-NSM handling.
+                // -----------------------------------------------------------
+
+                if (!applyBidiBracketTrailingNsmN0(
+                    bidiIndices,
+                    bidiCount,
+                    originalTypes,
+                    types,
+                    scalarCount,
+                    runs,
+                    sequenceRunIndices,
+                    sequence,
+                    pair.openPosition))
+                {
+                    return false;
+                }
+
+
+                if (!applyBidiBracketTrailingNsmN0(
+                    bidiIndices,
+                    bidiCount,
+                    originalTypes,
+                    types,
+                    scalarCount,
+                    runs,
+                    sequenceRunIndices,
+                    sequence,
+                    pair.closePosition))
+                {
+                    return false;
+                }
+            }
+        }
+
+
+        return true;
+    }
+
+
+
+    // ========================================================================
+// isBidiNeutralOrIsolateFormatting
+//
+// UAX #9 NI:
+//
+//      B, S, WS, ON, FSI, LRI, RLI, PDI
+// ========================================================================
+
+    [[nodiscard]]
+    static constexpr bool isBidiNeutralOrIsolateFormatting(
+        UnicodeBidiClass type) noexcept
+    {
+        switch (type)
+        {
+        case UnicodeBidiClass::ParagraphSeparator:
+        case UnicodeBidiClass::SegmentSeparator:
+        case UnicodeBidiClass::WhiteSpace:
+        case UnicodeBidiClass::OtherNeutral:
+        case UnicodeBidiClass::FirstStrongIsolate:
+        case UnicodeBidiClass::LeftToRightIsolate:
+        case UnicodeBidiClass::RightToLeftIsolate:
+        case UnicodeBidiClass::PopDirectionalIsolate:
+            return true;
+
+        default:
+            return false;
+        }
+    }
+
+    // ========================================================================
+// bidiStrongTypeForN1
+//
+// Return the strong directional influence used by N1:
+//
+//      L      -> L
+//      R      -> R
+//      EN/AN  -> R
+//
+// false means that type does not provide N1 strong context.
+// ========================================================================
+
+    [[nodiscard]]
+    static constexpr bool bidiStrongTypeForN1(
+        UnicodeBidiClass type,
+        UnicodeBidiClass& strongType) noexcept
+    {
+        if (type == UnicodeBidiClass::LeftToRight)
+        {
+            strongType = UnicodeBidiClass::LeftToRight;
+            return true;
+        }
+
+        if (type == UnicodeBidiClass::RightToLeft ||
+            type == UnicodeBidiClass::EuropeanNumber ||
+            type == UnicodeBidiClass::ArabicNumber)
+        {
+            strongType = UnicodeBidiClass::RightToLeft;
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // ========================================================================
+// resolveBidiNeutralTypesN1
+//
+// UAX #9 N1.
+//
+// For each isolating run sequence, resolve every maximal sequence of NI
+// characters when the strong directional influence on both sides agrees.
+//
+// EN and AN act as R for their influence on NI characters.
+//
+// sos and eos supply the strong context at isolating-run-sequence
+// boundaries.
+//
+// NI sequences whose surrounding directions disagree remain unchanged
+// for N2.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiNeutralTypesN1(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !types ||
+            runs.empty() ||
+            sequences.empty())
+        {
+            return false;
+        }
+
+
+        std::vector<uint32_t> neutralScalars;
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            if (sequence.runCount == 0)
+                return false;
+
+            if (sequence.runOffset > sequenceRunIndices.size() ||
+                sequence.runCount >
+                sequenceRunIndices.size() - sequence.runOffset)
+            {
+                return false;
+            }
+
+
+            if (sequence.sos != UnicodeBidiClass::LeftToRight &&
+                sequence.sos != UnicodeBidiClass::RightToLeft)
+            {
+                return false;
+            }
+
+            if (sequence.eos != UnicodeBidiClass::LeftToRight &&
+                sequence.eos != UnicodeBidiClass::RightToLeft)
+            {
+                return false;
+            }
+
+
+            neutralScalars.clear();
+
+            UnicodeBidiClass precedingStrong =
+                sequence.sos;
+
+
+            for (uint32_t sequenceRun = 0;
+                sequenceRun < sequence.runCount;
+                ++sequenceRun)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                for (uint32_t position = run.begin;
+                    position < run.end;
+                    ++position)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    const UnicodeBidiClass type =
+                        types[scalarIndex];
+
+
+                    // --------------------------------------------------------
+                    // Continue the current NI sequence.
+                    // --------------------------------------------------------
+
+                    if (isBidiNeutralOrIsolateFormatting(type))
+                    {
+                        neutralScalars.push_back(
+                            scalarIndex);
+
+                        continue;
+                    }
+
+
+                    // --------------------------------------------------------
+                    // A non-NI character must provide the strong directional
+                    // influence relevant to N1 at this stage:
+                    //
+                    //      L
+                    //      R
+                    //      EN -> R
+                    //      AN -> R
+                    // --------------------------------------------------------
+
+                    UnicodeBidiClass followingStrong{};
+
+                    if (!bidiStrongTypeForN1(
+                        type,
+                        followingStrong))
+                    {
+                        return false;
+                    }
+
+
+                    // --------------------------------------------------------
+                    // Resolve the pending NI sequence only when both sides
+                    // agree.
+                    //
+                    // Otherwise leave it unchanged for N2.
+                    // --------------------------------------------------------
+
+                    if (!neutralScalars.empty())
+                    {
+                        if (precedingStrong ==
+                            followingStrong)
+                        {
+                            for (uint32_t neutralScalarIndex :
+                            neutralScalars)
+                            {
+                                types[neutralScalarIndex] =
+                                    precedingStrong;
+                            }
+                        }
+
+                        neutralScalars.clear();
+                    }
+
+
+                    precedingStrong =
+                        followingStrong;
+                }
+            }
+
+
+            // ---------------------------------------------------------------
+            // eos supplies the following strong context for a trailing NI
+            // sequence.
+            // ---------------------------------------------------------------
+
+            if (!neutralScalars.empty())
+            {
+                if (precedingStrong == sequence.eos)
+                {
+                    for (uint32_t neutralScalarIndex :
+                    neutralScalars)
+                    {
+                        types[neutralScalarIndex] =
+                            precedingStrong;
+                    }
+                }
+
+                neutralScalars.clear();
+            }
+        }
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // resolveBidiNeutralTypesN2
+    //
+    // UAX #9 N2.
+    //
+    // Any NI characters remaining after N1 take the embedding direction of
+    // their isolating run sequence:
+    //
+    //      even level -> L
+    //      odd level  -> R
+    //
+    // N1 must already have been applied. Therefore any NI still present is one
+    // whose surrounding directional influences did not agree.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiNeutralTypesN2(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        UnicodeBidiClass* types, uint32_t scalarCount,
+        const std::vector<BidiLevelRun>& runs,
+        const std::vector<uint32_t>& sequenceRunIndices,
+        const std::vector<BidiIsolatingRunSequence>& sequences)
+    {
+        if (bidiCount == 0)
+            return sequences.empty();
+
+        if (!bidiIndices ||
+            !types ||
+            runs.empty() ||
+            sequences.empty())
+        {
+            return false;
+        }
+
+
+        for (const BidiIsolatingRunSequence& sequence : sequences)
+        {
+            if (sequence.runCount == 0)
+                return false;
+
+            if (sequence.runOffset > sequenceRunIndices.size() ||
+                sequence.runCount >
+                sequenceRunIndices.size() - sequence.runOffset)
+            {
+                return false;
+            }
+
+
+            const UnicodeBidiClass embeddingType =
+                bidiTypeFromLevel(sequence.level);
+
+
+            for (uint32_t sequenceRun = 0;
+                sequenceRun < sequence.runCount;
+                ++sequenceRun)
+            {
+                const uint32_t runListIndex =
+                    sequence.runOffset + sequenceRun;
+
+                const uint32_t runIndex =
+                    sequenceRunIndices[runListIndex];
+
+                if (runIndex >= runs.size())
+                    return false;
+
+
+                const BidiLevelRun& run =
+                    runs[runIndex];
+
+                if (run.begin >= run.end ||
+                    run.end > bidiCount)
+                {
+                    return false;
+                }
+
+
+                if (run.level != sequence.level)
+                    return false;
+
+
+                for (uint32_t position = run.begin;
+                    position < run.end;
+                    ++position)
+                {
+                    const uint32_t scalarIndex =
+                        bidiIndices[position];
+
+                    if (scalarIndex >= scalarCount)
+                        return false;
+
+
+                    UnicodeBidiClass& type =
+                        types[scalarIndex];
+
+
+                    if (isBidiNeutralOrIsolateFormatting(type))
+                        type = embeddingType;
+                }
+            }
+        }
+
+
+        return true;
+    }
+
+
+
+    // ========================================================================
+// resolveBidiImplicitLevelsI1
+//
+// UAX #9 I1.
+//
+// For characters whose explicit embedding level is even:
+//
+//      R      -> level + 1
+//      EN, AN -> level + 2
+//
+// L remains at its current level.
+//
+// X9-removed characters are absent from bidiIndices and are therefore not
+// modified by this rule.
+//
+// W1-W7 and N0-N2 must already have been applied. At this point every
+// post-X9 working bidi type must be one of:
+//
+//      L, R, EN, AN
+//
+// I2 will subsequently process characters whose embedding level was odd.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiImplicitLevelsI1(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeBidiClass* types,
+        UnicodeBidiLevel* levels, uint32_t scalarCount) noexcept
+    {
+        if (bidiCount == 0)
+            return true;
+
+        if (!bidiIndices || !types || !levels)
+            return false;
+
+
+        for (uint32_t position = 0; position < bidiCount; ++position)
+        {
+            const uint32_t scalarIndex =
+                bidiIndices[position];
+
+            if (scalarIndex >= scalarCount)
+                return false;
+
+
+            const UnicodeBidiClass type =
+                types[scalarIndex];
+
+            UnicodeBidiLevel& level =
+                levels[scalarIndex];
+
+
+            // I1 receives the explicit embedding levels established by X1-X8.
+            //
+            // Explicit levels may not exceed max_depth. I1 can raise the
+            // resulting implicit level as high as max_depth + 1.
+
+            if (level > kUnicodeBidiMaxDepth)
+                return false;
+
+
+            // After W1-W7 and N0-N2, these are the only bidi types which may
+            // remain in the post-X9 sequence.
+
+            if (type != UnicodeBidiClass::LeftToRight &&
+                type != UnicodeBidiClass::RightToLeft &&
+                type != UnicodeBidiClass::EuropeanNumber &&
+                type != UnicodeBidiClass::ArabicNumber)
+            {
+                return false;
+            }
+
+
+            // I1 applies only to even embedding levels.
+
+            if ((level & 1u) != 0)
+                continue;
+
+
+            if (type == UnicodeBidiClass::RightToLeft)
+            {
+                level =
+                    static_cast<UnicodeBidiLevel>(
+                        level + 1u);
+            }
+            else if (type == UnicodeBidiClass::EuropeanNumber ||
+                type == UnicodeBidiClass::ArabicNumber)
+            {
+                level =
+                    static_cast<UnicodeBidiLevel>(
+                        level + 2u);
+            }
+        }
+
+
+        return true;
+    }
+
+
+    // ========================================================================
+// resolveBidiImplicitLevelsI2
+//
+// UAX #9 I2.
+//
+// For characters whose embedding level is odd:
+//
+//      L      -> level + 1
+//      EN, AN -> level + 1
+//
+// R remains at its current level.
+//
+// I1 must already have been applied.
+//
+// X9-removed characters are absent from bidiIndices and are therefore not
+// modified by this rule.
+//
+// After I1, implicit levels may already be as high as max_depth + 1.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool resolveBidiImplicitLevelsI2(
+        const uint32_t* bidiIndices, uint32_t bidiCount,
+        const UnicodeBidiClass* types,
+        UnicodeBidiLevel* levels, uint32_t scalarCount) noexcept
+    {
+        if (bidiCount == 0)
+            return true;
+
+        if (!bidiIndices || !types || !levels)
+            return false;
+
+
+        for (uint32_t position = 0; position < bidiCount; ++position)
+        {
+            const uint32_t scalarIndex =
+                bidiIndices[position];
+
+            if (scalarIndex >= scalarCount)
+                return false;
+
+
+            const UnicodeBidiClass type =
+                types[scalarIndex];
+
+            UnicodeBidiLevel& level =
+                levels[scalarIndex];
+
+
+            // I1 may already have produced max_depth + 1.
+
+            if (static_cast<uint16_t>(level) >
+                static_cast<uint16_t>(kUnicodeBidiMaxDepth) + 1u)
+            {
+                return false;
+            }
+
+
+            // After W1-W7 and N0-N2, these are the only bidi types which may
+            // remain in the post-X9 sequence.
+
+            if (type != UnicodeBidiClass::LeftToRight &&
+                type != UnicodeBidiClass::RightToLeft &&
+                type != UnicodeBidiClass::EuropeanNumber &&
+                type != UnicodeBidiClass::ArabicNumber)
+            {
+                return false;
+            }
+
+
+            // I2 applies only to odd embedding levels.
+
+            if ((level & 1u) == 0)
+                continue;
+
+
+            if (type == UnicodeBidiClass::LeftToRight ||
+                type == UnicodeBidiClass::EuropeanNumber ||
+                type == UnicodeBidiClass::ArabicNumber)
+            {
+                level =
+                    static_cast<UnicodeBidiLevel>(
+                        level + 1u);
+            }
+        }
+
+
+        return true;
+    }
 
 
 
@@ -2424,8 +3964,9 @@ namespace waavs
     //      P1-P3
     //      X1-X10
     //      W1-W7
+    //      N0-N2
+    //      I1-I2
     //
-    // N0-N2, and I1-I2 remain to be implemented.
     // ========================================================================
 
     template<typename Source>
@@ -2439,7 +3980,10 @@ namespace waavs
             mDatabase(&database),
             mParagraphDirection(direction)
         {
-            if (!database.hasBidiClass())
+            // The database needs to support both Bidi_Class and 
+            // Bidi_Bracket properties for UAX #9 processing.
+            if (!database.hasBidiClass() ||
+                !database.hasBidiBrackets())
                 mStatus = TextStreamStatus::InvalidInput;
         }
 
@@ -2753,6 +4297,126 @@ namespace waavs
             }
 
 
+            // ================================================================
+            // N0
+            //
+            // Resolve paired brackets independently within each isolating run
+            // sequence.
+            //
+            // BD16 pair discovery, sequential bracket resolution, and trailing
+            // original-NSM handling are all performed by this stage.
+            // ================================================================
+
+            if (!resolveBidiNeutralTypesN0(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mScalars.empty() ? nullptr : mScalars.data(),
+                mOriginalTypes.empty() ? nullptr : mOriginalTypes.data(),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                *mDatabase,
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // N1
+            //
+            // Resolve NI sequences when their surrounding strong directional
+            // influences agree.
+            //
+            // EN and AN act as R for their influence on NI characters.
+            // ================================================================
+
+            if (!resolveBidiNeutralTypesN1(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // N2
+            //
+            // Any NI characters remaining after N1 take the embedding
+            // direction of their isolating run sequence.
+            // ================================================================
+
+            if (!resolveBidiNeutralTypesN2(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                static_cast<uint32_t>(mScalars.size()),
+                mLevelRuns,
+                mSequenceRunIndices,
+                mRunSequences))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // I1
+            //
+            // Resolve implicit levels for characters whose embedding level is
+            // even:
+            //
+            //      R      -> level + 1
+            //      EN, AN -> level + 2
+            // ================================================================
+
+            if (!resolveBidiImplicitLevelsI1(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                mLevels.empty() ? nullptr : mLevels.data(),
+                static_cast<uint32_t>(mScalars.size())))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
+            // ================================================================
+            // I2
+            //
+            // Resolve implicit levels for characters whose embedding level is
+            // odd:
+            //
+            //      L, EN, AN -> level + 1
+            //      R         -> unchanged
+            // ================================================================
+
+            if (!resolveBidiImplicitLevelsI2(
+                mBidiIndices.empty() ? nullptr : mBidiIndices.data(),
+                static_cast<uint32_t>(mBidiIndices.size()),
+                mTypes.empty() ? nullptr : mTypes.data(),
+                mLevels.empty() ? nullptr : mLevels.data(),
+                static_cast<uint32_t>(mScalars.size())))
+            {
+                clearParagraph();
+                mStatus = TextStreamStatus::InvalidInput;
+                return false;
+            }
+
+
 
 
 
@@ -3037,9 +4701,10 @@ namespace waavs
         {
             if (mScalars.empty())
                 return false;
-
+            
 
             out.scalars = mScalars.data();
+            out.originalTypes = mOriginalTypes.data();
             out.levels = mLevels.data();
             out.scalarCount =
                 static_cast<uint32_t>(mScalars.size());
