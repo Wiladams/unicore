@@ -26,6 +26,7 @@ namespace waavs {
             UnicodeCoverageStorage fUnicodeCoverageStorage{};
             uint32_t fGlyphCount{ 0 };
             uint16_t fUnitsPerEm{ 0 };
+            int16_t fIndexToLocFormat{ 0 };
 
             FontFaceProperties fProperties{};
             bool fValid{ false };
@@ -340,19 +341,46 @@ namespace waavs {
             inline bool parseHeadTable(const TableRecord& table) noexcept
             {
                 const ByteSpan& data = table.data;
-                if (data.size() < 12)
+
+                if (data.size() < 54)
                     return false;
 
                 OpenTypeByteStream stream(data);
-                if (!stream.skip(8)) // Skip version and revision
+
+                if (!stream.seek(12))
                     return false;
 
-                uint32_t magic=0;
+                uint32_t magic = 0;
 
-                if (!stream.readUInt32(magic)) 
+                if (!stream.readUInt32(magic) || magic != 0x5F0F3CF5)
                     return false;
 
-                return magic == 0x5F0F3CF5;
+                uint16_t flags = 0;
+
+                if (!stream.readUInt16(flags))
+                    return false;
+
+                if (!stream.readUInt16(fUnitsPerEm))
+                    return false;
+
+                if (fUnitsPerEm < 16 || fUnitsPerEm > 16384)
+                    return false;
+
+                if (!stream.seek(50))
+                    return false;
+
+                if (!stream.readInt16(fIndexToLocFormat))
+                    return false;
+
+                if (fIndexToLocFormat != 0 && fIndexToLocFormat != 1)
+                    return false;
+
+                int16_t glyphDataFormat = 0;
+
+                if (!stream.readInt16(glyphDataFormat))
+                    return false;
+
+                return glyphDataFormat == 0;
             }
 
             // ==============================================

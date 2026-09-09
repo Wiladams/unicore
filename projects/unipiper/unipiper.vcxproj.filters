@@ -18,457 +18,259 @@
     <ClInclude Include="..\core\core_utf8.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\core\lang_span.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_scalar_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_utf8_scalar_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_nfc_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_nfc_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_grapheme_property_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_grapheme_property_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_grapheme_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_grapheme_stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_grapheme_break_conformance.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_script_analysis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_script_analysis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_shaping_run.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_bidi_analysis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_analysis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_bd16.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n0_inspection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n0_resolution.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n0_trailing_nsm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n0.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_n2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_i1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_bidi_i2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_shaping_run_itemizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_shaping_run_itemizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_text_pipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_shaping_run_context.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_unicode_grapheme_bidi_levels.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_run.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_support.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_run_itemizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\opentyper\font_interfaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_font_support.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="test_font_run_itemizer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_shaping_glyph.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_font_support.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_shaping_buffer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_grapheme_break_conformance.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_nominal_glyphs.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_grapheme_property_stream.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_opentype_nominal_glyphs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_feature_plan.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_feature_selection.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_grapheme_stream.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_feature_selection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_layout_feature_selection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_layout_feature_selection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_feature_lookup.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_coverage_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_single_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_single_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_single_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_lookup_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_feature_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_feature_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_multiple_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_multiple_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_multiple_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_ligature_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_ligature_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_ligature_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_alternate_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_alternate_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_alternate_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_extension_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_extension_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_extension_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_classdef_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gdef_view.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gdef_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_mark_glyph_sets_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_mark_glyph_sets_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_lookup_glyph_filter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_lookup_glyph_filter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_ligature_filtering.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_sequence_lookup.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_edit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_sequence_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_apply_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_sequence_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_context_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_chain_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_chain_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_chain_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_chain_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_chain_context_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_reverse_chain_single_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_reverse_chain_single_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gsub_reverse_chain_single_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_reverse_chain_single_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_reverse_chain_single_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="glyph_placement.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaped_glyph.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaped_glyph_buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaped_glyph_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_hhea_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_hmtx_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_horizontal_metrics_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_nominal_metrics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_nominal_metrics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_face_tables.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_nominal_metrics_integration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_value_record.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_value_record.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_single_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_lookup_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_single.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_pair_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_pair.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_anchor_view.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gpos_anchor_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_cursive_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_cursive_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_attachment_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_cursive_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_mark_array_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_mark_base_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_base_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_base_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gsub_ligature_provenance.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_mark_ligature_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_ligature_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_ligature_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_mark_mark_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_mark_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_mark_mark_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_apply_state.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gpos_apply_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_context_apply.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_chain_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_chain_context_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_gpos_chain_context_match.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_gpos_chain_context_match.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gpos_chain_context_apply.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_gpos_extension_view.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_chain_context_match.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_opentype_gpos_extension_view.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_chain_context_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_context_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_context_match.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_context_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_cursive_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_cursive_view.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gpos_extension_apply.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_layout_selection.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_extension_view.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_opentype_layout_selection.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_mark_base_apply.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_gsub_orchestrator.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_mark_base_view.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_opentype_gsub_orchestrator.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_mark_ligature_apply.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_gpos_orchestrator.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_mark_ligature_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_mark_mark_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_mark_mark_view.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_gpos_orchestrator.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_horizontal_shaper.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="test_opentype_gpos_pair.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_single.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gpos_value_record.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_alternate_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_alternate_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_chain_context_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_chain_context_match.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_chain_context_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_context_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_context_match.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_context_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_extension_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_extension_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_feature_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_filtering.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_provenance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ligature_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_multiple_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_multiple_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_orchestrator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_reverse_chain_single_apply.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_reverse_chain_single_match.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_reverse_chain_single_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_sequence_state.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_single_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_horizontal_metrics_view.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_horizontal_shaper.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_layout_feature_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_layout_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_lookup_glyph_filter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_mark_glyph_sets_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_nominal_glyphs.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_nominal_metrics.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_nominal_metrics_integration.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_analysis.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_bd16.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_i1.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_i2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_inspection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_resolution.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n0_trailing_nsm.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n1.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_bidi_n2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_grapheme_bidi_levels.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_nfc_stream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_script_analysis.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_shaping_run_context.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_shaping_run_itemizer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_unicode_text_pipeline.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_utf8_scalar_stream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\unitypr\opentype_shaping_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_shaping_policy.h">
+    <ClInclude Include="..\unitypr\opentype_shaping_glyph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\unitypr\opentype_shaping_policy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\unitypr\shaped_glyph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\unitypr\shaped_glyph_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\unitypr\shaped_glyph_view.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

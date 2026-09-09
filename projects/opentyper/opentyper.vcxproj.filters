@@ -78,6 +78,9 @@
     <ClInclude Include="test_opentype_layout_lookup_view.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="opentype_glyf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opentyper.cpp">

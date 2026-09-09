@@ -227,6 +227,7 @@
     <ClInclude Include="opentype_container.h" />
     <ClInclude Include="opentype_face.h" />
     <ClInclude Include="opentype_features.h" />
+    <ClInclude Include="opentype_glyf.h" />
     <ClInclude Include="opentype_layout_view.h" />
     <ClInclude Include="opentype_renderer.h" />
     <ClInclude Include="opentype_types.h" />
