@@ -49,7 +49,49 @@
 
 // Layout 5
 #include "test_opentype_gsub_context_view.h"
+#include "test_opentype_gsub_context_match.h"
+#include "test_opentype_gsub_sequence_state.h"
+#include "test_opentype_gsub_context_apply.h"
+#include "test_opentype_gsub_chain_context_view.h"
+#include "test_opentype_gsub_chain_context_match.h"
+#include "test_opentype_gsub_chain_context_apply.h"
 
+// Layout 8
+#include "test_opentype_gsub_reverse_chain_single_view.h"
+#include "test_opentype_gsub_reverse_chain_single_match.h"
+#include "test_opentype_gsub_reverse_chain_single_apply.h"
+
+// metrics
+#include "test_opentype_horizontal_metrics_view.h"
+#include "test_opentype_nominal_metrics.h"
+#include "test_opentype_nominal_metrics_integration.h"
+#include "test_opentype_gpos_value_record.h"
+#include "test_opentype_gpos_single.h"
+#include "test_opentype_gpos_pair.h"
+#include "test_opentype_gpos_anchor_view.h"
+#include "test_opentype_gpos_cursive_view.h"
+#include "test_opentype_gpos_cursive_apply.h"
+#include "test_opentype_gpos_mark_base_view.h"
+#include "test_opentype_gpos_mark_base_apply.h"
+#include "test_opentype_gsub_ligature_provenance.h"
+#include "test_opentype_gpos_mark_ligature_view.h"
+#include "test_opentype_gpos_mark_ligature_apply.h"
+#include "test_opentype_gpos_mark_mark_view.h"
+#include "test_opentype_gpos_mark_mark_apply.h"
+#include "test_opentype_gpos_context_view.h"
+#include "test_opentype_gpos_context_match.h"
+#include "test_opentype_gpos_apply_state.h"
+#include "test_opentype_gpos_context_apply.h"
+#include "test_opentype_gpos_chain_context_view.h"
+#include "test_opentype_gpos_chain_context_match.h"
+#include "test_opentype_gpos_chain_context_apply.h"
+#include "test_opentype_gpos_extension_view.h"
+#include "test_opentype_gpos_extension_apply.h"
+#include "test_opentype_layout_selection.h"
+#include "test_opentype_gsub_orchestrator.h"
+#include "test_opentype_gpos_orchestrator.h"
+#include "test_opentype_horizontal_shaper.h"
+#include "test_opentype_layout_selection.h"
 
 using namespace waavs;
 
@@ -115,7 +157,58 @@ void runTests()
     //testOpenTypeLookupGlyphFilter();
     //testOpenTypeGsubLigatureFiltering();
 
-    testOpenTypeGsubContextView();
+    //testOpenTypeGsubContextView();
+    //testOpenTypeGsubContextMatch();
+    //testOpenTypeGsubSequenceState();
+    //testOpenTypeGsubContextApply();
+    //testOpenTypeGsubChainContextView();
+    //testOpenTypeGsubChainContextMatch();
+    //testOpenTypeGsubChainContextApply();
+
+    // GSUB Type 8 - Reverse Chaining
+    //testOpenTypeGsubReverseChainSingleView();
+    //testOpenTypeGsubReverseChainSingleMatch();
+    //testOpenTypeGsubReverseChainSingleApply();
+
+    // metrics
+    //testOpenTypeHorizontalMetricsView();
+    //testOpenTypeNominalMetrics();
+    //testOpenTypeNominalMetricsIntegration();
+    //testOpenTypeGposValueRecord();
+    //testOpenTypeGposSingle();
+    //testOpenTypeGposPair();
+    //testOpenTypeGposAnchorView();
+    //testOpenTypeGposCursiveView();
+    //testOpenTypeGposCursiveApply();
+    //testOpenTypeGposMarkBaseView();
+    //testOpenTypeGposMarkBaseApply();
+    //testOpenTypeGsubLigatureProvenance();
+    //testOpenTypeGposMarkLigatureView();
+    //testOpenTypeGposMarkLigatureApply();
+    //testOpenTypeGposMarkMarkView();
+    //testOpenTypeGposMarkMarkApply();
+
+    //testOpenTypeGposContextView();
+    //testOpenTypeGposContextMatch();
+    //testOpenTypeGposApplyState();
+
+    //testOpenTypeGposContextApply();
+    //testOpenTypeGposChainContextView();
+    //testOpenTypeGposChainContextMatch();
+    //testOpenTypeGposChainContextApply();
+    //testOpenTypeGposExtensionView();
+    //testOpenTypeGposExtensionApply();
+
+
+    testOpenTypeLayoutSelection();
+    //testOpenTypeGsubOrchestrator();
+    //testOpenTypeGposOrchestrator();
+
+    // Shaping pipeline integration test
+    testOpenTypeHorizontalShaper();
+
+
+
 }
 
 int main()

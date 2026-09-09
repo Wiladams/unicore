@@ -608,49 +608,144 @@ namespace waavs
 
 
         // ====================================================================
-        // Case 7 - SequenceLookup validation and bounds.
+        // Case 7 - Dynamic SequenceLookup decoding and bounds.
         //
-        // Parent geometry remains valid even if a SequenceLookup contains an
-        // invalid sequenceIndex. The record itself fails when accessed.
+        // sequenceIndex is interpreted against the input sequence as modified
+        // by preceding SequenceLookup actions. The view therefore preserves
+        // the encoded uint16 value without constraining it to the original
+        // glyphCount.
+        //
+        // Record-array bounds remain a view-time responsibility.
         // ====================================================================
 
         {
             ++cases;
 
-            std::vector<uint8_t> data = makeGsubContextFormat3();
 
-            // Format 3:
+            // ------------------------------------------------------------
+            // Format 1 SequenceRule.
             //
-            // 0  format
-            // 2  glyphCount
-            // 4  seqLookupCount
-            // 6  Coverage offsets[3]
-            // 12 first SequenceLookup.sequenceIndex
+            // glyphCount = 2, but sequenceIndex = 0xFFFF is still decoded.
+            // Whether that sequence position exists is decided later during
+            // contextual execution.
+            // ------------------------------------------------------------
 
-            patchGsubContextU16(data, 12, 3);
-
-            const OpenTypeGsubContextSubstView context(ByteSpan(data.data(), data.size()));
-
-            if (!context)
-                return fail("case 7 parent rejected lazy record error");
-
-            OpenTypeSequenceLookup lookup{};
-
-            if (context.sequenceLookup(0, lookup))
-                return fail("case 7 invalid sequenceIndex accepted");
-
-            if (!context.sequenceLookup(1, lookup) ||
-                lookup.sequenceIndex != 2 ||
-                lookup.lookupListIndex != 5)
             {
-                return fail("case 7 later valid SequenceLookup");
+                const uint8_t ruleBytes[] =
+                {
+                    0x00, 0x02,     // glyphCount
+                    0x00, 0x01,     // seqLookupCount
+                    0x00, 0x0B,     // inputSequence[0] = glyph 11
+                    0xFF, 0xFF,     // sequenceIndex
+                    0x00, 0x07      // lookupListIndex
+                };
+
+                const OpenTypeGsubContextRuleView rule(
+                    ByteSpan(ruleBytes, sizeof(ruleBytes)));
+
+                if (!rule)
+                    return fail("case 7 Format 1 rule invalid");
+
+                OpenTypeSequenceLookup lookup{};
+
+                if (!rule.sequenceLookup(0, lookup) ||
+                    lookup.sequenceIndex != 0xFFFFu ||
+                    lookup.lookupListIndex != 7)
+                {
+                    return fail("case 7 Format 1 dynamic sequenceIndex");
+                }
+
+                if (rule.sequenceLookup(1, lookup))
+                    return fail("case 7 Format 1 record bounds");
             }
 
-            if (context.sequenceLookup(2, lookup))
-                return fail("case 7 out-of-range SequenceLookup");
 
-            if (context.inputCoverage(3))
-                return fail("case 7 out-of-range Coverage");
+            // ------------------------------------------------------------
+            // Format 2 ClassSequenceRule.
+            //
+            // Same rule geometry as Format 1, but inputSequence contains
+            // class values rather than glyph IDs.
+            // ------------------------------------------------------------
+
+            {
+                const uint8_t ruleBytes[] =
+                {
+                    0x00, 0x02,     // glyphCount
+                    0x00, 0x01,     // seqLookupCount
+                    0x00, 0x04,     // inputSequence[0] = class 4
+                    0xFF, 0xFE,     // sequenceIndex
+                    0x00, 0x06      // lookupListIndex
+                };
+
+                const OpenTypeGsubContextClassRuleView rule(
+                    ByteSpan(ruleBytes, sizeof(ruleBytes)));
+
+                if (!rule)
+                    return fail("case 7 Format 2 rule invalid");
+
+                OpenTypeSequenceLookup lookup{};
+
+                if (!rule.sequenceLookup(0, lookup) ||
+                    lookup.sequenceIndex != 0xFFFEu ||
+                    lookup.lookupListIndex != 6)
+                {
+                    return fail("case 7 Format 2 dynamic sequenceIndex");
+                }
+
+                if (rule.sequenceLookup(1, lookup))
+                    return fail("case 7 Format 2 record bounds");
+            }
+
+
+            // ------------------------------------------------------------
+            // Format 3.
+            //
+            // Parent geometry remains valid and the oversized sequenceIndex
+            // is preserved when the record is decoded.
+            // ------------------------------------------------------------
+
+            {
+                std::vector<uint8_t> data = makeGsubContextFormat3();
+
+                // Format 3:
+                //
+                // 0  format
+                // 2  glyphCount
+                // 4  seqLookupCount
+                // 6  Coverage offsets[3]
+                // 12 first SequenceLookup.sequenceIndex
+
+                patchGsubContextU16(data, 12, 0xFFFFu);
+
+                const OpenTypeGsubContextSubstView context(
+                    ByteSpan(data.data(), data.size()));
+
+                if (!context)
+                    return fail("case 7 Format 3 parent invalid");
+
+                OpenTypeSequenceLookup lookup{};
+
+                if (!context.sequenceLookup(0, lookup) ||
+                    lookup.sequenceIndex != 0xFFFFu ||
+                    lookup.lookupListIndex != 4)
+                {
+                    return fail("case 7 Format 3 dynamic sequenceIndex");
+                }
+
+                if (!context.sequenceLookup(1, lookup) ||
+                    lookup.sequenceIndex != 2 ||
+                    lookup.lookupListIndex != 5)
+                {
+                    return fail("case 7 Format 3 later SequenceLookup");
+                }
+
+                if (context.sequenceLookup(2, lookup))
+                    return fail("case 7 Format 3 record bounds");
+
+                if (context.inputCoverage(3))
+                    return fail("case 7 Format 3 Coverage bounds");
+            }
+
 
             ++passed;
         }
@@ -778,7 +873,7 @@ namespace waavs
             "  Format 2:                   PASS\n"
             "  Class rules:                PASS\n"
             "  Format 3:                   PASS\n"
-            "  SequenceLookup validation:  PASS\n"
+            "  Dynamic SequenceLookup:     PASS\n"
             "  Lazy child validation:      PASS\n"
             "  Failure paths:              PASS\n",
             cases, passed);

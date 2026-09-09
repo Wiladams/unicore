@@ -128,8 +128,8 @@ namespace waavs
             if (!openTypeGsubContextReadUInt16(fData, recordOffset + 2, result.lookupListIndex))
                 return false;
 
-            if (result.sequenceIndex >= glyphCount)
-                return false;
+            //if (result.sequenceIndex >= glyphCount)
+            //    return false;
 
             return true;
         }
@@ -309,8 +309,8 @@ namespace waavs
             if (!openTypeGsubContextReadUInt16(fData, recordOffset + 2, result.lookupListIndex))
                 return false;
 
-            if (result.sequenceIndex >= glyphCount)
-                return false;
+            //if (result.sequenceIndex >= glyphCount)
+            //    return false;
 
             return true;
         }
@@ -655,8 +655,8 @@ namespace waavs
             if (!openTypeGsubContextReadUInt16(fData, recordOffset + 2, result.lookupListIndex))
                 return false;
 
-            if (result.sequenceIndex >= inputCount)
-                return false;
+            //if (result.sequenceIndex >= inputCount)
+            //    return false;
 
             return true;
         }

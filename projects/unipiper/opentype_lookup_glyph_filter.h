@@ -7,6 +7,8 @@
 #include "opentype_gdef_view.h"
 #include "opentype_layout_view.h"
 #include "opentype_shaping_buffer.h"
+#include "shaped_glyph_buffer.h"
+
 
 namespace waavs
 {
@@ -410,7 +412,6 @@ namespace waavs
             return OpenTypeLookupGlyphSearchResult::End;
         }
 
-
         // ================================================================
         // previous
         //
@@ -448,6 +449,69 @@ namespace waavs
 
             return OpenTypeLookupGlyphSearchResult::End;
         }
+
+
+        [[nodiscard]]
+        OpenTypeLookupGlyphSearchResult next(
+            const ShapedGlyphBuffer& buffer, size_t currentIndex,
+            size_t& result) const noexcept
+        {
+            result = 0;
+
+            if (!isValid() || currentIndex >= buffer.size())
+                return OpenTypeLookupGlyphSearchResult::Invalid;
+
+            for (size_t i = currentIndex + 1; i < buffer.size(); ++i)
+            {
+                bool skip = false;
+
+                if (!shouldSkip(buffer[i].shaping.glyphId, skip))
+                    return OpenTypeLookupGlyphSearchResult::Invalid;
+
+                if (!skip)
+                {
+                    result = i;
+                    return OpenTypeLookupGlyphSearchResult::Found;
+                }
+            }
+
+            return OpenTypeLookupGlyphSearchResult::End;
+        }
+
+
+        [[nodiscard]]
+        OpenTypeLookupGlyphSearchResult previous(
+            const ShapedGlyphBuffer& buffer, size_t currentIndex,
+            size_t& result) const noexcept
+        {
+            result = 0;
+
+            if (!isValid() || currentIndex >= buffer.size())
+                return OpenTypeLookupGlyphSearchResult::Invalid;
+
+            size_t i = currentIndex;
+
+            while (i != 0)
+            {
+                --i;
+
+                bool skip = false;
+
+                if (!shouldSkip(buffer[i].shaping.glyphId, skip))
+                    return OpenTypeLookupGlyphSearchResult::Invalid;
+
+                if (!skip)
+                {
+                    result = i;
+                    return OpenTypeLookupGlyphSearchResult::Found;
+                }
+            }
+
+            return OpenTypeLookupGlyphSearchResult::End;
+        }
+
+
+
 
 
     private:

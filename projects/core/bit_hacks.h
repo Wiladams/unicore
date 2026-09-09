@@ -153,7 +153,7 @@ namespace waavs
         return (src & bit_range_mask_u64(lowbit, highbit)) >> lowbit;
     }
 
-    static constexpr WGResult bit_range_set_value_u64(uint64_t src, size_t lowbit, size_t highbit, uint64_t value) noexcept
+    static constexpr uint64_t bit_range_set_value_u64(uint64_t src, size_t lowbit, size_t highbit, uint64_t value) noexcept
     {
         const uint64_t mask = bit_range_mask_u64(lowbit, highbit);
         return (src & ~mask) | ((value << lowbit) & mask);
