@@ -116,7 +116,7 @@ namespace waavs
         // FontDirectoryView does not need to know which.
         // ============================================================
 
-        std::unique_ptr<opentype::OpenTypeContainer>
+        std::unique_ptr<OpenTypeContainer>
             fCurrentContainer;
 
 
@@ -454,7 +454,7 @@ namespace waavs
 
             auto container =
                 std::make_unique<
-                opentype::OpenTypeContainer>(
+                OpenTypeContainer>(
                     buffer,
                     sourceLocation);
 

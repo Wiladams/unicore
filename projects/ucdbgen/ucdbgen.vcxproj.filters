@@ -56,9 +56,6 @@
     <ClInclude Include="ucd_unicode_data_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unicode_bidi_class.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="unicode_canonical_composer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -83,13 +80,7 @@
     <ClInclude Include="unicode_composition_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unicode_database.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="unicode_database_builder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unicode_database_format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unicode_database_generator.h">
@@ -153,18 +144,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unicode_coverage_storage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\unicode_coverage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\unicode_coverage_builder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\unicode_coverage_data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\unicode_coverage_storage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\core\unicode_page_pool_builder.h">

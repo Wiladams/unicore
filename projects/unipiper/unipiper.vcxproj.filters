@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\core\core_utf8.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\opentyper\font_interfaces.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="test_font_run_itemizer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -271,6 +265,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\unitypr\shaped_glyph_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_coverage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_coverage_builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_coverage_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_coverage_storage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_page_pool_builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_glyf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

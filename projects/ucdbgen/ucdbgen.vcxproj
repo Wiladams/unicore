@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -123,7 +123,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,7 +140,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -177,7 +177,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -196,7 +196,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../core;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore; ../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -210,10 +210,6 @@
     <ClCompile Include="ucdbgen.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\core\unicode_coverage.h" />
-    <ClInclude Include="..\core\unicode_coverage_builder.h" />
-    <ClInclude Include="..\core\unicode_coverage_data.h" />
-    <ClInclude Include="..\core\unicode_coverage_storage.h" />
     <ClInclude Include="..\core\unicode_page_pool_builder.h" />
     <ClInclude Include="ucd_bidi_brackets_parser.h" />
     <ClInclude Include="ucd_bidi_class_parser.h" />
@@ -230,7 +226,6 @@
     <ClInclude Include="ucd_scripts_parser.h" />
     <ClInclude Include="ucd_script_extensions_parser.h" />
     <ClInclude Include="ucd_unicode_data_parser.h" />
-    <ClInclude Include="unicode_bidi_class.h" />
     <ClInclude Include="unicode_canonical_composer.h" />
     <ClInclude Include="unicode_canonical_decomposer.h" />
     <ClInclude Include="unicode_canonical_ordering.h" />
@@ -240,9 +235,7 @@
     <ClInclude Include="unicode_composition_builder.h" />
     <ClInclude Include="unicode_composition_data.h" />
     <ClInclude Include="unicode_coverage_storage.h" />
-    <ClInclude Include="unicode_database.h" />
     <ClInclude Include="unicode_database_builder.h" />
-    <ClInclude Include="unicode_database_format.h" />
     <ClInclude Include="unicode_database_generator.h" />
     <ClInclude Include="unicode_database_writer.h" />
     <ClInclude Include="unicode_decomposition.h" />

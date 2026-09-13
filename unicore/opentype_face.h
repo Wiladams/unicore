@@ -10,7 +10,7 @@
 
 
 namespace waavs {
-    namespace opentype {
+    // opentype {
         class OpenTypeFaceData final : public IProvideFontFaceData, public IProvideOpenTypeTables
         {
         private:
@@ -1890,5 +1890,5 @@ namespace waavs {
         };
 
 
-    }
+    //}
 }

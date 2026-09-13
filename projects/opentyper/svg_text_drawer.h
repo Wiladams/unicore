@@ -1,0 +1,986 @@
+// svg_text_drawer.h
+#pragma once
+
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "font_interfaces.h"
+#include "font_run_itemizer.h"
+
+#include "opentype_bytestream.h"
+#include "opentype_container.h"
+#include "opentype_glyf.h"
+#include "opentype_horizontal_shaper.h"
+
+#include "horizontal_bidi_positioning.h"
+#include "shaped_glyph_view.h"
+#include "svg_text_run_adapter.h"
+
+#include "unicode_database.h"
+#include "unicode_scalar_stream.h"
+#include "unicode_nfc_stream.h"
+#include "unicode_grapheme_property_stream.h"
+#include "unicode_grapheme_stream.h"
+#include "unicode_script_analysis.h"
+#include "unicode_bidi_analysis.h"
+#include "unicode_shaping_run_itemizer.h"
+
+namespace waavs
+{
+    // ====================================================================
+    // SVGTextDrawStats
+    // ====================================================================
+
+    struct SVGTextDrawStats
+    {
+        size_t utf8Bytes{ 0 };
+        size_t normalizedScalars{ 0 };
+        size_t graphemes{ 0 };
+        size_t paragraphCount{ 0 };
+        size_t shapingRunCount{ 0 };
+        size_t fontRunCount{ 0 };
+        size_t shapedGlyphCount{ 0 };
+
+        double originX{ 0.0 };
+        double baselineY{ 0.0 };
+        double finalPenX{ 0.0 };
+    };
+
+
+    // ====================================================================
+    // SVGTextDrawer
+    //
+    // Persistent state:
+    //
+    //     Unicode database
+    //     FontFace
+    //     TrueType outline decoder
+    //     font size
+    //     SVG backend / glyph-definition cache
+    //
+    // Per drawText():
+    //
+    //     UTF-8
+    //       -> Unicode scalars
+    //       -> NFC
+    //       -> grapheme properties
+    //       -> grapheme segmentation
+    //       -> Script analysis
+    //       -> bidi analysis
+    //       -> shaping-run itemization
+    //       -> font-run itemization
+    //       -> cmap / GSUB / hmtx / GPOS
+    //       -> owning logical shaped runs
+    //       -> bidi visual run ordering
+    //       -> LTR / RTL horizontal positioning
+    //       -> positioned glyph records
+    //       -> SVG
+    //
+    // Current scope:
+    //
+    //     - one loaded FontFace
+    //     - TrueType glyf outlines
+    //     - one paragraph per drawText()
+    //     - horizontal text
+    //     - Latin, Hebrew, Common, and Inherited Script runs
+    //
+    // Glyph buffers always remain in logical order.
+    //
+    // advanceX remains a positive logical advance magnitude.
+    //
+    // x represents the visual left edge of the line. For an RTL run, its
+    // first logical glyph starts at the right edge of its visual run box.
+    //
+    // UnicodeDatabase directly references mDatabaseBytes, therefore this
+    // object is intentionally non-copyable and non-movable.
+    // ====================================================================
+
+    class SVGTextDrawer final : public IProvideFontFaces
+    {
+    private:
+        // ================================================================
+        // SVGTextShapedRun
+        //
+        // Owning result of one FontRunView after OpenType shaping.
+        //
+        // FontRunView is borrowed, so all data needed after itemization
+        // advances must be retained here.
+        // ================================================================
+
+        struct SVGTextShapedRun
+        {
+            FontFace face{};
+            ShapedGlyphBuffer glyphs{};
+            UnicodeBidiLevel bidiLevel{ 0 };
+            uint16_t unitsPerEm{ 0 };
+        };
+
+
+        // ================================================================
+        // SVGTextPositionedGlyph
+        //
+        // Backend-neutral result of bidi composition.
+        //
+        // runIndex refers to SVGTextShapedRun in logical order.
+        // ================================================================
+
+        struct SVGTextPositionedGlyph
+        {
+            size_t runIndex{ 0 };
+            GlyphId glyphId{ 0 };
+
+            double x{ 0.0 };
+            double y{ 0.0 };
+            double scale{ 0.0 };
+        };
+
+
+        // ================================================================
+        // SVGTextPositionSink
+        //
+        // Collection sink for positionHorizontalBidiRuns().
+        //
+        // No SVG work occurs here. This allows the entire positioning stage
+        // to succeed before the document is modified.
+        // ================================================================
+
+        class SVGTextPositionSink
+        {
+        public:
+            explicit SVGTextPositionSink(std::vector<SVGTextPositionedGlyph>& glyphs) noexcept
+                : mGlyphs(&glyphs)
+            {}
+
+            bool onGlyph(size_t runIndex, const ShapedGlyph& glyph, double x, double y, double scale)
+            {
+                if (!mGlyphs)
+                    return false;
+
+                if (!std::isfinite(x) || !std::isfinite(y) ||
+                    !(scale > 0.0) || !std::isfinite(scale))
+                {
+                    return false;
+                }
+
+                SVGTextPositionedGlyph positioned;
+
+                positioned.runIndex = runIndex;
+                positioned.glyphId = glyph.shaping.glyphId;
+                positioned.x = x;
+                positioned.y = y;
+                positioned.scale = scale;
+
+                mGlyphs->push_back(positioned);
+                return true;
+            }
+
+        private:
+            std::vector<SVGTextPositionedGlyph>* mGlyphs{ nullptr };
+        };
+
+
+    public:
+        SVGTextDrawer() = default;
+
+        SVGTextDrawer(const SVGTextDrawer&) = delete;
+        SVGTextDrawer& operator=(const SVGTextDrawer&) = delete;
+        SVGTextDrawer(SVGTextDrawer&&) = delete;
+        SVGTextDrawer& operator=(SVGTextDrawer&&) = delete;
+
+
+        // ================================================================
+        // load
+        // ================================================================
+
+        bool load(const ByteSpan& databaseData, const ByteSpan& fontData, double fontSize)
+        {
+            if (mLoaded || databaseData.empty() || fontData.empty())
+                return false;
+
+            if (!(fontSize > 0.0) || !std::isfinite(fontSize))
+                return false;
+
+
+            // ------------------------------------------------------------
+            // Retain Unicode database storage.
+            // ------------------------------------------------------------
+
+            mDatabaseBytes.assign(databaseData.begin(), databaseData.end());
+
+            if (!mDatabase.reset(ByteSpan(mDatabaseBytes.data(), mDatabaseBytes.size())))
+            {
+                mDatabaseBytes.clear();
+                return false;
+            }
+
+
+            // ------------------------------------------------------------
+            // Build font container from shared storage.
+            //
+            // FontFace retains the underlying OpenType resource.
+            // ------------------------------------------------------------
+
+            SharedMemBuff fontBuffer(fontData.size());
+
+            if (!fontBuffer)
+                return false;
+
+            std::memcpy(fontBuffer.data(), fontData.begin(), fontData.size());
+
+            OpenTypeContainer container(fontBuffer);
+
+            if (!container.isValid())
+                return false;
+
+
+            // ------------------------------------------------------------
+            // Select first usable TrueType glyf face.
+            // ------------------------------------------------------------
+
+            FontFace candidate;
+
+            while (container(candidate))
+            {
+                OpenTypeGlyfDecoder decoder;
+
+                if (!makeGlyfDecoder(candidate, decoder))
+                    continue;
+
+                mFace = candidate;
+                mDecoder = decoder;
+                mFontSize = fontSize;
+                mLoaded = true;
+
+                return true;
+            }
+
+            return false;
+        }
+
+
+        // ================================================================
+        // Filename convenience overload
+        // ================================================================
+
+        bool load(const char* databaseFilename, const char* fontFilename, double fontSize)
+        {
+            std::vector<uint8_t> databaseBytes;
+            std::vector<uint8_t> fontBytes;
+
+            if (!readWholeFile(databaseFilename, databaseBytes))
+                return false;
+
+            if (!readWholeFile(fontFilename, fontBytes))
+                return false;
+
+            return load(
+                ByteSpan(databaseBytes.data(), databaseBytes.size()),
+                ByteSpan(fontBytes.data(), fontBytes.size()),
+                fontSize);
+        }
+
+
+        // ================================================================
+        // State
+        // ================================================================
+
+        [[nodiscard]] bool valid() const noexcept
+        {
+            return mLoaded &&
+                mDatabase.valid() &&
+                mFace &&
+                mDecoder.isValid() &&
+                mFontSize > 0.0;
+        }
+
+        explicit operator bool() const noexcept
+        {
+            return valid();
+        }
+
+        [[nodiscard]] double fontSize() const noexcept
+        {
+            return mFontSize;
+        }
+
+        [[nodiscard]] FontFace face() const noexcept
+        {
+            return mFace;
+        }
+
+        [[nodiscard]] FontName fontName() const noexcept
+        {
+            if (!mFace)
+                return nullptr;
+
+            FontName name = mFace.fullName();
+
+            if (!name)
+                name = mFace.familyName();
+
+            return name;
+        }
+
+        [[nodiscard]] const SVGTextDrawStats& lastDrawStats() const noexcept
+        {
+            return mLastDrawStats;
+        }
+
+
+        // ================================================================
+        // IProvideFontFaces
+        //
+        // Current facade supplies one candidate FontFace.
+        // ================================================================
+
+        [[nodiscard]] size_t fontFaceCount() const noexcept override
+        {
+            return mFace ? 1u : 0u;
+        }
+
+        [[nodiscard]] FontFace fontFace(size_t index) const noexcept override
+        {
+            return index == 0 && mFace ? mFace : FontFace{};
+        }
+
+
+        // ================================================================
+        // drawText
+        //
+        // x = visual left edge of line
+        // y = baseline in SVG user coordinates
+        // ================================================================
+
+        bool drawText(const char* text, double x, double y)
+        {
+            if (!text)
+                return false;
+
+            return drawSVGText(
+                ByteSpan(
+                    reinterpret_cast<const uint8_t*>(text),
+                    std::strlen(text)),
+                x,
+                y);
+        }
+
+        bool drawText(const ByteSpan& text, double x, double y)
+        {
+            return drawSVGText(text, x, y);
+        }
+
+
+        // ================================================================
+        // SVG output
+        // ================================================================
+
+        std::string document(float x, float y, float width, float height)
+        {
+            if (!valid())
+                return {};
+
+            return mBackend.document(x, y, width, height);
+        }
+
+        [[nodiscard]] size_t glyphDefinitionCount() const noexcept
+        {
+            return mBackend.glyphDefinitionCount();
+        }
+
+
+    private:
+        // ================================================================
+        // makeGlyfDecoder
+        // ================================================================
+
+        static bool makeGlyfDecoder(const FontFace& face, OpenTypeGlyfDecoder& decoder)
+        {
+            decoder = {};
+
+            if (!face)
+                return false;
+
+            const auto* tables =
+                dynamic_cast<const IProvideOpenTypeTables*>(face.operator->());
+
+            if (!tables)
+                return false;
+
+            const TableRecord* glyf = tables->getTable(TagConstants::GLYF);
+            const TableRecord* loca = tables->getTable(TagConstants::LOCA);
+            const TableRecord* head = tables->getTable(TagConstants::HEAD);
+
+            if (!glyf || !loca || !head || head->data.size() < 52)
+                return false;
+
+            OpenTypeByteStream stream(head->data);
+
+            if (!stream.seek(50))
+                return false;
+
+            int16_t locaFormat = 0;
+
+            if (!stream.readInt16(locaFormat))
+                return false;
+
+            decoder = OpenTypeGlyfDecoder(
+                glyf->data,
+                loca->data,
+                face.glyphCount(),
+                locaFormat);
+
+            return decoder.isValid();
+        }
+
+
+        // ================================================================
+        // openTypeScriptTag
+        //
+        // Current Unicode Script -> OpenType Script mapping:
+        //
+        //     Latn -> latn
+        //     Hebr -> hebr
+        //     Zyyy -> DFLT
+        //     Zinh -> DFLT
+        //
+        // Other scripts remain disabled until their shaping behavior is
+        // deliberately integrated.
+        // ================================================================
+
+        bool openTypeScriptTag(const ShapingRunView& run, uint32_t& tag) const noexcept
+        {
+            tag = 0;
+
+            const InternedKey scriptName =
+                mDatabase.scriptISO15924(run.script);
+
+            if (!scriptName)
+                return false;
+
+            if (std::strcmp(scriptName, "Latn") == 0)
+            {
+                tag = OTAG("latn");
+                return true;
+            }
+
+            if (std::strcmp(scriptName, "Hebr") == 0)
+            {
+                tag = OTAG("hebr");
+                return true;
+            }
+
+            if (std::strcmp(scriptName, "Zyyy") == 0 ||
+                std::strcmp(scriptName, "Zinh") == 0)
+            {
+                tag = OTAG("DFLT");
+                return true;
+            }
+
+            return false;
+        }
+
+
+        // ================================================================
+        // readWholeFile
+        // ================================================================
+
+        static bool readWholeFile(const char* filename, std::vector<uint8_t>& data)
+        {
+            data.clear();
+
+            if (!filename || !*filename)
+                return false;
+
+            std::ifstream input(filename, std::ios::binary | std::ios::ate);
+
+            if (!input)
+                return false;
+
+            const std::streampos end = input.tellg();
+
+            if (end <= 0)
+                return false;
+
+            data.resize(static_cast<size_t>(end));
+
+            input.seekg(0, std::ios::beg);
+
+            input.read(
+                reinterpret_cast<char*>(data.data()),
+                static_cast<std::streamsize>(data.size()));
+
+            return static_cast<bool>(input);
+        }
+
+
+        // ================================================================
+        // drawSVGText
+        //
+        // Processing occurs in three distinct stages:
+        //
+        //     1. Unicode analysis + logical OpenType shaping
+        //
+        //     2. Bidi visual run ordering + absolute positioning
+        //
+        //     3. SVG emission
+        //
+        // The SVG backend does not participate in bidi composition.
+        //
+        // Shaped glyph buffers are never reversed.
+        // ================================================================
+
+        bool drawSVGText(const ByteSpan& text, double x, double y)
+        {
+            if (!valid())
+                return false;
+
+            if (!std::isfinite(x) || !std::isfinite(y))
+                return false;
+
+
+            // ------------------------------------------------------------
+            // Statistics
+            // ------------------------------------------------------------
+
+            SVGTextDrawStats stats{};
+
+            stats.utf8Bytes = text.size();
+            stats.originX = x;
+            stats.baselineY = y;
+            stats.finalPenX = x;
+
+
+            // ------------------------------------------------------------
+            // Empty text is a successful no-op.
+            // ------------------------------------------------------------
+
+            if (text.empty())
+            {
+                mLastDrawStats = stats;
+                return true;
+            }
+
+
+            // ------------------------------------------------------------
+            // Unicode front end
+            //
+            // UTF-8
+            //   -> NFC
+            //   -> grapheme properties
+            //   -> grapheme segmentation
+            //   -> Script
+            //   -> bidi
+            // ------------------------------------------------------------
+
+            Utf8ScalarStream utf8(text);
+            UnicodeNfcStream<Utf8ScalarStream> nfc(utf8, mDatabase);
+            GraphemePropertyStream<decltype(nfc)> properties(nfc, mDatabase);
+            GraphemeStream<decltype(properties)> graphemes(properties);
+            UnicodeScriptStream<decltype(graphemes)> scripts(graphemes, mDatabase);
+            UnicodeBidiStream<decltype(scripts)> bidi(scripts, mDatabase);
+
+            BidiParagraphView paragraph{};
+
+
+            // ------------------------------------------------------------
+            // drawText currently represents exactly one paragraph.
+            // ------------------------------------------------------------
+
+            while (bidi(paragraph))
+            {
+                if (stats.paragraphCount != 0)
+                    return false;
+
+                ++stats.paragraphCount;
+
+                stats.normalizedScalars += paragraph.scalarCount;
+                stats.graphemes += paragraph.clusterCount;
+
+
+                // ========================================================
+                // Stage 1
+                //
+                // Shape all runs in logical order.
+                // ========================================================
+
+                std::vector<SVGTextShapedRun> shapedRuns;
+
+                ShapingRunItemizer shapingRuns(paragraph, mDatabase);
+
+                if (shapingRuns.failed())
+                    return false;
+
+                ShapingRunView shapingRun{};
+
+                while (shapingRuns(shapingRun))
+                {
+                    ++stats.shapingRunCount;
+
+                    // ==== BUGBUG BEGIN ====
+                    // DIAGNOSTIC
+                    const InternedKey scriptName =
+                    mDatabase.scriptISO15924(shapingRun.script);
+
+                    std::printf(
+                        "SVGTextDrawer: shaping run\n"
+                        "  run:      %zu\n"
+                        "  scalars:  %u\n"
+                        "  clusters: %u\n"
+                        "  level:    %u\n"
+                        "  script:   %s\n",
+                        stats.shapingRunCount,
+                        static_cast<unsigned>(shapingRun.scalarCount),
+                        static_cast<unsigned>(shapingRun.clusterCount),
+                        static_cast<unsigned>(shapingRun.bidiLevel),
+                        scriptName ? scriptName : "(null)");
+
+                    //==== BUGBUG END ====
+                    // 
+                    // ----------------------------------------------------
+                    // Unicode Script -> OpenType Script.
+                    // ----------------------------------------------------
+
+                    uint32_t scriptTag = 0;
+
+                    if (!openTypeScriptTag(shapingRun, scriptTag))
+                    {
+                        std::printf(
+                            "SVGTextDrawer: script tag mapping FAIL\n"
+                            "  script: %s\n"
+                            "  level:  %u\n",
+                            scriptName ? scriptName : "(null)",
+                            static_cast<unsigned>(shapingRun.bidiLevel));
+
+                        return false;
+                    }
+
+                    std::printf(
+                        "SVGTextDrawer: script tag PASS\n"
+                        "  tag: %08x\n",
+                        static_cast<unsigned>(scriptTag));
+
+
+                    // ==== BUGBUG BEGIN ====
+                    // 
+                     
+                    // 
+                    // ==== BUGBUG END ====
+                    
+                    // ----------------------------------------------------
+                    // Shaping run -> font runs.
+                    // ----------------------------------------------------
+
+                    FontRunItemizer fontRuns(shapingRun, *this, mDatabase);
+
+                    if (fontRuns.failed())
+                        return false;
+
+                    FontRunView fontRun{};
+
+                    while (fontRuns(fontRun))
+                    {
+                        ++stats.fontRunCount;
+
+                        //if (!fontRun.completeCoverage)
+                        //    return false;
+
+                        if (!fontRun.face || fontRun.face != mFace)
+                            return false;
+
+                        const uint16_t unitsPerEm =
+                            fontRun.face.unitsPerEm();
+
+                        if (unitsPerEm == 0)
+                            return false;
+
+
+                        // -----------------------------------------------
+                        // cmap
+                        //   -> GSUB
+                        //   -> nominal hmtx
+                        //   -> GPOS
+                        // -----------------------------------------------
+
+                        ShapedGlyphBuffer shaped;
+
+                        /*
+                        //============== BUGBUG  =========================
+
+                        OpenTypeShapingBuffer nominal;
+
+                        if (!mapOpenTypeNominalGlyphs(fontRun, nominal))
+                        {
+                            std::printf(
+                                "SVGTextDrawer: nominal cmap failed\n"
+                                "  scalars: %u\n",
+                                static_cast<unsigned>(fontRun.scalarCount));
+
+                            return false;
+                        }
+
+                        std::printf(
+                            "SVGTextDrawer: nominal cmap PASS\n"
+                            "  scalars: %u\n"
+                            "  glyphs:  %zu\n",
+                            static_cast<unsigned>(fontRun.scalarCount),
+                            nominal.size());
+
+                        ShapedGlyphBuffer nominalMetrics;
+
+                        if (!buildOpenTypeHorizontalShapedGlyphs(nominal, nominalMetrics))
+                        {
+                            std::printf(
+                                "SVGTextDrawer: nominal metrics failed\n"
+                                "  glyphs: %zu\n",
+                                nominal.size());
+
+                            return false;
+                        }
+
+                        std::printf(
+                            "SVGTextDrawer: nominal metrics PASS\n"
+                            "  glyphs: %zu\n",
+                            nominalMetrics.size());
+
+
+                        //ShapedGlyphBuffer shaped;
+
+                        if (!shapeOpenTypeHorizontalRun(fontRun, scriptTag, 0, shaped))
+                        {
+                            std::printf(
+                                "SVGTextDrawer: full OpenType shaping failed\n"
+                                "  level:   %u\n"
+                                "  script:  %08x\n"
+                                "  scalars: %u\n"
+                                "  nominal: %zu\n",
+                                static_cast<unsigned>(fontRun.bidiLevel),
+                                static_cast<unsigned>(scriptTag),
+                                static_cast<unsigned>(fontRun.scalarCount),
+                                nominal.size());
+
+                            return false;
+                        }
+                        // BUGBUG: OpenType shaping may fail for some runs, even
+                        */
+
+
+                        if (!shapeOpenTypeHorizontalRun(
+                            fontRun,
+                            scriptTag,
+                            0,
+                            shaped))
+                        {
+                            std::printf(
+                                "SVGTextDrawer: OpenType shaping failed\n"
+                                "  level:  %u\n"
+                                "  script: %08x\n",
+                                static_cast<unsigned>(fontRun.bidiLevel),
+                                static_cast<unsigned>(scriptTag));
+
+                            return false;
+                        }
+
+                        stats.shapedGlyphCount += shaped.size();
+
+
+                        // -----------------------------------------------
+                        // Promote borrowed run state into owning storage.
+                        // -----------------------------------------------
+
+                        SVGTextShapedRun owned;
+
+                        owned.face = fontRun.face;
+                        owned.glyphs = std::move(shaped);
+                        owned.bidiLevel = fontRun.bidiLevel;
+                        owned.unitsPerEm = unitsPerEm;
+
+                        shapedRuns.push_back(std::move(owned));
+                    }
+
+                    if (!fontRuns.ended())
+                        return false;
+                }
+
+                if (!shapingRuns.ended())
+                    return false;
+
+
+                // ========================================================
+                // Stage 2
+                //
+                // Logical shaped runs -> visual bidi composition.
+                // ========================================================
+
+                std::vector<HorizontalBidiRunView> bidiRuns;
+
+                bidiRuns.reserve(shapedRuns.size());
+
+                for (const SVGTextShapedRun& run : shapedRuns)
+                {
+                    HorizontalBidiRunView view;
+
+                    view.glyphs = ShapedGlyphView(run.glyphs);
+                    view.bidiLevel = run.bidiLevel;
+                    view.unitsPerEm = run.unitsPerEm;
+
+                    bidiRuns.push_back(view);
+                }
+
+
+                // --------------------------------------------------------
+                // Collect absolute positions before touching SVG.
+                // --------------------------------------------------------
+
+                std::vector<SVGTextPositionedGlyph> positionedGlyphs;
+                positionedGlyphs.reserve(stats.shapedGlyphCount);
+
+                SVGTextPositionSink positionSink(positionedGlyphs);
+
+                HorizontalBidiPositioningResult positioned{};
+
+                if (!positionHorizontalBidiRuns(
+                    bidiRuns,
+                    mFontSize,
+                    x,
+                    y,
+                    positionSink,
+                    &positioned))
+                {
+                    return false;
+                }
+
+
+                // --------------------------------------------------------
+                // The positioning stage must emit exactly the shaped glyphs.
+                // --------------------------------------------------------
+
+                size_t paragraphGlyphCount = 0;
+
+                for (const SVGTextShapedRun& run : shapedRuns)
+                    paragraphGlyphCount += run.glyphs.size();
+
+                if (positionedGlyphs.size() != paragraphGlyphCount)
+                {
+                    std::printf(
+                        "SVGTextDrawer: positioned glyph count mismatch\n"
+                        "  shaped:     %zu\n"
+                        "  positioned: %zu\n",
+                        paragraphGlyphCount,
+                        positionedGlyphs.size());
+
+                    return false;
+                }
+
+
+                // ========================================================
+                // Stage 3
+                //
+                // Positioned glyphs -> SVG.
+                //
+                // Composition coordinates:
+                //
+                //     +X right
+                //     +Y up
+                //
+                // SVG coordinates:
+                //
+                //     +X right
+                //     +Y down
+                //
+                // Reflect the positioned Y around the baseline. Outline
+                // geometry is independently Y-flipped by SVGTextBackend.
+                // ========================================================
+
+                for (const SVGTextPositionedGlyph& glyph : positionedGlyphs)
+                {
+                    if (glyph.runIndex >= shapedRuns.size())
+                        return false;
+
+                    const SVGTextShapedRun& run =
+                        shapedRuns[glyph.runIndex];
+
+                    if (!run.face || run.face != mFace)
+                        return false;
+
+                    const double svgY =
+                        y - (glyph.y - y);
+
+                    if (!std::isfinite(svgY))
+                        return false;
+
+                    if (!mBackend.emitGlyph(
+                        run.face,
+                        mDecoder,
+                        glyph.glyphId,
+                        glyph.x,
+                        svgY,
+                        glyph.scale))
+                    {
+                        std::printf(
+                            "SVGTextDrawer: SVG glyph emission failed\n"
+                            "  run:   %zu\n"
+                            "  glyph: %u\n"
+                            "  x:     %.4f\n"
+                            "  y:     %.4f\n"
+                            "  scale: %.8f\n",
+                            glyph.runIndex,
+                            static_cast<unsigned>(glyph.glyphId),
+                            glyph.x,
+                            svgY,
+                            glyph.scale);
+
+                        return false;
+                    }
+                }
+
+                stats.finalPenX = positioned.penX;
+            }
+
+
+            // ------------------------------------------------------------
+            // Upstream stream must end cleanly.
+            // ------------------------------------------------------------
+
+            if (!bidi.ended())
+                return false;
+
+            if (stats.paragraphCount == 0)
+                return false;
+
+
+            // ------------------------------------------------------------
+            // Commit statistics only after complete success.
+            // ------------------------------------------------------------
+
+            mLastDrawStats = stats;
+
+            return true;
+        }
+
+
+    private:
+        // UnicodeDatabase directly maps this storage.
+        std::vector<uint8_t> mDatabaseBytes{};
+        UnicodeDatabase mDatabase{};
+
+        // FontFace retains the underlying shared OpenType resource.
+        FontFace mFace{};
+        OpenTypeGlyfDecoder mDecoder{};
+
+        double mFontSize{ 0.0 };
+
+        // Persistent across drawText() calls so glyph definitions are reused.
+        SVGTextBackend mBackend{};
+
+        SVGTextDrawStats mLastDrawStats{};
+
+        bool mLoaded{ false };
+    };
+
+} // namespace waavs

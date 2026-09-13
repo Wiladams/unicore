@@ -15,71 +15,101 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="font_directory_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_face.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_faceset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_filter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_font.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_interfaces.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_monger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_predicates.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="font_query.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_bytestream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_container.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_face.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_features.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\core_bytestream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\core\core_table.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opentype_layout_view.h">
+    <ClInclude Include="svg_path_data_sink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_layout_view.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test_opentype_layout_feature_view.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="test_opentype_layout_lookup_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_layout_feature_view.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_glyf_pathprogram.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_glyf_pathprogram_gallery.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_glyph_definition_cache.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="svg_text_backend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="opentype_glyf.h">
+    <ClInclude Include="test_svg_text_backend.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="svg_glyph_definition_cache.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="svg_document_builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_glyf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\font_face.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\glyph_positioning.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_glyph_positioning.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="svg_text_run_adapter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_text_run_adapter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_gpos_kerning_font_scan.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_latin_text_pipeline.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="svg_text_drawer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_text_drawer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_text_gallery.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_bidi_visual_order.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\test_unicode_bidi_visual_order.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\test_glyph_positioning_rtl.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\horizontal_bidi_positioning.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_horizontal_bidi_positioning.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_bidi_gallery.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_horizontal_shaper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_gsub_lookup_apply.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_find_hebrew_font.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_horizontal_bidi_position_sanity.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

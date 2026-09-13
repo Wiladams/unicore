@@ -445,16 +445,25 @@ namespace waavs
     // applyOpenTypeGsubMultipleLookup
     //
     // Apply one complete LookupType 2 Lookup to the shaping buffer.
+    //
+    // LookupFlag is validated through OpenTypeLookupGlyphFilter. MultipleSubst
+    // has only one input glyph, so there are no secondary input positions to
+    // filter. The current/start glyph is matched directly.
+    //
     // Newly-created output glyphs are skipped for this lookup.
     // ====================================================================
 
     static inline bool applyOpenTypeGsubMultipleLookup(
-        const OpenTypeLayoutLookupView& lookup, OpenTypeShapingBuffer& buffer)
+        const OpenTypeLayoutLookupView& lookup, 
+        const OpenTypeGdefView& gdef,
+        OpenTypeShapingBuffer& buffer)
     {
         if (!openTypeGsubHasEffectiveLookupType(lookup, 2))
             return false;
 
-        if (lookup.lookupFlag() != 0)
+        const OpenTypeLookupGlyphFilter filter(lookup, gdef);
+
+        if (!filter)
             return false;
 
         // Preflight the original stream. Newly emitted glyphs are not fed
@@ -463,6 +472,7 @@ namespace waavs
         for (size_t i = 0; i < buffer.size(); ++i)
         {
             OpenTypeGsubMultipleSequenceView sequence;
+
             const OpenTypeGsubResolveResult result =
                 resolveOpenTypeGsubMultipleLookup(lookup, buffer[i].glyphId, sequence);
 
@@ -475,8 +485,10 @@ namespace waavs
         while (glyphIndex < buffer.size())
         {
             OpenTypeGsubMultipleSequenceView sequence;
+
             const OpenTypeGsubResolveResult result =
-                resolveOpenTypeGsubMultipleLookup(lookup, buffer[glyphIndex].glyphId, sequence);
+                resolveOpenTypeGsubMultipleLookup(
+                    lookup, buffer[glyphIndex].glyphId, sequence);
 
             if (result == OpenTypeGsubResolveResult::Invalid)
                 return false;
@@ -496,6 +508,13 @@ namespace waavs
         }
 
         return true;
+    }
+
+
+    static inline bool applyOpenTypeGsubMultipleLookup(const OpenTypeLayoutLookupView& lookup, OpenTypeShapingBuffer& buffer)
+    {
+        const OpenTypeGdefView gdef{};
+        return applyOpenTypeGsubMultipleLookup(lookup, gdef, buffer);
     }
 
 
@@ -1466,15 +1485,24 @@ namespace waavs
 
 
     static inline OpenTypeGsubApplyAtResult applyOpenTypeGsubMultipleAt(
-        const OpenTypeLayoutLookupView& lookup, OpenTypeShapingBuffer& buffer,
-        size_t glyphIndex, OpenTypeGsubEditLog& edits)
+        const OpenTypeLayoutLookupView& lookup, 
+        const OpenTypeGdefView& gdef,
+        OpenTypeShapingBuffer& buffer, 
+        size_t glyphIndex, 
+        OpenTypeGsubEditLog& edits)
     {
         if (glyphIndex >= buffer.size())
             return OpenTypeGsubApplyAtResult::Invalid;
 
+        const OpenTypeLookupGlyphFilter filter(lookup, gdef);
+
+        if (!filter)
+            return OpenTypeGsubApplyAtResult::Invalid;
+
         OpenTypeGsubMultipleSequenceView sequence;
-        const OpenTypeGsubResolveResult result =
-            resolveOpenTypeGsubMultipleLookup(lookup, buffer[glyphIndex].glyphId, sequence);
+
+
+        const OpenTypeGsubResolveResult result = resolveOpenTypeGsubMultipleLookup(lookup, buffer[glyphIndex].glyphId, sequence);
 
         if (result == OpenTypeGsubResolveResult::Invalid)
             return OpenTypeGsubApplyAtResult::Invalid;
@@ -1913,7 +1941,7 @@ namespace waavs
             return applyOpenTypeGsubSingleAt(lookup, buffer, glyphIndex, edits);
 
         case 2:
-            return applyOpenTypeGsubMultipleAt(lookup, buffer, glyphIndex, edits);
+            return applyOpenTypeGsubMultipleAt(lookup, gdef, buffer, glyphIndex, edits);
 
         case 3:
             return applyOpenTypeGsubAlternateAt(lookup, buffer, glyphIndex, edits);
@@ -2068,7 +2096,8 @@ namespace waavs
     // ====================================================================
 
     static inline bool applyOpenTypeGsubExtensionLookup(
-        const OpenTypeLayoutLookupView& lookup, const OpenTypeGdefView& gdef,
+        const OpenTypeLayoutLookupView& lookup, 
+        const OpenTypeGdefView& gdef,
         OpenTypeShapingBuffer& buffer)
     {
         if (!lookup || lookup.lookupType() != 7)
@@ -2085,7 +2114,7 @@ namespace waavs
             return applyOpenTypeGsubSingleLookup(lookup, buffer);
 
         case 2:
-            return applyOpenTypeGsubMultipleLookup(lookup, buffer);
+            return applyOpenTypeGsubMultipleLookup(lookup, gdef, buffer);
 
         case 3:
             return applyOpenTypeGsubAlternateLookup(lookup, buffer);
@@ -2118,7 +2147,8 @@ namespace waavs
     // ====================================================================
 
     static inline bool applyOpenTypeGsubLookup(
-        const OpenTypeLayoutLookupView& lookup, const OpenTypeGdefView& gdef,
+        const OpenTypeLayoutLookupView& lookup, 
+        const OpenTypeGdefView& gdef,
         OpenTypeShapingBuffer& buffer)
     {
         if (!lookup)
@@ -2130,7 +2160,7 @@ namespace waavs
             return applyOpenTypeGsubSingleLookup(lookup, buffer);
 
         case 2:
-            return applyOpenTypeGsubMultipleLookup(lookup, buffer);
+            return applyOpenTypeGsubMultipleLookup(lookup, gdef, buffer);
 
         case 3:
             return applyOpenTypeGsubAlternateLookup(lookup, buffer);

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -142,7 +142,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -162,7 +162,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -180,7 +180,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -200,7 +200,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>../core; </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -212,28 +212,38 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\core\core_bytestream.h" />
-    <ClInclude Include="..\core\core_table.h" />
-    <ClInclude Include="font_directory_view.h" />
-    <ClInclude Include="font_face.h" />
-    <ClInclude Include="font_faceset.h" />
-    <ClInclude Include="font_filter.h" />
-    <ClInclude Include="font_font.h" />
-    <ClInclude Include="font_interfaces.h" />
-    <ClInclude Include="font_monger.h" />
-    <ClInclude Include="font_predicates.h" />
-    <ClInclude Include="font_query.h" />
-    <ClInclude Include="opentype_bytestream.h" />
-    <ClInclude Include="opentype_container.h" />
-    <ClInclude Include="opentype_face.h" />
-    <ClInclude Include="opentype_features.h" />
-    <ClInclude Include="opentype_glyf.h" />
-    <ClInclude Include="opentype_layout_view.h" />
-    <ClInclude Include="opentype_renderer.h" />
-    <ClInclude Include="opentype_types.h" />
+    <ClInclude Include="..\..\unicore\font_face.h" />
+    <ClInclude Include="..\..\unicore\glyph_positioning.h" />
+    <ClInclude Include="..\..\unicore\horizontal_bidi_positioning.h" />
+    <ClInclude Include="..\..\unicore\opentype_glyf.h" />
+    <ClInclude Include="..\..\unicore\opentype_gsub_lookup_apply.h" />
+    <ClInclude Include="..\..\unicore\opentype_horizontal_shaper.h" />
+    <ClInclude Include="..\..\unicore\test_glyph_positioning_rtl.h" />
+    <ClInclude Include="..\..\unicore\test_unicode_bidi_visual_order.h" />
+    <ClInclude Include="..\..\unicore\unicode_bidi_visual_order.h" />
+    <ClInclude Include="svg_path_data_sink.h" />
+    <ClInclude Include="svg_document_builder.h" />
+    <ClInclude Include="svg_glyph_definition_cache.h" />
+    <ClInclude Include="svg_text_backend.h" />
+    <ClInclude Include="svg_text_drawer.h" />
+    <ClInclude Include="svg_text_run_adapter.h" />
+    <ClInclude Include="test_find_hebrew_font.h" />
+    <ClInclude Include="test_glyph_positioning.h" />
+    <ClInclude Include="test_gpos_kerning_font_scan.h" />
+    <ClInclude Include="test_horizontal_bidi_positioning.h" />
+    <ClInclude Include="test_horizontal_bidi_position_sanity.h" />
+    <ClInclude Include="test_opentype_glyf_pathprogram.h" />
+    <ClInclude Include="test_opentype_glyf_pathprogram_gallery.h" />
     <ClInclude Include="test_opentype_layout_feature_view.h" />
     <ClInclude Include="test_opentype_layout_lookup_view.h" />
     <ClInclude Include="test_opentype_layout_view.h" />
+    <ClInclude Include="test_svg_bidi_gallery.h" />
+    <ClInclude Include="test_svg_glyph_definition_cache.h" />
+    <ClInclude Include="test_svg_latin_text_pipeline.h" />
+    <ClInclude Include="test_svg_text_backend.h" />
+    <ClInclude Include="test_svg_text_drawer.h" />
+    <ClInclude Include="test_svg_text_gallery.h" />
+    <ClInclude Include="test_svg_text_run_adapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opentyper.cpp" />

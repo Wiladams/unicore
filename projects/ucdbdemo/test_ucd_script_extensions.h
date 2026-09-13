@@ -12,7 +12,7 @@
 #include "ucd_property_value_aliases_parser.h"
 #include "ucd_scripts_parser.h"
 #include "ucd_script_extensions_parser.h"
-#include "unicode_database_builder.h"
+#include "../ucdbgen/unicode_database_builder.h"
 #include "unicode_script_extensions_data.h"
 #include "unicode_script_set.h"
 

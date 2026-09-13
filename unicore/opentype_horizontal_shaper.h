@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <cstdio>
+
 
 #include "opentype_nominal_glyphs.h"
 #include "opentype_nominal_metrics.h"
@@ -143,7 +145,8 @@ namespace waavs
         switch (result)
         {
         case OpenTypeLayoutSelectionResult::Success:
-            selected = true;
+            //selected = true;
+            selected = !plan.empty();
             return true;
 
         case OpenTypeLayoutSelectionResult::NoScript:
@@ -204,6 +207,151 @@ namespace waavs
         const OpenTypeGdefView& gdef, OpenTypeShapingBuffer& buffer)
     {
         if (!tableData || scriptTag == 0)
+        {
+            std::printf("OpenType GSUB policy: invalid input\n");
+            return false;
+        }
+
+        if (policy.gsubStageCount != 0 && !policy.gsubStages)
+        {
+            std::printf("OpenType GSUB policy: missing stages\n");
+            return false;
+        }
+
+        for (size_t stageIndex = 0; stageIndex < policy.gsubStageCount; ++stageIndex)
+        {
+            const OpenTypeShapingFeatureStage& stage = policy.gsubStages[stageIndex];
+
+            OpenTypeLayoutLookupPlan plan;
+            bool selected = false;
+
+            if (!selectOpenTypeHorizontalLayoutPlan(
+                tableData, scriptTag, languageTag,
+                stage.featureTags, stage.featureTagCount,
+                stage.includeRequiredFeature,
+                fallbackToDefaultScript, fallbackToDefaultLanguage,
+                plan, selected))
+            {
+                std::printf(
+                    "OpenType GSUB policy: stage %zu selection FAIL\n"
+                    "  features: %zu\n"
+                    "  glyphs:   %zu\n",
+                    stageIndex,
+                    stage.featureTagCount,
+                    buffer.size());
+
+                return false;
+            }
+
+            std::printf(
+                "OpenType GSUB policy: stage %zu selected\n"
+                "  selected: %s\n"
+                "  features: %zu\n"
+                "  lookups:  %zu\n"
+                "  glyphs:   %zu\n",
+                stageIndex,
+                selected ? "yes" : "no",
+                plan.features.size(),
+                plan.lookupIndices.size(),
+                buffer.size());
+
+            if (selected && !applyOpenTypeGsubLookupPlan(plan, gdef, buffer))
+            {
+                std::printf(
+                    "OpenType GSUB policy: stage %zu execution FAIL\n"
+                    "  lookups: %zu\n"
+                    "  glyphs:  %zu\n",
+                    stageIndex,
+                    plan.lookupIndices.size(),
+                    buffer.size());
+
+                const OpenTypeLayoutLookupListView lookups(plan.lookupListData);
+
+                if (!lookups)
+                {
+                    std::printf("  LookupList: INVALID\n");
+                    return false;
+                }
+
+                OpenTypeShapingBuffer diagnostic = buffer;
+
+                for (size_t i = 0; i < plan.lookupIndices.size(); ++i)
+                {
+                    const uint16_t lookupIndex = plan.lookupIndices[i];
+                    const OpenTypeLayoutLookupView lookup = lookups.lookup(lookupIndex);
+
+                    if (!lookup)
+                    {
+                        std::printf(
+                            "  lookup[%zu]: index=%u INVALID\n",
+                            i,
+                            static_cast<unsigned>(lookupIndex));
+
+                        return false;
+                    }
+
+                    uint16_t effectiveType = 0;
+                    const bool hasEffectiveType =
+                        openTypeGsubEffectiveLookupType(lookup, effectiveType);
+
+                    std::printf(
+                        "  lookup[%zu]: index=%u type=%u effective=%u flag=0x%04x subtables=%u\n",
+                        i,
+                        static_cast<unsigned>(lookupIndex),
+                        static_cast<unsigned>(lookup.lookupType()),
+                        hasEffectiveType ? static_cast<unsigned>(effectiveType) : 0u,
+                        static_cast<unsigned>(lookup.lookupFlag()),
+                        static_cast<unsigned>(lookup.subtableCount()));
+
+                    if (!hasEffectiveType)
+                    {
+                        std::printf("    effective type: FAIL\n");
+                        return false;
+                    }
+
+                    if (!applyOpenTypeGsubLookup(
+                        lookups,
+                        lookupIndex,
+                        gdef,
+                        diagnostic))
+                    {
+                        std::printf(
+                            "    execution: FAIL\n"
+                            "    glyphs before/after: %zu\n",
+                            diagnostic.size());
+
+                        return false;
+                    }
+
+                    std::printf(
+                        "    execution: PASS\n"
+                        "    glyphs after: %zu\n",
+                        diagnostic.size());
+                }
+
+                return false;
+            }
+
+            std::printf(
+                "OpenType GSUB policy: stage %zu execution PASS\n"
+                "  glyphs: %zu\n",
+                stageIndex,
+                buffer.size());
+        }
+
+        return true;
+    }
+
+
+    /*
+    * // BUGBUG - temporary diagnostic
+    static inline bool applyOpenTypeHorizontalGsubPolicy(
+        ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
+        const OpenTypeShapingPolicy& policy,
+        bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
+        const OpenTypeGdefView& gdef, OpenTypeShapingBuffer& buffer)
+    {
+        if (!tableData || scriptTag == 0)
             return false;
 
         if (policy.gsubStageCount != 0 && !policy.gsubStages)
@@ -242,6 +390,7 @@ namespace waavs
 
         return true;
     }
+    */
 
 
     // ====================================================================
