@@ -39,72 +39,72 @@ namespace waavs
         static constexpr SVGTextGalleryLine kLines[] =
         {
             {
-                u8"The quick brown fox jumps over the lazy dog.",
+                "The quick brown fox jumps over the lazy dog.",
                 "pangram"
             },
 
             {
-                u8"AVATAR WA To Yo Ta Te VA Vo AWAY WATER",
+                "AVATAR WA To Yo Ta Te VA Vo AWAY WATER",
                 "kerning"
             },
 
             {
-                u8"office affine efficient difficult fluff waffle final",
+                "office affine efficient difficult fluff waffle final",
                 "ligatures"
             },
 
             {
-                u8"Hamburgefontsiv AVATAR Typography Waavs",
+                "Hamburgefontsiv AVATAR Typography Waavs",
                 "type specimen"
             },
 
             {
-                u8"0123456789   $123.45   50%   (2026)   + - = /",
+                "0123456789   $123.45   50%   (2026)   + - = /",
                 "numbers"
             },
 
             {
-                u8"Hello, world!  \"Quoted text\"; commas, periods... and more.",
+                "Hello, world!  \"Quoted text\"; commas, periods... and more.",
                 "punctuation"
             },
 
             {
-                u8"Café  déjà vu  façade  naïve  coöperate",
+                "Café  déjà vu  façade  naïve  coöperate",
                 "western accents"
             },
 
             {
-                u8"Ångström  smörgåsbord  piñata  São Paulo",
+                "Ångström  smörgåsbord  piñata  São Paulo",
                 "extended Latin"
             },
 
             {
-                u8"Dvořák  Łódź  Žižkov  Reykjavík",
+                "Dvořák  Łódź  Žižkov  Reykjavík",
                 "central European"
             },
 
             {
-                u8"Straße  français  español  português",
+                "Straße  français  español  português",
                 "European languages"
             },
 
             {
-                u8"Æsir  Øresund  Œuvre  Þingvellir",
+                "Æsir  Øresund  Œuvre  Þingvellir",
                 "Latin extensions"
             },
 
             {
-                u8"Cafe\u0301   A\u030A   n\u0303   o\u0308   c\u0327",
+                "Cafe\u0301   A\u030A   n\u0303   o\u0308   c\u0327",
                 "decomposed NFC"
             },
 
             {
-                u8"minimum maximum momentum rhythm typography",
+                "minimum maximum momentum rhythm typography",
                 "repeated shapes"
             },
 
             {
-                u8"A beautiful text pipeline should make this line look boring.",
+                "A beautiful text pipeline should make this line look boring.",
                 "final sentence"
             }
         };

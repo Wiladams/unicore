@@ -43,67 +43,67 @@ namespace waavs
         static constexpr SVGBidiGalleryLine kLines[] =
         {
             {
-                u8"AVATAR To Waavs is fine",
+                "AVATAR To Waavs is fine",
                 "LTR reference",
                 1
             },
 
             {
-                u8"Hello שלום world",
+                "Hello שלום world",
                 "basic mixed",
                 2
             },
 
             {
-                u8"ABC אבג DEF",
+                "ABC אבג DEF",
                 "simple Hebrew",
                 2
             },
 
             {
-                u8"שלום עולם",
+                "שלום עולם",
                 "pure Hebrew",
                 1
             },
 
             {
-                u8"שלום 123 עולם",
+                "שלום 123 עולם",
                 "RTL with numbers",
                 2
             },
 
             {
-                u8"ABC אבג 123 דהו XYZ",
+                "ABC אבג 123 דהו XYZ",
                 "nested numbers",
                 3
             },
 
             {
-                u8"English עברית English עברית",
+                "English עברית English עברית",
                 "multiple switches",
                 3
             },
 
             {
-                u8"2026 שלום 12345 עולם",
+                "2026 שלום 12345 עולם",
                 "RTL paragraph numbers",
                 2
             },
 
             {
-                u8"מחיר 123.45 דולר",
+                "מחיר 123.45 דולר",
                 "decimal in RTL",
                 2
             },
 
             {
-                u8"one אחד two שני three שלוש",
+                "one אחד two שני three שלוש",
                 "many direction changes",
                 3
             },
 
             {
-                u8"שָׁלוֹם עולם",
+                "שָׁלוֹם עולם",
                 "Hebrew marks",
                 1
             }

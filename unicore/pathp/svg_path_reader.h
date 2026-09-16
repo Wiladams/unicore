@@ -1,6 +1,9 @@
 // svg_path_reader.h
-
 #pragma once
+
+static_assert(__cplusplus >= 202002L, "pathp requires C++20 or later");
+
+
 
 #include <array>
 #include <cstddef>
@@ -9,7 +12,7 @@
 #include <system_error>
 
 #include "svg_path_command.h"
-#include "mem_span.h"
+#include "memcursor.h"
 
 namespace waavs
 {
@@ -21,72 +24,42 @@ namespace waavs
     };
 
 
-    // ------------------------------------------------------------
-    // SVG command arity
-    //
-    // 0xff means the byte is not an SVG path command.
-    //
-    // inline constexpr gives us one logical header-only definition,
-    // initialized entirely at compile time.
-    // ------------------------------------------------------------
 
-    inline constexpr uint8_t kSVGPathInvalidArity = 0xff;
-
-    inline constexpr std::array<uint8_t, 256> kSVGPathArity = []() constexpr
-        {
-            std::array<uint8_t, 256> table{};
-
-            for (size_t i = 0; i < table.size(); ++i)
-                table[i] = kSVGPathInvalidArity;
-
-            table['M'] = table['m'] = 2;
-            table['L'] = table['l'] = 2;
-            table['H'] = table['h'] = 1;
-            table['V'] = table['v'] = 1;
-            table['C'] = table['c'] = 6;
-            table['S'] = table['s'] = 4;
-            table['Q'] = table['q'] = 4;
-            table['T'] = table['t'] = 2;
-            table['A'] = table['a'] = 7;
-            table['Z'] = table['z'] = 0;
-
-            return table;
-        }();
 
 
     // ------------------------------------------------------------
     // SVG path lexical helpers
     // ------------------------------------------------------------
 
-    static constexpr bool svgPath_isWsp(uint8_t ch) noexcept
+    constexpr bool svgPath_isWsp(uint8_t ch) noexcept
     {
         return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
     }
 
 
-    static constexpr bool svgPath_isNumberStart(uint8_t ch) noexcept
+    constexpr bool svgPath_isNumberStart(uint8_t ch) noexcept
     {
         return (ch >= '0' && ch <= '9') || ch == '+' || ch == '-' || ch == '.';
     }
 
 
-    static constexpr bool svgPath_isArc(SVGPathCommand cmd) noexcept
+    constexpr bool svgPath_isArc(SVGPathCommand cmd) noexcept
     {
         return cmd == SVGPathCommand::A || cmd == SVGPathCommand::a;
     }
 
 
-    static constexpr bool svgPath_isArcFlagArg(SVGPathCommand cmd, uint8_t argIndex) noexcept
+    constexpr bool svgPath_isArcFlagArg(SVGPathCommand cmd, uint8_t argIndex) noexcept
     {
         return svgPath_isArc(cmd) && (argIndex == 3 || argIndex == 4);
     }
 
 
     // ------------------------------------------------------------
-    // MemSpan scanning helpers
+    // MemCursor scanning helpers
     // ------------------------------------------------------------
 
-    static inline void svgPath_wsp_skip(MemSpan& s) noexcept
+    constexpr void svgPath_wsp_skip(MemCursor& s) noexcept
     {
         while (!s.empty() && svgPath_isWsp(*s))
             ++s;
@@ -97,7 +70,7 @@ namespace waavs
     //
     // Consuming at most one comma is intentional. A second comma remains
     // in the input and causes the subsequent argument read to fail.
-    static inline void svgPath_sep_skip(MemSpan& s) noexcept
+    constexpr void svgPath_sep_skip(MemCursor& s) noexcept
     {
         svgPath_wsp_skip(s);
 
@@ -113,7 +86,7 @@ namespace waavs
     // SVG number parsing
     // ------------------------------------------------------------
 
-    static inline bool svgPath_number_read(MemSpan& s, float& out) noexcept
+    static inline bool svgPath_number_read(MemCursor& s, float& out) noexcept
     {
         if (s.empty())
             return false;
@@ -162,7 +135,7 @@ namespace waavs
     }
 
 
-    static inline bool svgPath_arcFlag_read(MemSpan& s, float& out) noexcept
+    static inline bool svgPath_arcFlag_read(MemCursor& s, float& out) noexcept
     {
         if (s.empty())
             return false;
@@ -206,7 +179,7 @@ namespace waavs
 
     struct SVGPathReader
     {
-        MemSpan remains{};
+        MemCursor remains{};
 
         SVGPathCommand currentCommand{ SVGPathCommand::M };
         uint8_t currentArgCount{ 0 };
@@ -216,12 +189,12 @@ namespace waavs
         bool failed{ false };
 
 
-        explicit SVGPathReader(const MemSpan& input) noexcept
+        explicit SVGPathReader(const MemCursor& input) noexcept
             : remains(input)
         {}
 
 
-        void reset(const MemSpan& input) noexcept
+        void reset(const MemCursor& input) noexcept
         {
             remains = input;
             currentCommand = SVGPathCommand::M;
@@ -238,7 +211,7 @@ namespace waavs
         }
 
 
-        const MemSpan& remaining() const noexcept
+        const MemCursor& remaining() const noexcept
         {
             return remains;
         }
@@ -255,7 +228,7 @@ namespace waavs
                 return SVGPathReadResult::End;
 
             const uint8_t ch = *remains;
-            const uint8_t arity = kSVGPathArity[ch];
+            const uint8_t arity = svgPathCommandArity(ch);
 
 
             // --------------------------------------------------------

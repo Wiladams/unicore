@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 
 #include "pathprogram_builder.h"
 #include "pathcommand_normalizer.h"
@@ -11,14 +12,17 @@ namespace waavs
 
     // ------------------------------------------------------------
     // pathProgram_parse()
-    // 
-    // build a PathProgram from path data, 
-    // represented by SVG <path> 'd' attribute.
-    // The program is a canonicalized, normalized representation of the path data,
-    // so, there are no relative commands, no implicit lineto after moveto, 
-    // arcs are in endpoint form, etc.
+    //
+    // Build a PathProgram from SVG <path> 'd' attribute data.
+    //
+    // The result is canonicalized and normalized:
+    // - no relative commands
+    // - no implicit lineto after moveto
+    // - arcs are in endpoint form
     // ------------------------------------------------------------
-    static bool pathProgram_parse(const MemSpan& input, PathProgram& outProg)
+
+    [[nodiscard]]
+    inline bool pathProgram_parse(const MemCursor& input, PathProgram& outProg)
     {
         SVGPathReader reader(input);
         PathProgramBuilder builder;

@@ -95,6 +95,10 @@ namespace waavs
         // These are interned FontName values.
         // ====================================================================
 
+        // The source location is the original source of the font data, 
+        // which may be a file path, a URL, or some other identifier.
+        // This is not necessarily unique, as fonts might come from a collection
+        // or be constructed in memory, 
         FontName sourceLocation() const noexcept
         {
             return fData ? fData->sourceLocation() : nullptr;

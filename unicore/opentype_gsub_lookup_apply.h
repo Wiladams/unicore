@@ -295,43 +295,78 @@ namespace waavs
     // ====================================================================
 
     static inline bool applyOpenTypeGsubSingleLookup(
-        const OpenTypeLayoutLookupView& lookup, OpenTypeShapingBuffer& buffer) noexcept
+        const OpenTypeLayoutLookupView& lookup,
+        const OpenTypeGdefView& gdef,
+        OpenTypeShapingBuffer& buffer) noexcept
     {
         if (!openTypeGsubHasEffectiveLookupType(lookup, 1))
             return false;
 
-        if (lookup.lookupFlag() != 0)
+        // Type 1 has no secondary input positions. The filter therefore
+        // validates LookupFlag/GDEF requirements but does not suppress the
+        // current input glyph.
+
+        const OpenTypeLookupGlyphFilter filter(lookup, gdef);
+
+        if (!filter)
             return false;
 
-        // Preflight so malformed data cannot leave a partially changed buffer.
+
+        // ------------------------------------------------------------
+        // Preflight.
+        // ------------------------------------------------------------
 
         for (size_t i = 0; i < buffer.size(); ++i)
         {
             uint16_t replacement = 0;
+
             const OpenTypeGsubResolveResult result =
-                resolveOpenTypeGsubSingleLookup(lookup, buffer[i].glyphId, replacement);
+                resolveOpenTypeGsubSingleLookup(
+                    lookup,
+                    buffer[i].glyphId,
+                    replacement);
 
             if (result == OpenTypeGsubResolveResult::Invalid)
                 return false;
         }
 
+
+        // ------------------------------------------------------------
+        // Apply.
+        // ------------------------------------------------------------
+
         for (size_t i = 0; i < buffer.size(); ++i)
         {
             uint16_t replacement = 0;
+
             const OpenTypeGsubResolveResult result =
-                resolveOpenTypeGsubSingleLookup(lookup, buffer[i].glyphId, replacement);
+                resolveOpenTypeGsubSingleLookup(
+                    lookup,
+                    buffer[i].glyphId,
+                    replacement);
 
             if (result == OpenTypeGsubResolveResult::Invalid)
                 return false;
 
             if (result == OpenTypeGsubResolveResult::Match &&
-                !applyOpenTypeGsubOneToOne(buffer, i, replacement))
+                !applyOpenTypeGsubOneToOne(
+                    buffer, i, replacement))
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+
+    static inline bool applyOpenTypeGsubSingleLookup(
+        const OpenTypeLayoutLookupView& lookup,
+        OpenTypeShapingBuffer& buffer) noexcept
+    {
+        const OpenTypeGdefView gdef{};
+        return applyOpenTypeGsubSingleLookup(
+            lookup, gdef, buffer);
     }
 
 
@@ -2111,7 +2146,7 @@ namespace waavs
         switch (extensionLookupType)
         {
         case 1:
-            return applyOpenTypeGsubSingleLookup(lookup, buffer);
+            return applyOpenTypeGsubSingleLookup(lookup, gdef,buffer);
 
         case 2:
             return applyOpenTypeGsubMultipleLookup(lookup, gdef, buffer);
@@ -2157,7 +2192,7 @@ namespace waavs
         switch (lookup.lookupType())
         {
         case 1:
-            return applyOpenTypeGsubSingleLookup(lookup, buffer);
+            return applyOpenTypeGsubSingleLookup(lookup, gdef, buffer);
 
         case 2:
             return applyOpenTypeGsubMultipleLookup(lookup, gdef, buffer);

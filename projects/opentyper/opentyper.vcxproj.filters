@@ -111,10 +111,28 @@
     <ClInclude Include="test_horizontal_bidi_position_sanity.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="test_find_ligature_fonts.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_ligature_gallery.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_thai_mark_stack.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_thai_sara_am.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opentyper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
   </ItemGroup>
 </Project>

@@ -9,18 +9,32 @@
 namespace waavs
 {
     template<class Sink>
-    static bool pathprogram_dispatch(const PathProgram& prog, Sink& sink) noexcept
+    bool pathprogram_dispatch(const PathProgram& prog, Sink& sink)
     {
         size_t ip = 0; // instruction pointer for ops
         size_t ap = 0; // argument pointer for args
 
         while (ip < prog.ops.size()) 
         {
-            uint8_t op = prog.ops[ip++];
-            const float* args = prog.args.data() + ap;
-            ap += kPathOpArity[op];
+            const uint8_t op = prog.ops[ip++];
+            const uint8_t arity = pathOpArity(static_cast<PathOp>(op));
 
-            switch (op) {
+            if (arity == kPathOpInvalidArity) {
+                assert(false && "pathprogram_dispatch: invalid opcode");
+                return false;
+            }
+
+            if (ap + arity > prog.args.size()) {
+                assert(false && "pathprogram_dispatch: truncated argument stream");
+                return false;
+            }
+
+            const float* args = prog.args.data() + ap;
+            ap += arity;
+
+
+            switch (op) 
+            {
             case OP_END:
                 sink.onEnd();
                 return true; // done
@@ -253,18 +267,18 @@ namespace waavs
             return false;
         }
 
-        void emitOp_(uint8_t op) noexcept
+        void emitOp_(uint8_t op)
         {
             prog.ops.push_back(op);
         }
 
-        void emit2_(float a, float b) noexcept
+        void emit2_(float a, float b)
         {
             prog.args.push_back(a);
             prog.args.push_back(b);
         }
 
-        void emit4_(float a, float b, float c, float d) noexcept
+        void emit4_(float a, float b, float c, float d)
         {
             prog.args.push_back(a);
             prog.args.push_back(b);
@@ -272,7 +286,7 @@ namespace waavs
             prog.args.push_back(d);
         }
 
-        void emit6_(float a, float b, float c, float d, float e, float f) noexcept
+        void emit6_(float a, float b, float c, float d, float e, float f)
         {
             prog.args.push_back(a);
             prog.args.push_back(b);
@@ -282,7 +296,7 @@ namespace waavs
             prog.args.push_back(f);
         }
 
-        void emit7_(float a, float b, float c, float d, float e, float f, float g) noexcept
+        void emit7_(float a, float b, float c, float d, float e, float f, float g)
         {
             prog.args.push_back(a);
             prog.args.push_back(b);

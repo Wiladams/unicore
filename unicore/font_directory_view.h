@@ -23,7 +23,8 @@
 
 #include "font_face.h"
 #include "opentype_container.h"
-
+//#include "core_table.h"
+#include "core_nametable.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>

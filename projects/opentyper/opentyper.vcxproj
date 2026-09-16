@@ -103,7 +103,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -123,7 +123,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -141,7 +141,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -161,7 +161,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -179,7 +179,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -199,7 +199,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
@@ -218,6 +218,7 @@
     <ClInclude Include="..\..\unicore\opentype_glyf.h" />
     <ClInclude Include="..\..\unicore\opentype_gsub_lookup_apply.h" />
     <ClInclude Include="..\..\unicore\opentype_horizontal_shaper.h" />
+    <ClInclude Include="..\..\unicore\opentype_types.h" />
     <ClInclude Include="..\..\unicore\test_glyph_positioning_rtl.h" />
     <ClInclude Include="..\..\unicore\test_unicode_bidi_visual_order.h" />
     <ClInclude Include="..\..\unicore\unicode_bidi_visual_order.h" />
@@ -228,6 +229,7 @@
     <ClInclude Include="svg_text_drawer.h" />
     <ClInclude Include="svg_text_run_adapter.h" />
     <ClInclude Include="test_find_hebrew_font.h" />
+    <ClInclude Include="test_find_ligature_fonts.h" />
     <ClInclude Include="test_glyph_positioning.h" />
     <ClInclude Include="test_gpos_kerning_font_scan.h" />
     <ClInclude Include="test_horizontal_bidi_positioning.h" />
@@ -240,13 +242,19 @@
     <ClInclude Include="test_svg_bidi_gallery.h" />
     <ClInclude Include="test_svg_glyph_definition_cache.h" />
     <ClInclude Include="test_svg_latin_text_pipeline.h" />
+    <ClInclude Include="test_svg_ligature_gallery.h" />
     <ClInclude Include="test_svg_text_backend.h" />
     <ClInclude Include="test_svg_text_drawer.h" />
     <ClInclude Include="test_svg_text_gallery.h" />
     <ClInclude Include="test_svg_text_run_adapter.h" />
+    <ClInclude Include="test_thai_mark_stack.h" />
+    <ClInclude Include="test_thai_sara_am.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opentyper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

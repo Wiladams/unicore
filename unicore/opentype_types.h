@@ -2,14 +2,11 @@
 #pragma once
 
 #include "lang_span.h"
-#include "core_table.h"
-#include "core_nametable.h"
 #include "lang_memory.h"
 #include "font_interfaces.h"
 
 #include <vector>
-#include <cstring>
-#include <cstdio>
+
 
 
 namespace waavs {
@@ -27,7 +24,7 @@ namespace waavs {
         // ============================================================================
         // Construct a tag from a 4-character string literal (big-endian)
         // This one is used at compile time for constant tags, e.g., OTAG("cmap")
-        constexpr Tag OTAG(const char(&s)[5]) noexcept
+        consteval Tag OTAG(const char(&s)[5]) noexcept
         {
             return
                 (static_cast<Tag>(static_cast<uint8_t>(s[0])) << 24) |
@@ -39,7 +36,7 @@ namespace waavs {
         // Construct a tag from a pointer to 4 bytes (big-endian)
         // This one is used at runtime when reading tags from a font file.
         // The pointer must point to at least 4 bytes of valid memory.
-        inline constexpr Tag OSIG(const uint8_t* p) noexcept
+        constexpr Tag OSIG(const uint8_t* p) noexcept
         {
             return
                 (static_cast<Tag>(p[0]) << 24) |
@@ -48,7 +45,7 @@ namespace waavs {
                 static_cast<Tag>(p[3]);
         }
 
-        inline constexpr bool isSupportedFontContainer(Tag signature) noexcept
+        constexpr bool isSupportedFontContainer(Tag signature) noexcept
         {
             return signature == 0x00010000 ||
                 signature == OTAG("true") ||
@@ -60,29 +57,29 @@ namespace waavs {
 
 
         namespace TagConstants {
-            static constexpr Tag CMAP = OTAG("cmap");
-            static constexpr Tag GLYF = OTAG("glyf");
-            static constexpr Tag HEAD = OTAG("head");
-            static constexpr Tag HHEA = OTAG("hhea");
-            static constexpr Tag HMTX = OTAG("hmtx");
-            static constexpr Tag LOCA = OTAG("loca");
-            static constexpr Tag MAXP = OTAG("maxp");
-            static constexpr Tag NAME = OTAG("name");
-            static constexpr Tag OS2 = OTAG("OS/2");
-            static constexpr Tag POST = OTAG("post");
-            static constexpr Tag KERN = OTAG("kern");
+            inline constexpr Tag CMAP = OTAG("cmap");
+            inline constexpr Tag GLYF = OTAG("glyf");
+            inline constexpr Tag HEAD = OTAG("head");
+            inline constexpr Tag HHEA = OTAG("hhea");
+            inline constexpr Tag HMTX = OTAG("hmtx");
+            inline constexpr Tag LOCA = OTAG("loca");
+            inline constexpr Tag MAXP = OTAG("maxp");
+            inline constexpr Tag NAME = OTAG("name");
+            inline constexpr Tag OS2 = OTAG("OS/2");
+            inline constexpr Tag POST = OTAG("post");
+            inline constexpr Tag KERN = OTAG("kern");
 
-            static constexpr Tag GDEF = OTAG("GDEF");
-            static constexpr Tag GSUB = OTAG("GSUB");
-            static constexpr Tag GPOS = OTAG("GPOS");
+            inline constexpr Tag GDEF = OTAG("GDEF");
+            inline constexpr Tag GSUB = OTAG("GSUB");
+            inline constexpr Tag GPOS = OTAG("GPOS");
 
-            static constexpr Tag SVG = OTAG("SVG ");
-            static constexpr Tag COLR = OTAG("COLR");
-            static constexpr Tag CPAL = OTAG("CPAL");
-            static constexpr Tag CBDT = OTAG("CBDT");
-            static constexpr Tag CBLC = OTAG("CBLC");
+            inline constexpr Tag SVG = OTAG("SVG ");
+            inline constexpr Tag COLR = OTAG("COLR");
+            inline constexpr Tag CPAL = OTAG("CPAL");
+            inline constexpr Tag CBDT = OTAG("CBDT");
+            inline constexpr Tag CBLC = OTAG("CBLC");
 
-            static constexpr Tag TTCF = OTAG("ttcf");
+            inline constexpr Tag TTCF = OTAG("ttcf");
         }
 
 
@@ -91,16 +88,16 @@ namespace waavs {
         // ============================================================================
 
         namespace FeatureFlags {
-            static constexpr uint32_t SVG = 1 << 0;
-            static constexpr uint32_t COLR = 1 << 1;
-            static constexpr uint32_t CPAL = 1 << 2;
-            static constexpr uint32_t CBDT = 1 << 3;
-            static constexpr uint32_t CBLC = 1 << 4;
-            static constexpr uint32_t GSUB = 1 << 5;
-            static constexpr uint32_t GPOS = 1 << 6;
-            static constexpr uint32_t KERN = 1 << 7;
-            static constexpr uint32_t COLOR = COLR | CBDT | CPAL | CBLC;
-            static constexpr uint32_t LAYOUT = GSUB | GPOS | KERN;
+            inline constexpr uint32_t SVG = 1u << 0;
+            inline constexpr uint32_t COLR = 1u << 1;
+            inline constexpr uint32_t CPAL = 1u << 2;
+            inline constexpr uint32_t CBDT = 1u << 3;
+            inline constexpr uint32_t CBLC = 1u << 4;
+            inline constexpr uint32_t GSUB = 1u << 5;
+            inline constexpr uint32_t GPOS = 1u << 6;
+            inline constexpr uint32_t KERN = 1u << 7;
+            inline constexpr uint32_t COLOR = COLR | CBDT | CPAL | CBLC;
+            inline constexpr uint32_t LAYOUT = GSUB | GPOS | KERN;
         }
 
         // ============================================================================
@@ -167,31 +164,31 @@ namespace waavs {
         // ============================================================================
 
         namespace NameIDs {
-            static constexpr uint16_t NID_COPYRIGHT = 0;
-            static constexpr uint16_t NID_FAMILY = 1;
-            static constexpr uint16_t NID_SUBFAMILY = 2;
-            static constexpr uint16_t NID_UNIQUE_ID = 3;
-            static constexpr uint16_t NID_FULL_NAME = 4;
-            static constexpr uint16_t NID_VERSION = 5;
-            static constexpr uint16_t NID_POSTSCRIPT = 6;
-            static constexpr uint16_t NID_TRADEMARK = 7;
-            static constexpr uint16_t NID_MANUFACTURER = 8;
-            static constexpr uint16_t NID_DESIGNER = 9;
-            static constexpr uint16_t NID_DESCRIPTION = 10;
-            static constexpr uint16_t NID_VENDOR_URL = 11;
-            static constexpr uint16_t NID_DESIGNER_URL = 12;
-            static constexpr uint16_t NID_LICENSE = 13;
-            static constexpr uint16_t NID_LICENSE_URL = 14;
-            static constexpr uint16_t NID_PREFERRED_FAMILY = 16;
-            static constexpr uint16_t NID_PREFERRED_SUBFAMILY = 17;
-            static constexpr uint16_t NID_COMPATIBLE_FULL = 18;
-            static constexpr uint16_t NID_SAMPLE_TEXT = 19;
-            static constexpr uint16_t NID_POSTSCRIPT_CID = 20;
-            static constexpr uint16_t NID_WWS_FAMILY = 21;
-            static constexpr uint16_t NID_WWS_SUBFAMILY = 22;
-            static constexpr uint16_t NID_LIGHT_BG_PALETTE = 23;
-            static constexpr uint16_t NID_DARK_BG_PALETTE = 24;
-            static constexpr uint16_t NID_VARIATIONS_POSTSCRIPT = 25;
+            inline constexpr uint16_t NID_COPYRIGHT = 0;
+            inline constexpr uint16_t NID_FAMILY = 1;
+            inline constexpr uint16_t NID_SUBFAMILY = 2;
+            inline constexpr uint16_t NID_UNIQUE_ID = 3;
+            inline constexpr uint16_t NID_FULL_NAME = 4;
+            inline constexpr uint16_t NID_VERSION = 5;
+            inline constexpr uint16_t NID_POSTSCRIPT = 6;
+            inline constexpr uint16_t NID_TRADEMARK = 7;
+            inline constexpr uint16_t NID_MANUFACTURER = 8;
+            inline constexpr uint16_t NID_DESIGNER = 9;
+            inline constexpr uint16_t NID_DESCRIPTION = 10;
+            inline constexpr uint16_t NID_VENDOR_URL = 11;
+            inline constexpr uint16_t NID_DESIGNER_URL = 12;
+            inline constexpr uint16_t NID_LICENSE = 13;
+            inline constexpr uint16_t NID_LICENSE_URL = 14;
+            inline constexpr uint16_t NID_PREFERRED_FAMILY = 16;
+            inline constexpr uint16_t NID_PREFERRED_SUBFAMILY = 17;
+            inline constexpr uint16_t NID_COMPATIBLE_FULL = 18;
+            inline constexpr uint16_t NID_SAMPLE_TEXT = 19;
+            inline constexpr uint16_t NID_POSTSCRIPT_CID = 20;
+            inline constexpr uint16_t NID_WWS_FAMILY = 21;
+            inline constexpr uint16_t NID_WWS_SUBFAMILY = 22;
+            inline constexpr uint16_t NID_LIGHT_BG_PALETTE = 23;
+            inline constexpr uint16_t NID_DARK_BG_PALETTE = 24;
+            inline constexpr uint16_t NID_VARIATIONS_POSTSCRIPT = 25;
         }
 
         // ============================================================================
@@ -199,11 +196,11 @@ namespace waavs {
         // ============================================================================
 
         namespace PlatformIDs {
-            static constexpr uint16_t PID_UNICODE = 0;
-            static constexpr uint16_t PID_MACINTOSH = 1;
-            static constexpr uint16_t PID_ISO = 2;
-            static constexpr uint16_t PID_WINDOWS = 3;
-            static constexpr uint16_t PID_CUSTOM = 4;
+            inline constexpr uint16_t PID_UNICODE = 0;
+            inline constexpr uint16_t PID_MACINTOSH = 1;
+            inline constexpr uint16_t PID_ISO = 2;
+            inline constexpr uint16_t PID_WINDOWS = 3;
+            inline constexpr uint16_t PID_CUSTOM = 4;
         }
 
         // ============================================================================
@@ -213,35 +210,35 @@ namespace waavs {
         namespace EncodingIDs {
             // Windows encodings
             namespace Windows {
-                static constexpr uint16_t EID_SYMBOL = 0;
-                static constexpr uint16_t EID_UNICODE_BMP = 1;
-                static constexpr uint16_t EID_SHIFT_JIS = 2;
-                static constexpr uint16_t EID_PRC = 3;
-                static constexpr uint16_t EID_BIG5 = 4;
-                static constexpr uint16_t EID_WANSUNG = 5;
-                static constexpr uint16_t EID_JOHAB = 6;
-                static constexpr uint16_t EID_UNICODE_FULL = 10;
+                inline constexpr uint16_t EID_SYMBOL = 0;
+                inline constexpr uint16_t EID_UNICODE_BMP = 1;
+                inline constexpr uint16_t EID_SHIFT_JIS = 2;
+                inline constexpr uint16_t EID_PRC = 3;
+                inline constexpr uint16_t EID_BIG5 = 4;
+                inline constexpr uint16_t EID_WANSUNG = 5;
+                inline constexpr uint16_t EID_JOHAB = 6;
+                inline constexpr uint16_t EID_UNICODE_FULL = 10;
             }
 
             // Unicode encodings
             namespace Unicode {
-                static constexpr uint16_t EID_DEFAULT = 0;
-                static constexpr uint16_t EID_V1_1 = 1;
-                static constexpr uint16_t EID_ISO_10646 = 2;
-                static constexpr uint16_t EID_V2_0_BMP = 3;
-                static constexpr uint16_t EID_V2_0_FULL = 4;
-                static constexpr uint16_t EID_V4_0 = 5;
-                static constexpr uint16_t EID_V5_0 = 6;
-                static constexpr uint16_t EID_V6_0 = 7;
-                static constexpr uint16_t EID_V7_0 = 8;
-                static constexpr uint16_t EID_V8_0 = 9;
-                static constexpr uint16_t EID_V9_0 = 10;
-                static constexpr uint16_t EID_V10_0 = 11;
-                static constexpr uint16_t EID_V11_0 = 12;
-                static constexpr uint16_t EID_V12_0 = 13;
-                static constexpr uint16_t EID_V13_0 = 14;
-                static constexpr uint16_t EID_V14_0 = 15;
-                static constexpr uint16_t EID_V15_0 = 16;
+                inline constexpr uint16_t EID_DEFAULT = 0;
+                inline constexpr uint16_t EID_V1_1 = 1;
+                inline constexpr uint16_t EID_ISO_10646 = 2;
+                inline constexpr uint16_t EID_V2_0_BMP = 3;
+                inline constexpr uint16_t EID_V2_0_FULL = 4;
+                inline constexpr uint16_t EID_V4_0 = 5;
+                inline constexpr uint16_t EID_V5_0 = 6;
+                inline constexpr uint16_t EID_V6_0 = 7;
+                inline constexpr uint16_t EID_V7_0 = 8;
+                inline constexpr uint16_t EID_V8_0 = 9;
+                inline constexpr uint16_t EID_V9_0 = 10;
+                inline constexpr uint16_t EID_V10_0 = 11;
+                inline constexpr uint16_t EID_V11_0 = 12;
+                inline constexpr uint16_t EID_V12_0 = 13;
+                inline constexpr uint16_t EID_V13_0 = 14;
+                inline constexpr uint16_t EID_V14_0 = 15;
+                inline constexpr uint16_t EID_V15_0 = 16;
             }
         }
 
@@ -375,11 +372,11 @@ namespace waavs {
         // ============================================================================
 
         // actual key generators
-        inline uint32_t makeCmapKey(uint16_t platformId, uint16_t encodingId) noexcept {
+        constexpr uint32_t makeCmapKey(uint16_t platformId, uint16_t encodingId) noexcept {
             return (static_cast<uint32_t>(platformId) << 16) | encodingId;
         }
 
-        inline uint64_t makeFullNameKey(
+        constexpr uint64_t makeFullNameKey(
             uint16_t platformId,
             uint16_t encodingId,
             uint16_t languageId,

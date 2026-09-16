@@ -1,11 +1,14 @@
+
 // pathprogram.h
 #pragma once
 
 
+static_assert(__cplusplus >= 202002L, "pathp requires C++20 or later");
+
 #include <cstdint>
 #include <cstddef>
 #include <vector>
-
+#include <array>
 
 
 // Machinery for a PathProgram
@@ -17,30 +20,41 @@ namespace waavs
     //  - no implicit lineto after moveto
     //  - arcs are already endpoint-form
     //  - smooth curves are expanded
-
-    enum PathOp : uint8_t {
-        OP_END = 0,		// Reprsesent the end of the path program (not Z / close)
+    enum PathOp : uint8_t
+    {
+        OP_END = 0,
         OP_MOVETO,
         OP_LINETO,
         OP_CUBICTO,
         OP_QUADTO,
         OP_ARCTO,
-        OP_CLOSE
+        OP_CLOSE,
+        //OP_COUNT
     };
 
-    // Arity table, how many arguments each op takes
-    static constexpr uint8_t kPathOpArity[] = {
-        0,  // OP_END
-        2,  // OP_MOVETO:   x y
-        2,  // OP_LINETO:   x y
-        6,  // OP_CUBICTO:  x1 y1 x2 y2 x y
-        4,  // OP_QUADTO:   x1 y1 x y
-        7,  // OP_ARCTO:    rx ry x-axis-rotation large-arc-flag sweep-flag x y
-        0   // OP_CLOSE
-    };
-    
-    // Ensure the ops size and arity table size match
-    static_assert(OP_CLOSE + 1 == std::size(kPathOpArity), "PathOp arity table size mismatch");
+    inline constexpr uint8_t kPathOpInvalidArity = 0xff;
+
+    inline constexpr std::array<uint8_t, 256> kPathOpArity = []()
+        {
+            std::array<uint8_t, 256> table{};
+            table.fill(kPathOpInvalidArity);
+
+            table[OP_END] = 0;
+            table[OP_MOVETO] = 2;
+            table[OP_LINETO] = 2;
+            table[OP_CUBICTO] = 6;
+            table[OP_QUADTO] = 4;
+            table[OP_ARCTO] = 7;
+            table[OP_CLOSE] = 0;
+
+            return table;
+        }();
+
+    constexpr uint8_t pathOpArity(PathOp op) noexcept
+    {
+        return kPathOpArity[static_cast<uint8_t>(op)];
+    }
+
 
 
     // The container for a path program

@@ -446,6 +446,7 @@ namespace waavs
         //
         //     Latn -> latn
         //     Hebr -> hebr
+        //     Thai -> thai
         //     Zyyy -> DFLT
         //     Zinh -> DFLT
         //
@@ -472,6 +473,12 @@ namespace waavs
             if (std::strcmp(scriptName, "Hebr") == 0)
             {
                 tag = OTAG("hebr");
+                return true;
+            }
+
+            if (std::strcmp(scriptName, "Thai") == 0)
+            {
+                tag = OTAG("thai");
                 return true;
             }
 

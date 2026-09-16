@@ -2,6 +2,7 @@
 
 #include "core_openhashmap.h"
 #include "core_utf8.h"
+#include "core_nametable.h"
 #include "font_interfaces.h"
 #include "opentype_types.h"
 #include "opentype_bytestream.h"

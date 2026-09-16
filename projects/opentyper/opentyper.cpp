@@ -25,7 +25,10 @@
 #include "test_horizontal_bidi_positioning.h"
 #include "test_svg_bidi_gallery.h"
 #include "test_find_hebrew_font.h"
-
+#include "test_find_ligature_fonts.h"
+#include "test_svg_ligature_gallery.h"
+#include "test_thai_mark_stack.h"
+#include "test_thai_sara_am.h"
 
 
 
@@ -67,7 +70,7 @@ int main()
 
     //printf("testGlyphPositioningRTL: %s\n", testGlyphPositioningRTL() ? "PASS" : "FAIL");
 
-    printf("testHorizontalBidiPositioning: %s\n", testHorizontalBidiPositioning() ? "PASS" : "FAIL");
+    //printf("testHorizontalBidiPositioning: %s\n", testHorizontalBidiPositioning() ? "PASS" : "FAIL");
 
     //testFindHebrewFont(".\\testdata\\unicode.ucdb", ".\\testdata");
 
@@ -77,5 +80,20 @@ int main()
     //    ".\\testdata\\NotoSerifHebrew[wdth,wght].ttf",
     //    ".\\testdata\\test_svg_bidi_gallery.svg") ? "PASS" : "FAIL");
 
+    //testFindLigatureFonts(".\\testdata");
 
+    testSVGLigatureGallery(
+        ".\\testdata\\unicode.ucdb",
+        ".\\testdata\\NotoSans[wdth,wght].ttf",
+        ".\\testdata\\test_svg_ligature_gallery.svg");
+
+    //printf("testThaiMarkStack: %s\n", testThaiMarkStack(
+    //    ".\\testdata\\unicode.ucdb",
+    //    ".\\testdata\\NotoSansThai[wdth,wght].ttf",
+    //    ".\\testdata\\test_thai_mark_stack.svg") ? "PASS" : "FAIL");
+
+    //printf("testThaiSaraAm: %s\n", testThaiSaraAm(
+    //    ".\\testdata\\unicode.ucdb",
+    //    ".\\testdata\\NotoSansThai[wdth,wght].ttf",
+    //    ".\\testdata\\test_thai_sara_am.svg") ? "PASS" : "FAIL");
 }

@@ -43,5 +43,49 @@ namespace waavs
         z = 'z'   // relative closepath (treated the same as Z in most renderers)
     };
 
+    // ------------------------------------------------------------
+    // SVG command arity
+    //
+    // 0xff means the byte is not an SVG path command.
+    //
+    // inline constexpr gives us one logical header-only definition,
+    // initialized entirely at compile time.
+    // ------------------------------------------------------------
 
+    inline constexpr uint8_t kSVGPathInvalidArity = 0xff;
+
+    inline constexpr std::array<uint8_t, 256> kSVGPathCommandArity = []()
+        {
+            std::array<uint8_t, 256> table{};
+            table.fill(kSVGPathInvalidArity);
+
+
+            table['M'] = table['m'] = 2;
+            table['L'] = table['l'] = 2;
+            table['H'] = table['h'] = 1;
+            table['V'] = table['v'] = 1;
+            table['C'] = table['c'] = 6;
+            table['S'] = table['s'] = 4;
+            table['Q'] = table['q'] = 4;
+            table['T'] = table['t'] = 2;
+            table['A'] = table['a'] = 7;
+            table['Z'] = table['z'] = 0;
+
+            return table;
+        }();
+
+    constexpr uint8_t svgPathCommandArity(uint8_t ch) noexcept
+    {
+        return kSVGPathCommandArity[ch];
+    }
+
+    constexpr uint8_t svgPathCommandArity(SVGPathCommand cmd) noexcept
+    {
+        return kSVGPathCommandArity[static_cast<uint8_t>(cmd)];
+    }
+
+    constexpr bool isSVGPathCommand(uint8_t ch) noexcept
+    {
+        return svgPathCommandArity(ch) != kSVGPathInvalidArity;
+    }
 }
