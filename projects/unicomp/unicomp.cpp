@@ -6,6 +6,16 @@
 #include "test_opentype_gsub_ir_chain_context.h"
 #include "test_opentype_gsub_ir_alternate.h"
 #include "test_opentype_gsub_ir_reverse_chain_single.h"
+#include "test_opentype_gpos_ir_single.h"
+#include "test_opentype_gpos_ir_pair.h"
+#include "test_opentype_gpos_ir_cursive.h"
+#include "test_opentype_gpos_ir_mark_base.h"
+#include "test_opentype_gpos_ir_mark_ligature.h"
+#include "test_opentype_gpos_ir_mark_mark.h"
+#include "test_opentype_gpos_ir_context.h"
+#include "test_opentype_gpos_ir_chain_context.h"
+
+
 
 using namespace waavs;
 
@@ -17,6 +27,15 @@ int main(int argc, char** argv)
     //testOpenTypeGsubIRContext();
     //testOpenTypeGsubIRChainContext();
     //testOpenTypeGsubIRAlternate();
-    testOpenTypeGsubIRReverseChainSingle();
+    //testOpenTypeGsubIRReverseChainSingle();
+    testOpenTypeGposIRSingle();
+    testOpenTypeGposIRPair();
+    testOpenTypeGposIRCursive();
+    testOpenTypeGposIRMarkBase();
+    testOpenTypeGposIRMarkLigature();
+    testOpenTypeGposIRMarkMark();
+    testOpenTypeGposIRContext();
+    testOpenTypeGposIRChainContext();
+
     return 0;
 }

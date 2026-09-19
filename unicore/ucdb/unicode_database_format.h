@@ -382,9 +382,10 @@ namespace waavs
         UnicodeValueProperty8GraphemeClusterBreak = 4,
         UnicodeValueProperty8IndicConjunctBreak = 5,
         UnicodeValueProperty8Script = 6,
+        UnicodeValueProperty8IndicSyllabicCategory = 7,
 
 
-        UnicodeValueProperty8MAX = UnicodeValueProperty8Script
+        UnicodeValueProperty8MAX = UnicodeValueProperty8IndicSyllabicCategory
     };
 
 

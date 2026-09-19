@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="scriptcomp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_executor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_builder.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_policy_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_policy_compiler.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_executor.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_buffer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_nominal_glyphs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_scalar_replace.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_thai_cmap.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_thai_reorder.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_scalar_move_left.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_scalar_move_left_executor.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_thai_full.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_thai_conformance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_types.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_result.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_result.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_description.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_dsl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_dsl.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_dsl_models.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_validator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_validator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_dump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_dump.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_ir_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_ir_types.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_ir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_ir.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_compiler.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\test_script_recognition_compiler_control.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_recognition_interpreter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_interpreter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_interpreter_control.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_interpreter_backtracking.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_interpreter_models.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

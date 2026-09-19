@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -142,7 +142,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -162,7 +162,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -180,7 +180,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -200,7 +200,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../unitils;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb; ../../unicore/unicomp;../../unicore/scriptir;../unitils;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>

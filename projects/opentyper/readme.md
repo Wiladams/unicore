@@ -1,1 +1,13 @@
 #pragma once
+opentype_horizontal_shaper.h
+opentype_shaping_policy.h
+opentype_layout_selection.h
+
+opentype_shaping_ir.h
+opentype_shaping_ir_plan.h
+
+opentype_shaping_buffer.h
+opentype_nominal_glyphs.h
+opentype_nominal_metrics.h
+
+shaped_glyph_buffer.h

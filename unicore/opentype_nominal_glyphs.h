@@ -1,32 +1,42 @@
 // opentype_nominal_glyphs.h
-
 #pragma once
 
+#include "script_shaping_buffer.h"
 #include "opentype_shaping_buffer.h"
-
 
 namespace waavs
 {
+    // ========================================================================
+    // mapOpenTypeNominalGlyphs
+    //
+    // Map the scalar-domain shaping sequence through the selected face cmap.
+    //
+    // The real FontRunView retained by ScriptShapingBuffer remains the source
+    // of the selected face and is retained by OpenTypeShapingBuffer.
+    //
+    // Scalar provenance comes from ScriptShapingItem rather than being
+    // reconstructed here.
+    // ========================================================================
+
     [[nodiscard]]
-    static inline bool mapOpenTypeNominalGlyphs(const FontRunView& input, OpenTypeShapingBuffer& output)
+    static inline bool mapOpenTypeNominalGlyphs(const ScriptShapingBuffer& input, OpenTypeShapingBuffer& output)
     {
         output.clear();
 
-        if (!input.face)
+        const FontRunView* run = input.input();
+
+        if (!run || !run->face)
             return false;
 
-        if (input.scalarCount != 0 && !input.scalars)
-            return false;
+        output.reset(*run);
 
-        output.reset(input);
-
-        for (uint32_t i = 0; i < input.scalarCount; ++i)
+        for (const ScriptShapingItem& item : input)
         {
             OpenTypeShapingGlyph glyph{};
 
-            glyph.glyphId = input.face.glyphIndex(input.scalars[i].value);
-            glyph.scalarOffset = i;
-            glyph.scalarCount = 1;
+            glyph.glyphId = run->face.glyphIndex(item.value);
+            glyph.scalarOffset = item.scalarOffset;
+            glyph.scalarCount = item.scalarCount;
 
             output.pushBack(glyph);
         }
@@ -34,5 +44,25 @@ namespace waavs
         return true;
     }
 
-} // namespace waavs
 
+    // ========================================================================
+    // FontRunView convenience overload
+    //
+    // Preserve the existing API while routing it through the new scalar-domain
+    // shaping representation.
+    //
+    // Existing callers therefore remain behaviorally unchanged.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool mapOpenTypeNominalGlyphs(const FontRunView& input, OpenTypeShapingBuffer& output)
+    {
+        ScriptShapingBuffer shapingInput;
+
+        if (!shapingInput.reset(input))
+            return false;
+
+        return mapOpenTypeNominalGlyphs(shapingInput, output);
+    }
+
+} // namespace waavs

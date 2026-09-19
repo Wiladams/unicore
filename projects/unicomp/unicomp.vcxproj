@@ -210,10 +210,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\unicore\opentype_gsub_lookup_apply.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_compiler.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_executor.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_compiler.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_executor.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir.h" />
     <ClInclude Include="..\..\unicore\unicomp\test_opentype_gsub_ir_single.h" />
+    <ClInclude Include="test_opentype_gpos_ir_mark_base.h" />
     <ClInclude Include="test_opentype_gsub_ir_alternate.h" />
     <ClInclude Include="test_opentype_gsub_ir_chain_context.h" />
     <ClInclude Include="test_opentype_gsub_ir_context.h" />

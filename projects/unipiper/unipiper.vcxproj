@@ -207,6 +207,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\unicore\opentype_glyf.h" />
+    <ClInclude Include="..\..\unicore\ucdb\ucd_indic_syllabic_category_parser.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_format.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_generator.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_syllabic_category.h" />
     <ClInclude Include="..\..\unicore\unicode_coverage.h" />
     <ClInclude Include="..\..\unicore\unicode_coverage_builder.h" />
     <ClInclude Include="..\..\unicore\unicode_coverage_data.h" />

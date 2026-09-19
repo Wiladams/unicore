@@ -3,21 +3,8 @@
   "WorkspaceRootPath": "C:\\repos\\unicore\\projects\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|C:\\repos\\unicore\\projects\\unicomp\\unicomp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|solutionrelative:unicomp\\unicomp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|C:\\repos\\unicore\\projects\\unicomp\\test_opentype_gsub_ir_reverse_chain_single.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|solutionrelative:unicomp\\test_opentype_gsub_ir_reverse_chain_single.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_executor.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_compiler.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A08EE2F1-D851-49E8-960D-293F86B509A7}|unicomp\\unicomp.vcxproj|C:\\repos\\unicore\\unicore\\unicomp\\opentype_shaping_ir.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,7 +14,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -35,64 +22,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "test_opentype_gsub_ir_reverse_chain_single.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unicomp\\test_opentype_gsub_ir_reverse_chain_single.h",
-              "RelativeDocumentMoniker": "unicomp\\test_opentype_gsub_ir_reverse_chain_single.h",
-              "ToolTip": "C:\\repos\\unicore\\projects\\unicomp\\test_opentype_gsub_ir_reverse_chain_single.h",
-              "RelativeToolTip": "unicomp\\test_opentype_gsub_ir_reverse_chain_single.h",
-              "ViewState": "AgIAAFcBAAAAAAAAAAAYwGQBAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-09-15T08:23:42.827Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "opentype_shaping_ir.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_shaping_ir.h",
-              "RelativeDocumentMoniker": "..\\unicore\\unicomp\\opentype_shaping_ir.h",
-              "ToolTip": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_shaping_ir.h",
-              "RelativeToolTip": "..\\unicore\\unicomp\\opentype_shaping_ir.h",
-              "ViewState": "AgIAADwCAAAAAAAAAAAYwFwCAAAUAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-09-15T06:14:34.751Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "unicomp.cpp",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\unicomp\\unicomp.cpp",
-              "RelativeDocumentMoniker": "unicomp\\unicomp.cpp",
-              "ToolTip": "C:\\repos\\unicore\\projects\\unicomp\\unicomp.cpp",
-              "RelativeToolTip": "unicomp\\unicomp.cpp",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAABIAAAAGAAAAAAAAAA==",
+              "Title": "ucdbgen.cpp",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
+              "RelativeDocumentMoniker": "ucdbgen\\ucdbgen.cpp",
+              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
+              "RelativeToolTip": "ucdbgen\\ucdbgen.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-09-15T06:00:46.062Z",
+              "WhenOpened": "2026-09-19T18:22:01.779Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "opentype_gsub_ir_executor.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_executor.h",
-              "RelativeDocumentMoniker": "..\\unicore\\unicomp\\opentype_gsub_ir_executor.h",
-              "ToolTip": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_executor.h",
-              "RelativeToolTip": "..\\unicore\\unicomp\\opentype_gsub_ir_executor.h",
-              "ViewState": "AgIAALUOAAAAAAAAAAAYwNAOAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-09-15T05:41:18.303Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "opentype_gsub_ir_compiler.h",
-              "DocumentMoniker": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_compiler.h",
-              "RelativeDocumentMoniker": "..\\unicore\\unicomp\\opentype_gsub_ir_compiler.h",
-              "ToolTip": "C:\\repos\\unicore\\unicore\\unicomp\\opentype_gsub_ir_compiler.h",
-              "RelativeToolTip": "..\\unicore\\unicomp\\opentype_gsub_ir_compiler.h",
-              "ViewState": "AgIAAEIQAAAAAAAAAAAYwGIQAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-09-15T05:32:04.652Z"
             }
           ]
         }

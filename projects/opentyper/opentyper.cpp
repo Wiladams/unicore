@@ -75,17 +75,17 @@ int main()
     //testFindHebrewFont(".\\testdata\\unicode.ucdb", ".\\testdata");
 
 
-    //printf("testSVGBidiGallery: %s\n", testSVGBidiGallery(
-    //    ".\\testdata\\unicode.ucdb",
-    //    ".\\testdata\\NotoSerifHebrew[wdth,wght].ttf",
-    //    ".\\testdata\\test_svg_bidi_gallery.svg") ? "PASS" : "FAIL");
+    printf("testSVGBidiGallery: %s\n", testSVGBidiGallery(
+        ".\\testdata\\unicode.ucdb",
+        "../../fonts/NotoSerifHebrew[wdth,wght].ttf",
+        ".\\testdata\\test_svg_bidi_gallery.svg") ? "PASS" : "FAIL");
 
     //testFindLigatureFonts(".\\testdata");
 
-    testSVGLigatureGallery(
-        ".\\testdata\\unicode.ucdb",
-        ".\\testdata\\NotoSans[wdth,wght].ttf",
-        ".\\testdata\\test_svg_ligature_gallery.svg");
+    //testSVGLigatureGallery(
+    //    ".\\testdata\\unicode.ucdb",
+    //    ".\\testdata\\NotoSans[wdth,wght].ttf",
+    //    ".\\testdata\\test_svg_ligature_gallery.svg");
 
     //printf("testThaiMarkStack: %s\n", testThaiMarkStack(
     //    ".\\testdata\\unicode.ucdb",

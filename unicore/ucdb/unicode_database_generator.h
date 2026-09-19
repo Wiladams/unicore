@@ -19,6 +19,7 @@
 #include "ucd_general_category_parser.h"
 #include "ucd_grapheme_cluster_break_parser.h"
 #include "ucd_indic_conjunct_break_parser.h"
+#include "ucd_indic_syllabic_category_parser.h"
 #include "ucd_property_value_aliases_parser.h"
 #include "ucd_normalization_props_parser.h"
 #include "ucd_scripts_parser.h"
@@ -237,6 +238,13 @@ namespace waavs
         if (!database.hasGraphemeClusterBreak())
         {
             std::printf( "Written database has no Grapheme_Cluster_Break table\n");
+
+            return false;
+        }
+
+        if (!database.hasIndicSyllabicCategory())
+        {
+            std::printf( "Written database has no Indic_Syllabic_Category table\n");
 
             return false;
         }
@@ -482,8 +490,8 @@ namespace waavs
         database.reserveBidiBrackets(128);
         database.reserveProperties(2);
         database.reserveScripts(176);
-        database.reserveValueProperties8(6);
-        database.reserveValueTables8(6);
+        database.reserveValueProperties8(7);
+        database.reserveValueTables8(7);
 
 
         // ====================================================================
@@ -1293,13 +1301,13 @@ namespace waavs
 
 
         // ====================================================================
-// Indic_Conjunct_Break
-//
-// DerivedCoreProperties.txt contains multiple properties. The parser
-// extracts only InCB records.
-//
-// Build VALUE8 table #5 using the shared VALUE8 page pool.
-// ====================================================================
+        // Indic_Conjunct_Break
+        //
+        // DerivedCoreProperties.txt contains multiple properties. The parser
+        // extracts only InCB records.
+        //
+        // Build VALUE8 table #5 using the shared VALUE8 page pool.
+        // ====================================================================
 
         {
             const std::string filename =
@@ -1380,6 +1388,102 @@ namespace waavs
 
             std::printf(
                 "DerivedCoreProperties.txt Indic_Conjunct_Break: PASS\n"
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Defaulted codepoints:   %zu\n",
+                result.rangeCount,
+                result.explicitCodePoints,
+                result.defaultedCodePoints);
+        }
+
+
+        // ====================================================================
+        // Indic_Syllabic_Category
+        //
+        // IndicSyllabicCategory.txt contains the enumerated ISC property.
+        //
+        // Unlisted code points default to Other.
+        // ====================================================================
+
+        {
+            const std::string filename =
+                ucdJoinPath(
+                    ucdRoot,
+                    "IndicSyllabicCategory.txt");
+
+
+            UCDSourceFile source;
+
+            if (!ucdLoadFile(
+                filename,
+                source))
+            {
+                return false;
+            }
+
+
+            auto values =
+                std::make_unique<UnicodeValueTable8Builder>();
+
+
+            UCDIndicSyllabicCategoryParseResult result;
+
+            if (!ucdParseIndicSyllabicCategory(
+                source.span(),
+                *values,
+                result))
+            {
+                std::printf(
+                    "IndicSyllabicCategory.txt parse failed\n"
+                    "  Error: %s\n"
+                    "  Line:  %u\n",
+                    ucdIndicSyllabicCategoryParseErrorString(
+                        result.error),
+                    result.lineNumber);
+
+                return false;
+            }
+
+
+            UnicodeValueTable8Data table{};
+
+            if (!values->finalize(
+                database.valuePagePool8(),
+                table))
+            {
+                std::printf(
+                    "Indic_Syllabic_Category VALUE8 finalization failed\n");
+
+                return false;
+            }
+
+
+            UnicodeValueTable8Index tableIndex;
+
+            if (!database.addValueTable8(
+                table,
+                tableIndex))
+            {
+                std::printf(
+                    "Unable to add Indic_Syllabic_Category VALUE8 table\n");
+
+                return false;
+            }
+
+
+            if (!database.addValueProperty8(
+                UnicodeValueProperty8IndicSyllabicCategory,
+                tableIndex))
+            {
+                std::printf(
+                    "Unable to register Indic_Syllabic_Category property\n");
+
+                return false;
+            }
+
+
+            std::printf(
+                "IndicSyllabicCategory.txt: PASS\n"
                 "  Ranges:                 %u\n"
                 "  Explicit codepoints:    %zu\n"
                 "  Defaulted codepoints:   %zu\n",

@@ -285,6 +285,21 @@
     <ClInclude Include="..\..\unicore\opentype_glyf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_syllabic_category.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_indic_syllabic_category_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_format.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_generator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="unipiper.cpp">

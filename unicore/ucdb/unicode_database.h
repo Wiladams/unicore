@@ -18,6 +18,7 @@
 #include "unicode_general_category.h"
 #include "unicode_grapheme_cluster_break.h"
 #include "unicode_indic_conjunct_break.h"
+#include "unicode_indic_syllabic_category.h"
 #include "unicode_value_table8.h"
 #include "unicode_script.h"
 #include "unicode_script_set.h"
@@ -154,6 +155,7 @@ namespace waavs
             mBidiClassTable = kUnicodeValueTable8IndexInvalid;
             mGraphemeClusterBreakTable = kUnicodeValueTable8IndexInvalid;
             mIndicConjunctBreakTable = kUnicodeValueTable8IndexInvalid;
+            mIndicSyllabicCategoryTable = kUnicodeValueTable8IndexInvalid;
             mScriptTable = kUnicodeValueTable8IndexInvalid;
 
             mScriptExtensionsSection = nullptr;
@@ -952,6 +954,7 @@ namespace waavs
             UnicodeValueTable8Index bidiClassTable = kUnicodeValueTable8IndexInvalid;
             UnicodeValueTable8Index graphemeClusterBreakTable = kUnicodeValueTable8IndexInvalid;
             UnicodeValueTable8Index indicConjunctBreakTable = kUnicodeValueTable8IndexInvalid;
+            UnicodeValueTable8Index indicSyllabicCategoryTable = kUnicodeValueTable8IndexInvalid;
             UnicodeValueTable8Index scriptTable = kUnicodeValueTable8IndexInvalid;
 
             // --------------------------------------------------------------------
@@ -975,9 +978,13 @@ namespace waavs
 
             if (!validateValueProperties8(valueProperties8, header->valueProperty8Count,
                 header->valueTable8Count,
-                generalCategoryTable, combiningClassTable,
-                bidiClassTable, graphemeClusterBreakTable, 
-                indicConjunctBreakTable, scriptTable))
+                generalCategoryTable, 
+                combiningClassTable,
+                bidiClassTable, 
+                graphemeClusterBreakTable, 
+                indicConjunctBreakTable, 
+                indicSyllabicCategoryTable,
+                scriptTable))
             {
                 return false;
             }
@@ -1070,6 +1077,25 @@ namespace waavs
                 }
             }
 
+
+            // Validate Indic_Syllabic_Category table if present. This is an optional property.
+            if (indicSyllabicCategoryTable !=
+                kUnicodeValueTable8IndexInvalid)
+            {
+                if (!validateValueTable8Maximum(
+                    valueTables8[indicSyllabicCategoryTable],
+                    valueMasterPages8,
+                    header->valueMasterPage8Count,
+                    valuePages8,
+                    header->valuePage8Count,
+                    static_cast<uint8_t>(
+                        kUnicodeIndicSyllabicCategoryCount - 1u)))
+                {
+                    return false;
+                }
+            }
+
+
             if (scriptTable != kUnicodeValueTable8IndexInvalid)
             {
                 if (header->scriptCount == 0 ||
@@ -1153,6 +1179,7 @@ namespace waavs
             mBidiClassTable = bidiClassTable;
             mGraphemeClusterBreakTable = graphemeClusterBreakTable;
             mIndicConjunctBreakTable = indicConjunctBreakTable;
+            mIndicSyllabicCategoryTable = indicSyllabicCategoryTable;
             mScriptTable = scriptTable;
 
             // ---------------------------------------------------------------
@@ -1620,6 +1647,13 @@ namespace waavs
         }
 
         [[nodiscard]]
+        bool hasIndicSyllabicCategory() const noexcept
+        {
+            return mIndicSyllabicCategoryTable !=
+                kUnicodeValueTable8IndexInvalid;
+        }
+
+        [[nodiscard]]
         bool hasGeneralCategory() const noexcept
         {
             return mGeneralCategoryTable !=
@@ -1707,6 +1741,20 @@ namespace waavs
             }
 
             return static_cast<UnicodeIndicConjunctBreak>(valueTable8(mIndicConjunctBreakTable).value(cp));
+        }
+
+        [[nodiscard]]
+        UnicodeIndicSyllabicCategory indicSyllabicCategory(uint32_t cp) const noexcept
+        {
+            if (mIndicSyllabicCategoryTable ==
+                kUnicodeValueTable8IndexInvalid)
+            {
+                return UnicodeIndicSyllabicCategory::Other;
+            }
+
+            return static_cast<UnicodeIndicSyllabicCategory>(
+                valueTable8(
+                    mIndicSyllabicCategoryTable).value(cp));
         }
 
         [[nodiscard]]
@@ -2217,6 +2265,10 @@ namespace waavs
         };
 
         UnicodeValueTable8Index mIndicConjunctBreakTable{
+            kUnicodeValueTable8IndexInvalid
+        };
+
+        UnicodeValueTable8Index mIndicSyllabicCategoryTable{
             kUnicodeValueTable8IndexInvalid
         };
 
@@ -3301,6 +3353,7 @@ namespace waavs
             UnicodeValueTable8Index& outBidiClass,
             UnicodeValueTable8Index& outGraphemeClusterBreak,
             UnicodeValueTable8Index& outIndicConjunctBreak,
+            UnicodeValueTable8Index& outIndicSyllabicCategory,
             UnicodeValueTable8Index& outScript) noexcept
         {
             outGeneralCategory = kUnicodeValueTable8IndexInvalid;
@@ -3308,6 +3361,7 @@ namespace waavs
             outBidiClass = kUnicodeValueTable8IndexInvalid;
             outGraphemeClusterBreak = kUnicodeValueTable8IndexInvalid;
             outIndicConjunctBreak = kUnicodeValueTable8IndexInvalid;
+            outIndicSyllabicCategory = kUnicodeValueTable8IndexInvalid;
             outScript = kUnicodeValueTable8IndexInvalid;
 
             // ------------------------------------------------------------------------
@@ -3371,6 +3425,10 @@ namespace waavs
                     outIndicConjunctBreak = record.tableIndex;
                     break;
 
+                case UnicodeValueProperty8IndicSyllabicCategory:
+                    outIndicSyllabicCategory = record.tableIndex;
+                    break;
+
                 case UnicodeValueProperty8Script:
                     outScript = record.tableIndex;
                     break;
@@ -3385,23 +3443,20 @@ namespace waavs
             // Consolidated format 1.0 requires all currently defined
             // semantic VALUE8 properties.
 
-            if (outGeneralCategory == kUnicodeValueTable8IndexInvalid)
-                return false;
+            if (outGeneralCategory == kUnicodeValueTable8IndexInvalid) return false;
 
-            if (outCombiningClass == kUnicodeValueTable8IndexInvalid)
-                return false;
+            if (outCombiningClass == kUnicodeValueTable8IndexInvalid) return false;
 
-            if (outBidiClass == kUnicodeValueTable8IndexInvalid)
-                return false;
+            if (outBidiClass == kUnicodeValueTable8IndexInvalid) return false;
 
-            if (outGraphemeClusterBreak == kUnicodeValueTable8IndexInvalid)
-                return false;
+            if (outGraphemeClusterBreak == kUnicodeValueTable8IndexInvalid) return false;
 
-            if (outIndicConjunctBreak == kUnicodeValueTable8IndexInvalid)
-                return false;
+            if (outIndicConjunctBreak == kUnicodeValueTable8IndexInvalid) return false;
 
-            if (outScript == kUnicodeValueTable8IndexInvalid)
-                return false;
+            // do NOT add
+            //if (outIndicSyllabicCategory == kUnicodeValueTable8IndexInvalid) return false;
+
+            if (outScript == kUnicodeValueTable8IndexInvalid) return false;
 
 
             return true;

@@ -1,7 +1,7 @@
 // test_opentype_gpos_chain_context_match.h
 #pragma once
 
-#include "../ucdbdemo/test_core.h"
+#include "../unitils/test_core.h"
 
 #include <cstddef>
 #include <cstdint>

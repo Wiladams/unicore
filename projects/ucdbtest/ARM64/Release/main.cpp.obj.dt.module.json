@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "ARM64\\Release\\main.obj",
+            "outputs": [
+                "ARM64\\Release\\main.cpp.obj.dt.module.json",
+                "ARM64\\Release\\main.cpp.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}
