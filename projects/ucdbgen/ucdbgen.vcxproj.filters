@@ -83,9 +83,6 @@
     <ClInclude Include="unicode_database_builder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unicode_database_generator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="unicode_database_writer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -150,6 +147,48 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ucd_default_ignorable_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_value_property8_registry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_value_property8_info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_general_category.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_combining_class.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_generator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_joining_type.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_hangul_syllable_type.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_joining_group.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_indic_positional_category_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_joining_type_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_joining_group_parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_hangul_syllable_type_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

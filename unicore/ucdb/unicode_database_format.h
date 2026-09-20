@@ -383,9 +383,12 @@ namespace waavs
         UnicodeValueProperty8IndicConjunctBreak = 5,
         UnicodeValueProperty8Script = 6,
         UnicodeValueProperty8IndicSyllabicCategory = 7,
+        UnicodeValueProperty8IndicPositionalCategory = 8,
+        UnicodeValueProperty8JoiningType = 9,
+        UnicodeValueProperty8JoiningGroup = 10,
+        UnicodeValueProperty8HangulSyllableType = 11,
 
-
-        UnicodeValueProperty8MAX = UnicodeValueProperty8IndicSyllabicCategory
+        UnicodeValueProperty8MAX = UnicodeValueProperty8HangulSyllableType
     };
 
 

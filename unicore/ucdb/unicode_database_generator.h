@@ -20,12 +20,17 @@
 #include "ucd_grapheme_cluster_break_parser.h"
 #include "ucd_indic_conjunct_break_parser.h"
 #include "ucd_indic_syllabic_category_parser.h"
+#include "ucd_indic_positional_category_parser.h"
 #include "ucd_property_value_aliases_parser.h"
 #include "ucd_normalization_props_parser.h"
 #include "ucd_scripts_parser.h"
 #include "ucd_script_extensions_parser.h"
 #include "ucd_unicode_data_parser.h"
 #include "ucd_default_ignorable_parser.h"
+#include "ucd_joining_type_parser.h"
+#include "ucd_joining_group_parser.h"
+#include "ucd_hangul_syllable_type_parser.h"
+
 
 #include "unicode_database.h"
 #include "unicode_database_builder.h"
@@ -153,6 +158,114 @@ namespace waavs
                 filename.c_str());
 
             outFile.bytes.clear();
+            return false;
+        }
+
+
+        return true;
+    }
+
+    // ========================================================================
+    // buildValueProperty8
+    //
+    // Generator-side lifecycle for one uint8-valued Unicode property:
+    //
+    //      load source
+    //          ->
+    //      parse into UnicodeValueTable8Builder
+    //          ->
+    //      finalize into shared VALUE8 page pool
+    //          ->
+    //      add VALUE8 table
+    //          ->
+    //      register semantic property
+    //
+    // Parsing semantics remain property-specific and are supplied by parseFn.
+    //
+    // outResult is preserved for property-specific success diagnostics.
+    // ========================================================================
+
+    template <typename ParseResult, typename ParseFn, typename ErrorFn>
+    static bool buildValueProperty8(
+        UnicodeDatabaseBuilder& database,
+        const char* ucdRoot,
+        const char* relativeFilename,
+        const char* propertyName,
+        UnicodeValueProperty8 property,
+        ParseResult& outResult,
+        ParseFn&& parseFn,
+        ErrorFn&& errorFn)
+    {
+        const std::string filename =
+            ucdJoinPath(ucdRoot, relativeFilename);
+
+
+        UCDSourceFile source;
+
+        if (!ucdLoadFile(filename, source))
+            return false;
+
+
+        auto values =
+            std::make_unique<UnicodeValueTable8Builder>();
+
+
+        outResult = {};
+
+
+        if (!parseFn(
+            source.span(),
+            *values,
+            outResult))
+        {
+            std::printf(
+                "%s parse failed\n"
+                "  Error: %s\n"
+                "  Line:  %u\n",
+                relativeFilename,
+                errorFn(outResult.error),
+                outResult.lineNumber);
+
+            return false;
+        }
+
+
+        UnicodeValueTable8Data table{};
+
+        if (!values->finalize(
+            database.valuePagePool8(),
+            table))
+        {
+            std::printf(
+                "%s VALUE8 finalization failed\n",
+                propertyName);
+
+            return false;
+        }
+
+
+        UnicodeValueTable8Index tableIndex;
+
+        if (!database.addValueTable8(
+            table,
+            tableIndex))
+        {
+            std::printf(
+                "Unable to add %s VALUE8 table\n",
+                propertyName);
+
+            return false;
+        }
+
+
+        if (!database.addValueProperty8(
+            property,
+            tableIndex))
+        {
+            std::printf(
+                "Unable to register %s property\n",
+                propertyName);
+
             return false;
         }
 
@@ -490,8 +603,8 @@ namespace waavs
         database.reserveBidiBrackets(128);
         database.reserveProperties(2);
         database.reserveScripts(176);
-        database.reserveValueProperties8(7);
-        database.reserveValueTables8(7);
+        database.reserveValueProperties8(11);
+        database.reserveValueTables8(11);
 
 
         // ====================================================================
@@ -883,93 +996,32 @@ namespace waavs
         // ====================================================================
 
         {
-            const std::string filename =
-                ucdJoinPath(
-                    ucdRoot,
-                    "extracted/DerivedGeneralCategory.txt");
-
-
-            UCDSourceFile source;
-
-
-            if (!ucdLoadFile(
-                filename,
-                source))
-            {
-                return false;
-            }
-
-
-            auto values =
-                std::make_unique<UnicodeValueTable8Builder>();
-
-
             UCDGeneralCategoryParseResult result;
 
-
-            if (!ucdParseGeneralCategory(
-                source.span(),
-                *values,
-                result))
-            {
-                std::printf(
-                    "DerivedGeneralCategory.txt parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdGeneralCategoryParseErrorString(
-                        result.error),
-                    result.lineNumber);
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Data table{};
-
-
-            if (!values->finalize(
-                database.valuePagePool8(),
-                table))
-            {
-                std::printf(
-                    "General_Category VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-
-            if (!database.addValueTable8(
-                table,
-                tableIndex))
-            {
-                std::printf(
-                    "Unable to add General_Category VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "extracted/DerivedGeneralCategory.txt",
+                "General_Category",
                 UnicodeValueProperty8GeneralCategory,
-                tableIndex))
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDGeneralCategoryParseResult& result) {
+                    return ucdParseGeneralCategory(source, values, result);
+                },
+                [](UCDGeneralCategoryParseError error) {
+                    return ucdGeneralCategoryParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "Unable to register General_Category property\n");
-
                 return false;
             }
-
 
             std::printf(
                 "DerivedGeneralCategory.txt: PASS\n"
-                "  Ranges:            %u\n"
+                "  Ranges:              %u\n"
                 "  Assigned codepoints: %zu\n",
                 result.rangeCount,
                 result.assignedCodePoints);
         }
+
 
 
         // ====================================================================
@@ -979,95 +1031,34 @@ namespace waavs
         // ====================================================================
 
         {
-            const std::string filename =
-                ucdJoinPath(
-                    ucdRoot,
-                    "extracted/DerivedCombiningClass.txt");
-
-
-            UCDSourceFile source;
-
-
-            if (!ucdLoadFile(
-                filename,
-                source))
-            {
-                return false;
-            }
-
-
-            auto values =
-                std::make_unique<UnicodeValueTable8Builder>();
-
-
             UCDCombiningClassParseResult result;
 
-
-            if (!ucdParseCombiningClass(
-                source.span(),
-                *values,
-                result))
-            {
-                std::printf(
-                    "DerivedCombiningClass.txt parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdCombiningClassParseErrorString(
-                        result.error),
-                    result.lineNumber);
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Data table{};
-
-
-            if (!values->finalize(
-                database.valuePagePool8(),
-                table))
-            {
-                std::printf(
-                    "Canonical_Combining_Class VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-
-            if (!database.addValueTable8(
-                table,
-                tableIndex))
-            {
-                std::printf(
-                    "Unable to add Canonical_Combining_Class VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "extracted/DerivedCombiningClass.txt",
+                "Canonical_Combining_Class",
                 UnicodeValueProperty8CanonicalCombiningClass,
-                tableIndex))
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDCombiningClassParseResult& result) {
+                    return ucdParseCombiningClass(source, values, result);
+                },
+                [](UCDCombiningClassParseError error) {
+                    return ucdCombiningClassParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "Unable to register Canonical_Combining_Class property\n");
-
                 return false;
             }
-
 
             std::printf(
                 "DerivedCombiningClass.txt: PASS\n"
-                "  Ranges:               %u\n"
-                "  Explicit codepoints:  %zu\n"
-                "  Non-zero codepoints:  %zu\n",
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Non-zero codepoints:    %zu\n",
                 result.rangeCount,
                 result.explicitCodePoints,
                 result.nonZeroCodePoints);
         }
+
 
         // ====================================================================
         // Bidi_Class
@@ -1076,85 +1067,23 @@ namespace waavs
         // ====================================================================
 
         {
-            const std::string filename =
-                ucdJoinPath(
-                    ucdRoot,
-                    "extracted/DerivedBidiClass.txt");
-
-
-            UCDSourceFile source;
-
-
-            if (!ucdLoadFile(
-                filename,
-                source))
-            {
-                return false;
-            }
-
-
-            auto values =
-                std::make_unique<UnicodeValueTable8Builder>();
-
-
             UCDBidiClassParseResult result;
 
-
-            if (!ucdParseBidiClass(
-                source.span(),
-                *values,
-                result))
-            {
-                std::printf(
-                    "DerivedBidiClass.txt parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdBidiClassParseErrorString(
-                        result.error),
-                    result.lineNumber);
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Data table{};
-
-
-            if (!values->finalize(
-                database.valuePagePool8(),
-                table))
-            {
-                std::printf(
-                    "Bidi_Class VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-
-            if (!database.addValueTable8(
-                table,
-                tableIndex))
-            {
-                std::printf(
-                    "Unable to add Bidi_Class VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "extracted/DerivedBidiClass.txt",
+                "Bidi_Class",
                 UnicodeValueProperty8BidiClass,
-                tableIndex))
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDBidiClassParseResult& result) {
+                    return ucdParseBidiClass(source, values, result);
+                },
+                [](UCDBidiClassParseError error) {
+                    return ucdBidiClassParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "Unable to register Bidi_Class property\n");
-
                 return false;
             }
-
 
             std::printf(
                 "DerivedBidiClass.txt: PASS\n"
@@ -1168,9 +1097,12 @@ namespace waavs
                 result.defaultedCodePoints);
         }
 
+
+
+
         // ====================================================================
-// BidiBrackets.txt
-// ====================================================================
+        // BidiBrackets.txt
+        // ====================================================================
 
         {
             const std::string filename =
@@ -1230,64 +1162,25 @@ namespace waavs
         // Build VALUE8 table using the shared VALUE8 page pool.
         // ========================================================================
 
+
         {
-            const std::string filename =
-                ucdJoinPath(ucdRoot, "auxiliary/GraphemeBreakProperty.txt");
-
-            UCDSourceFile source;
-
-            if (!ucdLoadFile(filename, source))
-                return false;
-
-
-            auto values = std::make_unique<UnicodeValueTable8Builder>();
-
             UCDGraphemeClusterBreakParseResult result;
 
-            if (!ucdParseGraphemeClusterBreak(source.span(), *values, result))
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "auxiliary/GraphemeBreakProperty.txt",
+                "Grapheme_Cluster_Break",
+                UnicodeValueProperty8GraphemeClusterBreak,
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDGraphemeClusterBreakParseResult& result) {
+                    return ucdParseGraphemeClusterBreak(source, values, result);
+                },
+                [](UCDGraphemeClusterBreakParseError error) {
+                    return ucdGraphemeClusterBreakParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "GraphemeBreakProperty.txt parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdGraphemeClusterBreakParseErrorString(result.error),
-                    result.lineNumber);
-
                 return false;
             }
-
-
-            UnicodeValueTable8Data table{};
-
-            if (!values->finalize(database.valuePagePool8(), table))
-            {
-                std::printf(
-                    "Grapheme_Cluster_Break VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-            if (!database.addValueTable8(table, tableIndex))
-            {
-                std::printf(
-                    "Unable to add Grapheme_Cluster_Break VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
-                UnicodeValueProperty8GraphemeClusterBreak, tableIndex))
-            {
-                std::printf(
-                    "Unable to register Grapheme_Cluster_Break property\n");
-
-                return false;
-            }
-
 
             std::printf(
                 "GraphemeBreakProperty.txt: PASS\n"
@@ -1305,86 +1198,26 @@ namespace waavs
         //
         // DerivedCoreProperties.txt contains multiple properties. The parser
         // extracts only InCB records.
-        //
-        // Build VALUE8 table #5 using the shared VALUE8 page pool.
         // ====================================================================
 
         {
-            const std::string filename =
-                ucdJoinPath(
-                    ucdRoot,
-                    "DerivedCoreProperties.txt");
-
-
-            UCDSourceFile source;
-
-            if (!ucdLoadFile(
-                filename,
-                source))
-            {
-                return false;
-            }
-
-
-            auto values =
-                std::make_unique<UnicodeValueTable8Builder>();
-
-
             UCDIndicConjunctBreakParseResult result;
 
-            if (!ucdParseIndicConjunctBreak(
-                source.span(),
-                *values,
-                result))
-            {
-                std::printf(
-                    "DerivedCoreProperties.txt Indic_Conjunct_Break parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdIndicConjunctBreakParseErrorString(
-                        result.error),
-                    result.lineNumber);
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Data table{};
-
-            if (!values->finalize(
-                database.valuePagePool8(),
-                table))
-            {
-                std::printf(
-                    "Indic_Conjunct_Break VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-            if (!database.addValueTable8(
-                table,
-                tableIndex))
-            {
-                std::printf(
-                    "Unable to add Indic_Conjunct_Break VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "DerivedCoreProperties.txt",
+                "Indic_Conjunct_Break",
                 UnicodeValueProperty8IndicConjunctBreak,
-                tableIndex))
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDIndicConjunctBreakParseResult& result) {
+                    return ucdParseIndicConjunctBreak(source, values, result);
+                },
+                [](UCDIndicConjunctBreakParseError error) {
+                    return ucdIndicConjunctBreakParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "Unable to register Indic_Conjunct_Break property\n");
-
                 return false;
             }
-
 
             std::printf(
                 "DerivedCoreProperties.txt Indic_Conjunct_Break: PASS\n"
@@ -1406,84 +1239,158 @@ namespace waavs
         // ====================================================================
 
         {
-            const std::string filename =
-                ucdJoinPath(
-                    ucdRoot,
-                    "IndicSyllabicCategory.txt");
-
-
-            UCDSourceFile source;
-
-            if (!ucdLoadFile(
-                filename,
-                source))
-            {
-                return false;
-            }
-
-
-            auto values =
-                std::make_unique<UnicodeValueTable8Builder>();
-
-
             UCDIndicSyllabicCategoryParseResult result;
 
-            if (!ucdParseIndicSyllabicCategory(
-                source.span(),
-                *values,
-                result))
-            {
-                std::printf(
-                    "IndicSyllabicCategory.txt parse failed\n"
-                    "  Error: %s\n"
-                    "  Line:  %u\n",
-                    ucdIndicSyllabicCategoryParseErrorString(
-                        result.error),
-                    result.lineNumber);
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Data table{};
-
-            if (!values->finalize(
-                database.valuePagePool8(),
-                table))
-            {
-                std::printf(
-                    "Indic_Syllabic_Category VALUE8 finalization failed\n");
-
-                return false;
-            }
-
-
-            UnicodeValueTable8Index tableIndex;
-
-            if (!database.addValueTable8(
-                table,
-                tableIndex))
-            {
-                std::printf(
-                    "Unable to add Indic_Syllabic_Category VALUE8 table\n");
-
-                return false;
-            }
-
-
-            if (!database.addValueProperty8(
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "IndicSyllabicCategory.txt",
+                "Indic_Syllabic_Category",
                 UnicodeValueProperty8IndicSyllabicCategory,
-                tableIndex))
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDIndicSyllabicCategoryParseResult& result) {
+                    return ucdParseIndicSyllabicCategory(source, values, result);
+                },
+                [](UCDIndicSyllabicCategoryParseError error) {
+                    return ucdIndicSyllabicCategoryParseErrorString(error);
+                }))
             {
-                std::printf(
-                    "Unable to register Indic_Syllabic_Category property\n");
-
                 return false;
             }
-
 
             std::printf(
                 "IndicSyllabicCategory.txt: PASS\n"
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Defaulted codepoints:   %zu\n",
+                result.rangeCount,
+                result.explicitCodePoints,
+                result.defaultedCodePoints);
+        }
+
+        // ====================================================================
+        // Indic_Positional_Category
+        // ====================================================================
+
+        {
+            UCDIndicPositionalCategoryParseResult result;
+
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "IndicPositionalCategory.txt",
+                "Indic_Positional_Category",
+                UnicodeValueProperty8IndicPositionalCategory,
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDIndicPositionalCategoryParseResult& result) {
+                    return ucdParseIndicPositionalCategory(source, values, result);
+                },
+                [](UCDIndicPositionalCategoryParseError error) {
+                    return ucdIndicPositionalCategoryParseErrorString(error);
+                }))
+            {
+                return false;
+            }
+
+            std::printf(
+                "IndicPositionalCategory.txt: PASS\n"
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Defaulted codepoints:   %zu\n",
+                result.rangeCount,
+                result.explicitCodePoints,
+                result.defaultedCodePoints);
+        }
+
+        // ====================================================================
+        // Joining_Type
+        // ====================================================================
+
+        {
+            UCDJoiningTypeParseResult result;
+
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "extracted/DerivedJoiningType.txt",
+                "Joining_Type",
+                UnicodeValueProperty8JoiningType,
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDJoiningTypeParseResult& result) {
+                    return ucdParseJoiningType(source, values, result);
+                },
+                [](UCDJoiningTypeParseError error) {
+                    return ucdJoiningTypeParseErrorString(error);
+                }))
+            {
+                return false;
+            }
+
+            std::printf(
+                "DerivedJoiningType.txt: PASS\n"
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Defaulted codepoints:   %zu\n",
+                result.rangeCount,
+                result.explicitCodePoints,
+                result.defaultedCodePoints);
+        }
+
+        // ====================================================================
+        // Joining_Group
+        // ====================================================================
+
+        {
+            UCDJoiningGroupParseResult result;
+
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "extracted/DerivedJoiningGroup.txt",
+                "Joining_Group",
+                UnicodeValueProperty8JoiningGroup,
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDJoiningGroupParseResult& result) {
+                    return ucdParseJoiningGroup(source, values, result);
+                },
+                [](UCDJoiningGroupParseError error) {
+                    return ucdJoiningGroupParseErrorString(error);
+                }))
+            {
+                return false;
+            }
+
+            std::printf(
+                "DerivedJoiningGroup.txt: PASS\n"
+                "  Ranges:                 %u\n"
+                "  Explicit codepoints:    %zu\n"
+                "  Defaulted codepoints:   %zu\n",
+                result.rangeCount,
+                result.explicitCodePoints,
+                result.defaultedCodePoints);
+        }
+
+        // ====================================================================
+        // Hangul_Syllable_Type
+        // ====================================================================
+
+        {
+            UCDHangulSyllableTypeParseResult result;
+
+            if (!buildValueProperty8(
+                database, ucdRoot,
+                "HangulSyllableType.txt",
+                "Hangul_Syllable_Type",
+                UnicodeValueProperty8HangulSyllableType,
+                result,
+                [](const ByteSpan& source, UnicodeValueTable8Builder& values, UCDHangulSyllableTypeParseResult& result) {
+                    return ucdParseHangulSyllableType(source, values, result);
+                },
+                [](UCDHangulSyllableTypeParseError error) {
+                    return ucdHangulSyllableTypeParseErrorString(error);
+                }))
+            {
+                return false;
+            }
+
+            std::printf(
+                "HangulSyllableType.txt: PASS\n"
                 "  Ranges:                 %u\n"
                 "  Explicit codepoints:    %zu\n"
                 "  Defaulted codepoints:   %zu\n",
@@ -1582,14 +1489,14 @@ namespace waavs
                 result.compatibilityMappingCount);
 
             // ====================================================================
-// Full_Composition_Exclusion
-//
-// DerivedNormalizationProps.txt identifies canonical decomposition
-// mappings which must not participate in NFC composition.
-//
-// This coverage is generator-only. It is used to construct the final
-// composition table and is not persisted in the database.
-// ====================================================================
+            // Full_Composition_Exclusion
+            //
+            // DerivedNormalizationProps.txt identifies canonical decomposition
+            // mappings which must not participate in NFC composition.
+            //
+            // This coverage is generator-only. It is used to construct the final
+            // composition table and is not persisted in the database.
+            // ====================================================================
 
             UnicodeCoverageBuilder fullCompositionExclusion;
 

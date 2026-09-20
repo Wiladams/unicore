@@ -8,7 +8,7 @@ using namespace waavs;
 
 int createDatabase(int argc, char **argv)
 {
-    const char* ucdRoot =  argc > 1  ? argv[1]  : "./ucd";
+    const char* ucdRoot =  argc > 1  ? argv[1]  : "../resources/ucd";
 
 
     const char* outputFilename =  argc > 2  ? argv[2]  : "./unicode-17.0.0.ucdb";

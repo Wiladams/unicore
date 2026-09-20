@@ -3,8 +3,12 @@
   "WorkspaceRootPath": "C:\\repos\\unicore\\projects\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{8ED5FE35-0558-457E-96A7-652EAA728A86}|ucdbgen\\ucdbgen.vcxproj|solutionrelative:ucdbgen\\ucdbgen.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{E4763906-4887-405D-BB28-07FDB3701FA2}|ucdbtest\\ucdbtest.vcxproj|C:\\repos\\unicore\\projects\\ucdbtest\\ucdbtest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{E4763906-4887-405D-BB28-07FDB3701FA2}|ucdbtest\\ucdbtest.vcxproj|solutionrelative:ucdbtest\\ucdbtest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E4763906-4887-405D-BB28-07FDB3701FA2}|ucdbtest\\ucdbtest.vcxproj|C:\\repos\\unicore\\projects\\ucdbtest\\test_unicode_database_shaping_properties.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{E4763906-4887-405D-BB28-07FDB3701FA2}|ucdbtest\\ucdbtest.vcxproj|solutionrelative:ucdbtest\\test_unicode_database_shaping_properties.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -23,14 +27,27 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ucdbgen.cpp",
-              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
-              "RelativeDocumentMoniker": "ucdbgen\\ucdbgen.cpp",
-              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbgen\\ucdbgen.cpp",
-              "RelativeToolTip": "ucdbgen\\ucdbgen.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Title": "ucdbtest.cpp",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbtest\\ucdbtest.cpp",
+              "RelativeDocumentMoniker": "ucdbtest\\ucdbtest.cpp",
+              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbtest\\ucdbtest.cpp",
+              "RelativeToolTip": "ucdbtest\\ucdbtest.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-09-19T18:22:01.779Z",
+              "WhenOpened": "2026-09-20T16:55:34.331Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "test_unicode_database_shaping_properties.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\projects\\ucdbtest\\test_unicode_database_shaping_properties.h",
+              "RelativeDocumentMoniker": "ucdbtest\\test_unicode_database_shaping_properties.h",
+              "ToolTip": "C:\\repos\\unicore\\projects\\ucdbtest\\test_unicode_database_shaping_properties.h",
+              "RelativeToolTip": "ucdbtest\\test_unicode_database_shaping_properties.h",
+              "ViewState": "AgIAAMsBAAAAAAAAAAAYwOsBAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-09-20T16:55:09.934Z",
               "EditorCaption": ""
             }
           ]

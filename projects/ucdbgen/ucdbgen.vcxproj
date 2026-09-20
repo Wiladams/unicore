@@ -215,6 +215,20 @@
     <ClCompile Include="ucdbgen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\unicore\ucdb\ucd_hangul_syllable_type_parser.h" />
+    <ClInclude Include="..\..\unicore\ucdb\ucd_indic_positional_category_parser.h" />
+    <ClInclude Include="..\..\unicore\ucdb\ucd_joining_group_parser.h" />
+    <ClInclude Include="..\..\unicore\ucdb\ucd_joining_type_parser.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_combining_class.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_database_generator.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_general_category.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_hangul_syllable_type.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_joining_group.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_joining_type.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_value_property8_info.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_value_property8_registry.h" />
     <ClInclude Include="..\core\unicode_page_pool_builder.h" />
     <ClInclude Include="ucd_bidi_brackets_parser.h" />
     <ClInclude Include="ucd_bidi_class_parser.h" />
@@ -241,7 +255,6 @@
     <ClInclude Include="unicode_composition_data.h" />
     <ClInclude Include="unicode_coverage_storage.h" />
     <ClInclude Include="unicode_database_builder.h" />
-    <ClInclude Include="unicode_database_generator.h" />
     <ClInclude Include="unicode_database_writer.h" />
     <ClInclude Include="unicode_decomposition.h" />
     <ClInclude Include="unicode_decomposition_builder.h" />
