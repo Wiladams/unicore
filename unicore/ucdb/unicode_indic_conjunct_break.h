@@ -1,6 +1,7 @@
 // unicode_indic_conjunct_break.h
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -19,8 +20,19 @@ namespace waavs
     static constexpr uint8_t kUnicodeIndicConjunctBreakCount = 4;
 
 
+    inline constexpr std::array<const char*, kUnicodeIndicConjunctBreakCount>
+        kUnicodeIndicConjunctBreakNames =
+    {
+        "None",
+        "Consonant",
+        "Extend",
+        "Linker"
+    };
+
+
     [[nodiscard]]
-    static constexpr bool unicodeIndicConjunctBreakIsValid(uint8_t value) noexcept {
+    static constexpr bool unicodeIndicConjunctBreakIsValid(uint8_t value) noexcept
+    {
         return value < kUnicodeIndicConjunctBreakCount;
     }
 
@@ -31,6 +43,18 @@ namespace waavs
     {
         return unicodeIndicConjunctBreakIsValid(
             static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeIndicConjunctBreakName(
+        UnicodeIndicConjunctBreak value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeIndicConjunctBreakNames.size()
+            ? kUnicodeIndicConjunctBreakNames[index]
+            : nullptr;
     }
 
 
@@ -51,5 +75,10 @@ namespace waavs
         static_cast<uint8_t>(UnicodeIndicConjunctBreak::Linker) + 1u ==
         kUnicodeIndicConjunctBreakCount,
         "Unicode Indic_Conjunct_Break count is inconsistent");
+
+    static_assert(
+        kUnicodeIndicConjunctBreakNames.size() ==
+        kUnicodeIndicConjunctBreakCount,
+        "Unicode Indic_Conjunct_Break name table count is inconsistent");
 
 } // namespace waavs

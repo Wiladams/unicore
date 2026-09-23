@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -23,6 +24,46 @@ namespace waavs
     inline constexpr uint8_t kUnicodeHangulSyllableTypeCount = 6;
 
 
+    inline constexpr std::array<const char*, kUnicodeHangulSyllableTypeCount>
+        kUnicodeHangulSyllableTypeNames =
+    {
+        "NotApplicable",
+        "LeadingJamo",
+        "VowelJamo",
+        "TrailingJamo",
+        "LVSyllable",
+        "LVTSyllable"
+    };
+
+
+    [[nodiscard]]
+    static constexpr bool unicodeHangulSyllableTypeIsValid(uint8_t value) noexcept
+    {
+        return value < kUnicodeHangulSyllableTypeCount;
+    }
+
+
+    [[nodiscard]]
+    static constexpr bool unicodeHangulSyllableTypeIsValid(
+        UnicodeHangulSyllableType value) noexcept
+    {
+        return unicodeHangulSyllableTypeIsValid(
+            static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeHangulSyllableTypeName(
+        UnicodeHangulSyllableType value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeHangulSyllableTypeNames.size()
+            ? kUnicodeHangulSyllableTypeNames[index]
+            : nullptr;
+    }
+
+
     static_assert(
         sizeof(UnicodeHangulSyllableType) == 1);
 
@@ -38,6 +79,10 @@ namespace waavs
     static_assert(
         static_cast<uint8_t>(
             UnicodeHangulSyllableType::LVTSyllable) + 1u ==
+        kUnicodeHangulSyllableTypeCount);
+
+    static_assert(
+        kUnicodeHangulSyllableTypeNames.size() ==
         kUnicodeHangulSyllableTypeCount);
 
 } // namespace waavs

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -76,6 +77,58 @@ namespace waavs
     static constexpr uint8_t kUnicodeIndicSyllabicCategoryCount = 37;
 
 
+    inline constexpr std::array<const char*, kUnicodeIndicSyllabicCategoryCount>
+        kUnicodeIndicSyllabicCategoryNames =
+    {
+        "Other",
+
+        "Avagraha",
+        "Bindu",
+        "BrahmiJoiningNumber",
+        "CantillationMark",
+
+        "Consonant",
+        "ConsonantDead",
+        "ConsonantFinal",
+        "ConsonantHeadLetter",
+        "ConsonantInitialPostfixed",
+        "ConsonantKiller",
+        "ConsonantMedial",
+        "ConsonantPlaceholder",
+        "ConsonantPrecedingRepha",
+        "ConsonantPrefixed",
+        "ConsonantSubjoined",
+        "ConsonantSucceedingRepha",
+        "ConsonantWithStacker",
+
+        "GeminationMark",
+        "InvisibleStacker",
+        "Joiner",
+        "ModifyingLetter",
+        "NonJoiner",
+        "Nukta",
+
+        "Number",
+        "NumberJoiner",
+
+        "PureKiller",
+        "RegisterShifter",
+        "SyllableModifier",
+
+        "ToneLetter",
+        "ToneMark",
+
+        "Virama",
+        "Visarga",
+
+        "Vowel",
+        "VowelDependent",
+        "VowelIndependent",
+
+        "ReorderingKiller"
+    };
+
+
     [[nodiscard]]
     static constexpr bool unicodeIndicSyllabicCategoryIsValid(uint8_t value) noexcept
     {
@@ -89,6 +142,18 @@ namespace waavs
     {
         return unicodeIndicSyllabicCategoryIsValid(
             static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeIndicSyllabicCategoryName(
+        UnicodeIndicSyllabicCategory value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeIndicSyllabicCategoryNames.size()
+            ? kUnicodeIndicSyllabicCategoryNames[index]
+            : nullptr;
     }
 
 
@@ -112,5 +177,10 @@ namespace waavs
             UnicodeIndicSyllabicCategory::ReorderingKiller) + 1u ==
         kUnicodeIndicSyllabicCategoryCount,
         "Unicode Indic_Syllabic_Category count is inconsistent");
+
+    static_assert(
+        kUnicodeIndicSyllabicCategoryNames.size() ==
+        kUnicodeIndicSyllabicCategoryCount,
+        "Unicode Indic_Syllabic_Category name table count is inconsistent");
 
 } // namespace waavs

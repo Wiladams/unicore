@@ -3028,6 +3028,29 @@ namespace waavs
     }
 
 
+    static inline bool openTypeGsubCaptureEditSources(
+        const OpenTypeShapingBuffer& buffer,
+        OpenTypeGsubEdit& edit)
+    {
+        edit.inputSources.clear();
+        edit.inputSources.reserve(edit.inputPositions.size());
+
+        for (size_t position : edit.inputPositions)
+        {
+            if (position >= buffer.size())
+                return false;
+
+            const OpenTypeShapingGlyph& glyph = buffer[position];
+
+            edit.inputSources.push_back({
+                glyph.scalarOffset,
+                glyph.scalarCount
+                });
+        }
+
+        return true;
+    }
+
     // ========================================================================
     // IR nested execution
     // ========================================================================
@@ -3071,13 +3094,16 @@ namespace waavs
         if (result != OpenTypeShapingIRResult::Match)
             return OpenTypeGsubApplyAtResult::Invalid;
 
-        buffer[glyphIndex].glyphId = replacement;
-
         OpenTypeGsubEdit edit;
         edit.inputPositions.push_back(glyphIndex);
         edit.outputCount = 1;
-        edits.push_back(std::move(edit));
 
+        if (!openTypeGsubCaptureEditSources(buffer, edit))
+            return OpenTypeGsubApplyAtResult::Invalid;
+
+        buffer[glyphIndex].glyphId = replacement;
+
+        edits.push_back(std::move(edit));
         return OpenTypeGsubApplyAtResult::Match;
     }
 
@@ -3097,8 +3123,7 @@ namespace waavs
             return OpenTypeGsubApplyAtResult::Invalid;
         }
 
-        uint32_t sequenceIndex =
-            kOpenTypeShapingIRInvalid;
+        uint32_t sequenceIndex = kOpenTypeShapingIRInvalid;
 
         const OpenTypeShapingIRResult result =
             resolveOpenTypeGsubIRMultipleLookupUnchecked(
@@ -3118,18 +3143,23 @@ namespace waavs
         const size_t outputCount =
             ir.gsubMultipleSequences[sequenceIndex].glyphCount;
 
-        if (outputCount == 0 ||
-            !applyOpenTypeGsubIRMultipleSequence(
-                ir, sequenceIndex, buffer, glyphIndex))
-        {
+        if (outputCount == 0)
             return OpenTypeGsubApplyAtResult::Invalid;
-        }
 
         OpenTypeGsubEdit edit;
         edit.inputPositions.push_back(glyphIndex);
         edit.outputCount = outputCount;
-        edits.push_back(std::move(edit));
 
+        if (!openTypeGsubCaptureEditSources(buffer, edit))
+            return OpenTypeGsubApplyAtResult::Invalid;
+
+        if (!applyOpenTypeGsubIRMultipleSequence(
+            ir, sequenceIndex, buffer, glyphIndex))
+        {
+            return OpenTypeGsubApplyAtResult::Invalid;
+        }
+
+        edits.push_back(std::move(edit));
         return OpenTypeGsubApplyAtResult::Match;
     }
 
@@ -3167,6 +3197,9 @@ namespace waavs
         OpenTypeGsubEdit edit;
         edit.inputPositions = match.positions;
         edit.outputCount = 1;
+
+        if (!openTypeGsubCaptureEditSources(buffer, edit))
+            return OpenTypeGsubApplyAtResult::Invalid;
 
         if (!applyOpenTypeGsubIRLigatureMatch(
             ir, buffer, match))
@@ -3208,11 +3241,15 @@ namespace waavs
         if (result != OpenTypeShapingIRResult::Match)
             return OpenTypeGsubApplyAtResult::Invalid;
 
-        buffer[glyphIndex].glyphId = replacement;
-
         OpenTypeGsubEdit edit;
         edit.inputPositions.push_back(glyphIndex);
         edit.outputCount = 1;
+
+        if (!openTypeGsubCaptureEditSources(buffer, edit))
+            return OpenTypeGsubApplyAtResult::Invalid;
+
+        buffer[glyphIndex].glyphId = replacement;
+
         edits.push_back(std::move(edit));
         return OpenTypeGsubApplyAtResult::Match;
     }
@@ -3244,11 +3281,15 @@ namespace waavs
         if (result != OpenTypeShapingIRResult::Match)
             return OpenTypeGsubApplyAtResult::Invalid;
 
-        buffer[glyphIndex].glyphId = replacement;
-
         OpenTypeGsubEdit edit;
         edit.inputPositions.push_back(glyphIndex);
         edit.outputCount = 1;
+
+        if (!openTypeGsubCaptureEditSources(buffer, edit))
+            return OpenTypeGsubApplyAtResult::Invalid;
+
+        buffer[glyphIndex].glyphId = replacement;
+
         edits.push_back(std::move(edit));
         return OpenTypeGsubApplyAtResult::Match;
     }
@@ -3736,6 +3777,329 @@ namespace waavs
         return true;
     }
 
+    // ========================================================================
+// openTypeGsubIRSelectedPositionsValid
+//
+// Validate one ordered set of physical lookup-start positions.
+//
+// Positions are a snapshot of the current shaping buffer and must be
+// strictly increasing.
+//
+// An empty selection is valid and represents a legal no-op.
+// ========================================================================
+
+    [[nodiscard]]
+    static inline bool openTypeGsubIRSelectedPositionsValid(
+        const OpenTypeShapingBuffer& buffer,
+        const uint32_t* positions,
+        size_t count) noexcept
+    {
+        if (count == 0)
+            return true;
+
+        if (!positions)
+            return false;
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (positions[i] >= buffer.size())
+                return false;
+
+            if (i != 0 &&
+                positions[i - 1] >= positions[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // openTypeGsubIRAdjustSelectedPositionForEdit
+    //
+    // Remap one future selected physical position through one atomic GSUB edit.
+    //
+    // A position consumed as a trailing input component is removed from the
+    // selection. The edit anchor survives and therefore retains its position.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool openTypeGsubIRAdjustSelectedPositionForEdit(
+        size_t& position,
+        const OpenTypeGsubEdit& edit) noexcept
+    {
+        if (!edit)
+            return false;
+
+        const size_t removed =
+            std::numeric_limits<size_t>::max();
+
+        if (position == removed)
+            return true;
+
+        const size_t oldPosition = position;
+        const size_t anchor = edit.anchor();
+
+
+        // ------------------------------------------------------------
+        // A trailing participating input is consumed by the edit.
+        // ------------------------------------------------------------
+
+        for (size_t i = 1; i < edit.inputPositions.size(); ++i)
+        {
+            if (edit.inputPositions[i] == oldPosition)
+            {
+                position = removed;
+                return true;
+            }
+        }
+
+
+        // ------------------------------------------------------------
+        // Inserted outputs appear immediately after the surviving anchor.
+        // ------------------------------------------------------------
+
+        size_t adjusted = oldPosition;
+
+        if (anchor < oldPosition)
+        {
+            const size_t insertedCount =
+                edit.outputCount - 1;
+
+            if (insertedCount >
+                std::numeric_limits<size_t>::max() - adjusted)
+            {
+                return false;
+            }
+
+            adjusted += insertedCount;
+        }
+
+
+        // ------------------------------------------------------------
+        // Every consumed trailing input before this position shifts it left.
+        // ------------------------------------------------------------
+
+        size_t removedBefore = 0;
+
+        for (size_t i = 1; i < edit.inputPositions.size(); ++i)
+        {
+            if (edit.inputPositions[i] < oldPosition)
+                ++removedBefore;
+        }
+
+        if (removedBefore > adjusted)
+            return false;
+
+        adjusted -= removedBefore;
+        position = adjusted;
+
+        return true;
+    }
+
+
+    // ========================================================================
+    // applyOpenTypeGsubIRLookupSelected
+    //
+    // Execute one complete GSUB lookup, but permit top-level lookup application
+    // to begin only at the supplied physical glyph positions.
+    //
+    // The complete shaping buffer remains visible to the lookup. Context,
+    // backtrack, lookahead, LookupFlag traversal, ligature components, and
+    // nested contextual actions are therefore unaffected by the selection.
+    //
+    // Selection restricts only the top-level starting positions.
+    //
+    // Structural edits remap remaining selected positions transactionally.
+    // ========================================================================
+
+    static inline bool applyOpenTypeGsubIRLookupSelected(
+        const OpenTypeShapingIR& ir,
+        OpenTypeShapingIRLookupId lookupId,
+        OpenTypeShapingBuffer& buffer,
+        const uint32_t* selectedPositions,
+        size_t selectedCount,
+        OpenTypeGsubEditLog* outputEdits = nullptr)
+    {
+        const OpenTypeShapingIRLookup* lookup = ir.lookup(lookupId);
+
+        if (!lookup ||
+            !openTypeGsubIRBufferGlyphIdsValid(buffer) ||
+            !openTypeGsubIRSelectedPositionsValid(buffer, selectedPositions, selectedCount))
+        {
+            return false;
+        }
+
+        if (selectedCount == 0)
+        {
+            if (outputEdits)
+                outputEdits->clear();
+
+            return true;
+        }
+
+        // Work transactionally. outputEdits is committed only after buffer.
+        OpenTypeShapingBuffer working = buffer;
+        OpenTypeGsubEditLog allEdits;
+
+        std::vector<size_t> positions;
+        positions.reserve(selectedCount);
+
+        for (size_t i = 0; i < selectedCount; ++i)
+            positions.push_back(selectedPositions[i]);
+
+        OpenTypeGsubApplyState state;
+
+        // ReverseChainSingle scans selected starts in reverse. Type 8 is 1 -> 1,
+        // so selected physical positions remain valid throughout this lookup.
+        if (lookup->op == OpenTypeShapingIROp::GsubReverseChainSingle)
+        {
+            for (size_t i = positions.size(); i > 0; --i)
+            {
+                OpenTypeGsubEditLog edits;
+
+                const OpenTypeGsubApplyAtResult result =
+                    applyOpenTypeGsubIRLookupAt(
+                        ir, lookupId, working, positions[i - 1], state, edits);
+
+                if (result == OpenTypeGsubApplyAtResult::Invalid)
+                    return false;
+
+                if (result == OpenTypeGsubApplyAtResult::NoMatch)
+                {
+                    if (!edits.empty())
+                        return false;
+
+                    continue;
+                }
+
+                for (OpenTypeGsubEdit& edit : edits)
+                    allEdits.push_back(std::move(edit));
+            }
+
+            buffer = std::move(working);
+
+            if (outputEdits)
+                *outputEdits = std::move(allEdits);
+
+            return true;
+        }
+
+        const size_t removed = std::numeric_limits<size_t>::max();
+        size_t selectedIndex = 0;
+
+        while (selectedIndex < positions.size())
+        {
+            const size_t glyphIndex = positions[selectedIndex];
+
+            if (glyphIndex == removed)
+            {
+                ++selectedIndex;
+                continue;
+            }
+
+            if (glyphIndex >= working.size())
+                return false;
+
+            OpenTypeGsubEditLog edits;
+            size_t resumeIndex = glyphIndex + 1;
+            OpenTypeGsubApplyAtResult result = OpenTypeGsubApplyAtResult::Invalid;
+
+            // Contextual lookups compute their own post-match resume boundary.
+            if (lookup->op == OpenTypeShapingIROp::GsubContext)
+            {
+                OpenTypeGsubApplyScope scope(state);
+
+                if (!scope || !state.consumeOperation())
+                    return false;
+
+                result = applyOpenTypeGsubIRContextAt(
+                    ir, *lookup, working, glyphIndex, state, edits, &resumeIndex);
+            }
+            else if (lookup->op == OpenTypeShapingIROp::GsubChainContext)
+            {
+                OpenTypeGsubApplyScope scope(state);
+
+                if (!scope || !state.consumeOperation())
+                    return false;
+
+                result = applyOpenTypeGsubIRChainContextAt(
+                    ir, *lookup, working, glyphIndex, state, edits, &resumeIndex);
+            }
+            else
+            {
+                result = applyOpenTypeGsubIRLookupAt(
+                    ir, lookupId, working, glyphIndex, state, edits);
+
+                if (result == OpenTypeGsubApplyAtResult::Match &&
+                    lookup->op == OpenTypeShapingIROp::GsubMultiple)
+                {
+                    if (edits.size() != 1 || !edits[0])
+                        return false;
+
+                    if (edits[0].outputCount >
+                        std::numeric_limits<size_t>::max() - glyphIndex)
+                    {
+                        return false;
+                    }
+
+                    resumeIndex = glyphIndex + edits[0].outputCount;
+                }
+            }
+
+            if (result == OpenTypeGsubApplyAtResult::Invalid)
+                return false;
+
+            if (result == OpenTypeGsubApplyAtResult::NoMatch)
+            {
+                if (!edits.empty())
+                    return false;
+
+                ++selectedIndex;
+                continue;
+            }
+
+            // Remap future selected physical positions through every atomic edit
+            // before the edit log is moved into the aggregate output.
+            for (const OpenTypeGsubEdit& edit : edits)
+            {
+                for (size_t i = selectedIndex + 1; i < positions.size(); ++i)
+                {
+                    if (!openTypeGsubIRAdjustSelectedPositionForEdit(positions[i], edit))
+                        return false;
+                }
+            }
+
+            for (OpenTypeGsubEdit& edit : edits)
+                allEdits.push_back(std::move(edit));
+
+            ++selectedIndex;
+
+            // Do not apply this root lookup again to selected starts that were
+            // consumed by, or now lie inside, the matched region.
+            while (selectedIndex < positions.size())
+            {
+                const size_t position = positions[selectedIndex];
+
+                if (position == removed || position < resumeIndex)
+                {
+                    ++selectedIndex;
+                    continue;
+                }
+
+                break;
+            }
+        }
+
+        buffer = std::move(working);
+
+        if (outputEdits)
+            *outputEdits = std::move(allEdits);
+
+        return true;
+    }
 
     // ========================================================================
     // applyOpenTypeGsubIRLookup

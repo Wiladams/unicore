@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -142,7 +142,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -162,7 +162,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -180,7 +180,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -200,7 +200,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -219,7 +219,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\unicore\opentype_nominal_glyphs.h" />
-    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier.h" />
+    <ClInclude Include="..\..\unicore\opentype_tags.h" />
+    <ClInclude Include="..\..\unicore\scriptir\item_classifier_devanagari.h" />
+    <ClInclude Include="..\..\unicore\scriptir\item_classifier_thai.h" />
+    <ClInclude Include="..\..\unicore\scriptir\recognition_devanagari.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_description.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_dsl.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_dump.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_eval.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_types.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_ucdb.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_validator.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_item_recognition.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_compiler.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_description.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_dsl.h" />
@@ -231,13 +242,38 @@
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_types.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_validator.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_buffer.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_glyph_selection.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_builder.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_executor.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_ir_types.h" />
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_policy_compiler.h" />
-    <ClInclude Include="..\..\unicore\scriptir\test_script_recognition_compiler_control.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_provenance.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_role_selection.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_selection.h" />
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_selection_types.h" />
+    <ClInclude Include="..\..\unicore\scriptir\shaping_devanagari.h" />
+    <ClInclude Include="..\..\unicore\scriptir\test_script_item_classifier_dump.h" />
+    <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer_devanagari.h" />
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_compiler.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_executor.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_compiler.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_executor.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir.h" />
+    <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir_plan.h" />
+    <ClInclude Include="test_devanagari_item_classifier_dump.h" />
+    <ClInclude Include="test_item_classifier_thai_dump.h" />
+    <ClInclude Include="test_opentype_gsub_ir_selected.h" />
+    <ClInclude Include="test_recognition_devanagari_dump.h" />
+    <ClInclude Include="test_recognition_devanagari_integration.h" />
+    <ClInclude Include="test_script_item_classifier_dsl.h" />
+    <ClInclude Include="test_script_item_classifier_eval.h" />
+    <ClInclude Include="test_script_item_classifier_ucdb.h" />
+    <ClInclude Include="test_script_item_classifier_validator.h" />
+    <ClInclude Include="test_script_item_recognition.h" />
     <ClInclude Include="test_script_recognition_compiler.h" />
+    <ClInclude Include="test_script_recognition_compiler_control.h" />
     <ClInclude Include="test_script_recognition_dsl.h" />
     <ClInclude Include="test_script_recognition_dsl_models.h" />
     <ClInclude Include="test_script_recognition_dump.h" />
@@ -251,16 +287,30 @@
     <ClInclude Include="test_script_recognition_types.h" />
     <ClInclude Include="test_script_recognition_validator.h" />
     <ClInclude Include="test_script_shaping_buffer.h" />
+    <ClInclude Include="test_script_shaping_glyph_selection.h" />
+    <ClInclude Include="test_script_shaping_indic_base.h" />
+    <ClInclude Include="test_script_shaping_indic_base_gsub.h" />
     <ClInclude Include="test_script_shaping_ir_builder.h" />
     <ClInclude Include="test_script_shaping_ir_executor.h" />
+    <ClInclude Include="test_script_shaping_ir_gsub_changed_selection.h" />
+    <ClInclude Include="test_script_shaping_ir_gsub_selection.h" />
     <ClInclude Include="test_script_shaping_ir_scalar_move_left.h" />
     <ClInclude Include="test_script_shaping_ir_scalar_move_left_executor.h" />
     <ClInclude Include="test_script_shaping_ir_scalar_replace.h" />
+    <ClInclude Include="test_script_shaping_ir_selection.h" />
     <ClInclude Include="test_script_shaping_ir_thai_cmap.h" />
     <ClInclude Include="test_script_shaping_ir_thai_conformance.h" />
     <ClInclude Include="test_script_shaping_ir_thai_full.h" />
     <ClInclude Include="test_script_shaping_ir_thai_reorder.h" />
+    <ClInclude Include="test_script_shaping_move_selection.h" />
     <ClInclude Include="test_script_shaping_policy_compiler.h" />
+    <ClInclude Include="test_script_shaping_provenance.h" />
+    <ClInclude Include="test_script_shaping_selection.h" />
+    <ClInclude Include="test_script_shaping_selection_assignment.h" />
+    <ClInclude Include="test_script_shaping_selection_types.h" />
+    <ClInclude Include="test_shaping_devanagari.h" />
+    <ClInclude Include="test_shaping_devanagari_end_to_end.h" />
+    <ClInclude Include="test_svg_devanagari_gallery.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

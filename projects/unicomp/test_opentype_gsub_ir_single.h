@@ -13,7 +13,7 @@
 #include "opentype_face_tables.h"
 #include "opentype_gdef_view.h"
 #include "opentype_layout_view.h"
-#include "opentype_gsub_lookup_apply.h"
+//#include "opentype_gsub_lookup_apply.h"
 #include "opentype_gsub_single_view.h"
 
 #include "opentype_shaping_ir.h"

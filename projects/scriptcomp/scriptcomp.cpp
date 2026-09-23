@@ -26,6 +26,36 @@
 #include "test_script_recognition_interpreter_backtracking.h"
 #include "test_script_recognition_interpreter_models.h"
 
+// Classifier
+#include "test_script_item_classifier_dsl.h"
+#include "test_script_item_classifier_validator.h"
+#include "test_script_item_classifier_dump.h"
+#include "test_script_item_classifier_eval.h"
+#include "test_script_item_classifier_ucdb.h"
+#include "test_script_item_recognition.h"
+#include "test_devanagari_item_classifier_dump.h"
+#include "test_item_classifier_thai_dump.h"
+
+#include "test_recognition_devanagari_dump.h"
+#include "test_recognition_devanagari_integration.h"
+#include "test_script_shaping_provenance.h"
+#include "test_script_shaping_selection_types.h"
+#include "test_script_shaping_selection.h"
+#include "test_script_shaping_selection_assignment.h"
+#include "test_script_shaping_ir_selection.h"
+#include "test_script_shaping_glyph_selection.h"
+#include "test_opentype_gsub_ir_selected.h"
+#include "test_script_shaping_ir_gsub_selection.h"
+#include "test_script_shaping_ir_gsub_changed_selection.h"
+#include "test_shaping_devanagari.h"
+#include "test_script_shaping_indic_base.h"
+#include "test_script_shaping_indic_base_gsub.h"
+#include "test_script_shaping_move_selection.h"
+#include "test_script_shaping_indic_reordering.h"
+#include "test_shaping_devanagari_end_to_end.h"
+#include "test_svg_devanagari_gallery.h"
+
+
 
 
 using namespace waavs;
@@ -34,13 +64,13 @@ void testScriptShaping()
 {
     testScriptShapingIRBuilder();
     testScriptShapingPolicyCompiler();
-    testScriptShapingIRExecutor("../../fonts/NotoSans[wdth,wght].ttf");
+    testScriptShapingIRExecutor("../resources/fonts/NotoSans[wdth,wght].ttf");
 
     testScriptShapingBuffer();
 
     testScriptShapingIRScalarReplace();
 
-    testScriptShapingIRThaiCmap("../../fonts/NotoSansThai[wdth,wght].ttf");
+    testScriptShapingIRThaiCmap("../resources/fonts/NotoSansThai[wdth,wght].ttf");
 
     testScriptShapingIRThaiReorder();
 
@@ -48,7 +78,7 @@ void testScriptShaping()
 
     testScriptShapingIRScalarMoveLeftExecutor();
 
-    testScriptShapingIRThaiFull("../../fonts/NotoSansThai[wdth,wght].ttf");
+    testScriptShapingIRThaiFull("../resources/fonts/NotoSansThai[wdth,wght].ttf");
 
     testScriptShapingIRThaiConformance();
 }
@@ -72,10 +102,58 @@ void testScriptRecognition()
     testScriptRecognitionInterpreterModels();
 }
 
+void testScriptItemClassifier()
+{
+    //testScriptItemClassifierDSL();
+    //testScriptItemClassifierValidator();
+    //testScriptItemClassifierDump();
+    //testScriptItemClassifierEval();
+    //testScriptItemClassifierUCDB("../resources/unicode.ucdb");
+    //testScriptItemRecognition("../resources/unicode.ucdb");
+    //testDevanagariItemClassifierDump();
+    //testThaiItemClassifierDump();
+
+    testDevanagariRecognitionDump();
+    testDevanagariRecognitionIntegration("../resources/unicode.ucdb");
+}
+
+void testScriptIntegration()
+{
+    testScriptShapingProvenance();
+    testScriptShapingSelectionTypes();
+    testScriptShapingSelection();
+    testScriptShapingSelectionAssignment();
+    testScriptShapingIRSelection();
+    testScriptShapingGlyphSelection();
+    testOpenTypeGsubIRSelected();
+    testScriptShapingIRGsubSelection();
+    testScriptShapingIRGsubChangedSelection();
+    testScriptShapingIndicBase();
+    testScriptShapingIndicBaseGsub();
+}
+
+void testDevanagari()
+{
+    //testDevanagariShapingBuilder();
+    //testScriptShapingMoveSelection();
+    //testScriptShapingIndicReordering();
+    //testDevanagariEndToEnd(
+    //    "../resources/unicode.ucdb",
+    //    "../resources/fonts/NotoSansDevanagari-Regular.ttf");
+
+    testSVGDevanagariGallery(
+        "../resources/unicode.ucdb",
+        "../resources/fonts/NotoSansDevanagari-Regular.ttf");
+}
+
 int main(int argc, char** argv)
 {
     //testScriptShaping();
-    testScriptRecognition();
+    //testScriptRecognition();
+    //testScriptItemClassifier();
+    //testScriptIntegration();
+    testDevanagari();
+
 
     return 0;
 }

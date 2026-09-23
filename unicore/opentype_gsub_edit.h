@@ -36,10 +36,16 @@ namespace waavs
     //
     // Ignored glyphs between consumed positions are not included.
     // ====================================================================
+    struct OpenTypeGsubEditSource
+    {
+        uint32_t scalarOffset{ 0 };
+        uint32_t scalarCount{ 0 };
+    };
 
     struct OpenTypeGsubEdit
     {
         std::vector<size_t> inputPositions{};
+        std::vector<OpenTypeGsubEditSource> inputSources{};
         size_t outputCount{ 0 };
 
         void clear() noexcept

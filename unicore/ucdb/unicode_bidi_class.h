@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -63,15 +64,61 @@ namespace waavs
     static constexpr uint8_t kUnicodeBidiClassCount = 23;
 
 
+    inline constexpr std::array<const char*, kUnicodeBidiClassCount>
+        kUnicodeBidiClassNames =
+    {
+        "LeftToRight",
+        "RightToLeft",
+        "ArabicLetter",
+
+        "EuropeanNumber",
+        "EuropeanSeparator",
+        "EuropeanTerminator",
+        "ArabicNumber",
+        "CommonSeparator",
+        "NonspacingMark",
+        "BoundaryNeutral",
+
+        "ParagraphSeparator",
+        "SegmentSeparator",
+        "WhiteSpace",
+        "OtherNeutral",
+
+        "LeftToRightEmbedding",
+        "LeftToRightOverride",
+        "RightToLeftEmbedding",
+        "RightToLeftOverride",
+        "PopDirectionalFormat",
+        "LeftToRightIsolate",
+        "RightToLeftIsolate",
+        "FirstStrongIsolate",
+        "PopDirectionalIsolate"
+    };
+
+
     [[nodiscard]]
-    static constexpr bool unicodeBidiClassIsValid(uint8_t value) noexcept {
+    static constexpr bool unicodeBidiClassIsValid(uint8_t value) noexcept
+    {
         return value < kUnicodeBidiClassCount;
     }
 
 
     [[nodiscard]]
-    static constexpr bool unicodeBidiClassIsValid(UnicodeBidiClass value) noexcept {
+    static constexpr bool unicodeBidiClassIsValid(UnicodeBidiClass value) noexcept
+    {
         return unicodeBidiClassIsValid(static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeBidiClassName(
+        UnicodeBidiClass value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeBidiClassNames.size()
+            ? kUnicodeBidiClassNames[index]
+            : nullptr;
     }
 
 
@@ -91,5 +138,10 @@ namespace waavs
         UnicodeBidiClass::PopDirectionalIsolate) + 1u ==
         kUnicodeBidiClassCount,
         "Unicode Bidi Class count is inconsistent");
+
+    static_assert(
+        kUnicodeBidiClassNames.size() ==
+        kUnicodeBidiClassCount,
+        "Unicode Bidi Class name table count is inconsistent");
 
 } // namespace waavs

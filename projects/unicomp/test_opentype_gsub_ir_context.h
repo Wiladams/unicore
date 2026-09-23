@@ -10,7 +10,7 @@
 
 #include "opentype_gdef_view.h"
 #include "opentype_gsub_context_match.h"
-#include "opentype_gsub_lookup_apply.h"
+//#include "opentype_gsub_lookup_apply.h"
 
 #include "opentype_shaping_ir.h"
 #include "opentype_gsub_ir_compiler.h"

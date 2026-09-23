@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -32,10 +33,10 @@ namespace waavs
         // --------------------------------------------------------------------
 
         Unassigned = 0,   // Cn
-        Control = 1,   // Cc
-        Format = 2,   // Cf
+        Control = 1,      // Cc
+        Format = 2,       // Cf
         PrivateUse = 3,   // Co
-        Surrogate = 4,   // Cs
+        Surrogate = 4,    // Cs
 
 
         // --------------------------------------------------------------------
@@ -45,26 +46,26 @@ namespace waavs
         UppercaseLetter = 5,   // Lu
         LowercaseLetter = 6,   // Ll
         TitlecaseLetter = 7,   // Lt
-        ModifierLetter = 8,   // Lm
-        OtherLetter = 9,   // Lo
+        ModifierLetter = 8,    // Lm
+        OtherLetter = 9,       // Lo
 
 
         // --------------------------------------------------------------------
         // Mark
         // --------------------------------------------------------------------
 
-        NonspacingMark = 10,  // Mn
-        SpacingMark = 11,  // Mc
-        EnclosingMark = 12,  // Me
+        NonspacingMark = 10,   // Mn
+        SpacingMark = 11,      // Mc
+        EnclosingMark = 12,    // Me
 
 
         // --------------------------------------------------------------------
         // Number
         // --------------------------------------------------------------------
 
-        DecimalNumber = 13,  // Nd
-        LetterNumber = 14,  // Nl
-        OtherNumber = 15,  // No
+        DecimalNumber = 13,    // Nd
+        LetterNumber = 14,     // Nl
+        OtherNumber = 15,      // No
 
 
         // --------------------------------------------------------------------
@@ -72,31 +73,31 @@ namespace waavs
         // --------------------------------------------------------------------
 
         ConnectorPunctuation = 16, // Pc
-        DashPunctuation = 17,  // Pd
-        OpenPunctuation = 18,  // Ps
-        ClosePunctuation = 19,  // Pe
-        InitialPunctuation = 20,  // Pi
-        FinalPunctuation = 21,  // Pf
-        OtherPunctuation = 22,  // Po
+        DashPunctuation = 17,      // Pd
+        OpenPunctuation = 18,      // Ps
+        ClosePunctuation = 19,     // Pe
+        InitialPunctuation = 20,   // Pi
+        FinalPunctuation = 21,     // Pf
+        OtherPunctuation = 22,     // Po
 
 
         // --------------------------------------------------------------------
         // Symbol
         // --------------------------------------------------------------------
 
-        MathSymbol = 23,  // Sm
-        CurrencySymbol = 24,  // Sc
-        ModifierSymbol = 25,  // Sk
-        OtherSymbol = 26,  // So
+        MathSymbol = 23,       // Sm
+        CurrencySymbol = 24,   // Sc
+        ModifierSymbol = 25,   // Sk
+        OtherSymbol = 26,      // So
 
 
         // --------------------------------------------------------------------
         // Separator
         // --------------------------------------------------------------------
 
-        SpaceSeparator = 27,  // Zs
-        LineSeparator = 28,  // Zl
-        ParagraphSeparator = 29   // Zp
+        SpaceSeparator = 27,       // Zs
+        LineSeparator = 28,        // Zl
+        ParagraphSeparator = 29    // Zp
     };
 
 
@@ -105,6 +106,48 @@ namespace waavs
     // ========================================================================
 
     static constexpr uint8_t kUnicodeGeneralCategoryCount = 30;
+
+
+    inline constexpr std::array<const char*, kUnicodeGeneralCategoryCount>
+        kUnicodeGeneralCategoryNames =
+    {
+        "Unassigned",
+        "Control",
+        "Format",
+        "PrivateUse",
+        "Surrogate",
+
+        "UppercaseLetter",
+        "LowercaseLetter",
+        "TitlecaseLetter",
+        "ModifierLetter",
+        "OtherLetter",
+
+        "NonspacingMark",
+        "SpacingMark",
+        "EnclosingMark",
+
+        "DecimalNumber",
+        "LetterNumber",
+        "OtherNumber",
+
+        "ConnectorPunctuation",
+        "DashPunctuation",
+        "OpenPunctuation",
+        "ClosePunctuation",
+        "InitialPunctuation",
+        "FinalPunctuation",
+        "OtherPunctuation",
+
+        "MathSymbol",
+        "CurrencySymbol",
+        "ModifierSymbol",
+        "OtherSymbol",
+
+        "SpaceSeparator",
+        "LineSeparator",
+        "ParagraphSeparator"
+    };
 
 
     [[nodiscard]]
@@ -120,6 +163,18 @@ namespace waavs
     {
         return unicodeGeneralCategoryIsValid(
             static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeGeneralCategoryName(
+        UnicodeGeneralCategory value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeGeneralCategoryNames.size()
+            ? kUnicodeGeneralCategoryNames[index]
+            : nullptr;
     }
 
 
@@ -150,5 +205,11 @@ namespace waavs
             UnicodeGeneralCategory::ParagraphSeparator) + 1u ==
         kUnicodeGeneralCategoryCount,
         "Unicode General Category count is inconsistent");
+
+
+    static_assert(
+        kUnicodeGeneralCategoryNames.size() ==
+        kUnicodeGeneralCategoryCount,
+        "Unicode General Category name table count is inconsistent");
 
 } // namespace waavs

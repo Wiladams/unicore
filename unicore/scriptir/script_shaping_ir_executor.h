@@ -3,14 +3,20 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
+
+
 
 #include "opentype_gdef_view.h"
 #include "opentype_layout_selection.h"
 #include "opentype_shaping_buffer.h"
 #include "opentype_shaping_ir_plan.h"
+#include "opentype_tags.h"
 #include "script_shaping_buffer.h"
 #include "script_shaping_ir.h"
+#include "script_shaping_glyph_selection.h"
+#include "script_shaping_selection.h"
 #include "shaped_glyph_buffer.h"
 
 namespace waavs
@@ -298,6 +304,12 @@ namespace waavs
 
             case ScriptShapingIROp::GsubFeatureStage:
             case ScriptShapingIROp::GposFeatureStage:
+            case ScriptShapingIROp::ResolveIndicBase:
+            case ScriptShapingIROp::ResolveIndicHalfCandidates:
+            case ScriptShapingIROp::ResolveIndicPreBaseInitialAnchor:
+            case ScriptShapingIROp::ResolveIndicPreBaseAnchor:
+            case ScriptShapingIROp::ResolveIndicRephAnchor:
+            case ScriptShapingIROp::MoveSelection:
                 break;
 
             default:
@@ -305,6 +317,932 @@ namespace waavs
             }
         }
 
+        return true;
+    }
+
+
+    // ========================================================================
+    // applyScriptShapingIRGsubPlan
+    //
+    // Execute one compiled GSUB root plan.
+    //
+    // Whole-buffer stages retain the existing execution path.
+    //
+    // Selection-aware stages re-resolve their semantic selection before every
+    // root lookup so physical glyph indices never survive a structural edit.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool applyScriptShapingIRGsubPlan(
+        const OpenTypeShapingIRPlan& plan,
+        const ScriptShapingIRFeatureStage& stage,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        ScriptShapingSelectionState& selectionState,
+        OpenTypeShapingBuffer& buffer)
+    {
+        if (!validateOpenTypeShapingIRPlan(plan))
+            return false;
+
+
+        // Changed-output capture currently belongs to selection-aware stages.
+        if (stage.hasOutputChangedSelection() && !stage.hasInputSelection())
+            return false;
+
+
+        // ------------------------------------------------------------
+        // Ordinary feature stage: existing whole-buffer behavior.
+        // ------------------------------------------------------------
+
+        if (!stage.hasInputSelection())
+            return applyOpenTypeGsubIRPlan(plan, buffer);
+
+
+        // ------------------------------------------------------------
+        // Selection-aware feature stage.
+        //
+        // Semantic selection is re-resolved before every root lookup because
+        // preceding lookups may change glyph topology.
+        //
+        // GSUB edits additionally report stable source provenance for every
+        // glyph actually substituted. Those spans become outputChangedSelection.
+        // ------------------------------------------------------------
+
+        OpenTypeShapingBuffer working = buffer;
+        std::vector<ScriptSpan> changedSpans;
+
+        for (OpenTypeShapingIRLookupId lookupId : plan.lookups)
+        {
+            ScriptShapingResolvedGlyphSelection resolved;
+
+            if (!resolveScriptShapingGlyphSelection(
+                stage.inputSelection,
+                recognition,
+                unit,
+                selectionState,
+                working,
+                resolved))
+            {
+                return false;
+            }
+
+            OpenTypeGsubEditLog edits;
+
+            if (!applyOpenTypeGsubIRLookupSelected(
+                plan.ir,
+                lookupId,
+                working,
+                resolved.glyphIndices.data(),
+                resolved.glyphIndices.size(),
+                &edits))
+            {
+                return false;
+            }
+
+            if (stage.hasOutputChangedSelection())
+            {
+                for (const OpenTypeGsubEdit& edit : edits)
+                {
+                    for (const auto& source : edit.inputSources)
+                    {
+                        if (source.scalarCount == 0)
+                            continue;
+
+                        changedSpans.push_back({
+                            source.scalarOffset,
+                            source.scalarCount
+                            });
+                    }
+                }
+            }
+        }
+
+
+        // ------------------------------------------------------------
+        // Publish the derived semantic selection only after every root lookup
+        // has completed successfully.
+        //
+        // The assignment helper normalizes duplicate, overlapping and adjacent
+        // source spans.
+        // ------------------------------------------------------------
+
+        if (stage.hasOutputChangedSelection())
+        {
+            if (!assignScriptShapingDerivedSelection(
+                selectionState,
+                stage.outputChangedSelection,
+                changedSpans.data(),
+                changedSpans.size()))
+            {
+                return false;
+            }
+        }
+
+
+        buffer = std::move(working);
+        return true;
+    }
+
+
+    // ========================================================================
+    // Indic base-resolution helpers
+    // ========================================================================
+
+    struct ScriptShapingIndicBaseCandidate
+    {
+        ScriptSpan span{};
+        uint32_t precedingHalantOffset{ 0 };
+        uint32_t followingHalantOffset{ 0 };
+        bool hasPrecedingHalant{ false };
+        bool hasFollowingHalant{ false };
+        bool precededByZwnj{ false };
+    };
+
+
+    static inline bool scriptShapingGlyphContainsSource(
+        const OpenTypeShapingGlyph& glyph,
+        uint32_t scalarOffset) noexcept
+    {
+        if (glyph.scalarCount == 0)
+            return false;
+
+        const uint64_t first = glyph.scalarOffset;
+        const uint64_t end = first + glyph.scalarCount;
+
+        return uint64_t(scalarOffset) >= first && uint64_t(scalarOffset) < end;
+    }
+
+
+    static inline const OpenTypeShapingGlyph* scriptShapingGlyphForSource(
+        const OpenTypeShapingBuffer& buffer,
+        uint32_t scalarOffset) noexcept
+    {
+        for (const OpenTypeShapingGlyph& glyph : buffer)
+        {
+            if (scriptShapingGlyphContainsSource(glyph, scalarOffset))
+                return &glyph;
+        }
+
+        return nullptr;
+    }
+
+
+    static inline bool scriptShapingGlyphSequencesEqual(
+        const OpenTypeShapingBuffer& a,
+        const OpenTypeShapingBuffer& b) noexcept
+    {
+        if (a.size() != b.size())
+            return false;
+
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            if (a[i].glyphId != b[i].glyphId)
+                return false;
+        }
+
+        return true;
+    }
+
+
+    static inline bool applyScriptShapingIndicProbe(
+        ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
+        const uint32_t* featureTags, size_t featureTagCount,
+        bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
+        const OpenTypeGdefView& gdef, OpenTypeShapingBuffer& buffer)
+    {
+        OpenTypeLayoutFeatureRequest request;
+        request.scriptTag = scriptTag;
+        request.languageTag = languageTag;
+        request.featureTags = featureTags;
+        request.featureTagCount = featureTagCount;
+        request.includeRequiredFeature = false;
+        request.fallbackToDefaultScript = fallbackToDefaultScript;
+        request.fallbackToDefaultLanguage = fallbackToDefaultLanguage;
+
+        OpenTypeLayoutLookupPlan layoutPlan;
+        const OpenTypeLayoutSelectionResult selected = selectOpenTypeLayoutLookups(tableData, request, layoutPlan);
+
+        switch (selected)
+        {
+        case OpenTypeLayoutSelectionResult::NoScript:
+        case OpenTypeLayoutSelectionResult::NoLanguageSystem:
+            return true;
+
+        case OpenTypeLayoutSelectionResult::Success:
+            break;
+
+        default:
+            return false;
+        }
+
+        if (layoutPlan.empty())
+            return true;
+
+        OpenTypeShapingIRPlan shapingPlan;
+
+        if (!compileOpenTypeGsubIRPlan(layoutPlan, gdef, shapingPlan))
+            return false;
+
+        return applyOpenTypeGsubIRPlan(shapingPlan, buffer);
+    }
+
+
+    static inline bool scriptShapingIndicFeatureChangesPair(
+        ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
+        uint32_t featureTag,
+        bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
+        const OpenTypeGdefView& gdef,
+        const OpenTypeShapingBuffer& sourceBuffer,
+        uint32_t halantOffset, uint32_t consonantOffset,
+        bool consonantFirst,
+        bool& changes)
+    {
+        changes = false;
+
+        const OpenTypeShapingGlyph* halant = scriptShapingGlyphForSource(sourceBuffer, halantOffset);
+        const OpenTypeShapingGlyph* consonant = scriptShapingGlyphForSource(sourceBuffer, consonantOffset);
+
+        if (!halant || !consonant)
+            return false;
+
+        const FontRunView* input = sourceBuffer.input();
+
+        if (!input)
+            return false;
+
+        OpenTypeShapingBuffer baseline;
+        baseline.reset(*input);
+
+        if (consonantFirst)
+        {
+            baseline.pushBack(*consonant);
+            baseline.pushBack(*halant);
+        }
+        else
+        {
+            baseline.pushBack(*halant);
+            baseline.pushBack(*consonant);
+        }
+
+        OpenTypeShapingBuffer feature = baseline;
+
+        static constexpr uint32_t kLocl = OTAG("locl");
+
+        if (!applyScriptShapingIndicProbe(
+            tableData, scriptTag, languageTag,
+            &kLocl, 1,
+            fallbackToDefaultScript, fallbackToDefaultLanguage,
+            gdef, baseline))
+        {
+            return false;
+        }
+
+        const uint32_t tags[] = { OTAG("locl"), featureTag };
+
+        if (!applyScriptShapingIndicProbe(
+            tableData, scriptTag, languageTag,
+            tags, 2,
+            fallbackToDefaultScript, fallbackToDefaultLanguage,
+            gdef, feature))
+        {
+            return false;
+        }
+
+        changes = !scriptShapingGlyphSequencesEqual(baseline, feature);
+        return true;
+    }
+
+
+    static inline bool resolveScriptShapingIndicCandidates(
+        const ScriptShapingIRResolveIndicBase& resolver,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        std::vector<ScriptShapingIndicBaseCandidate>& candidates)
+    {
+        candidates.clear();
+
+        if (resolver.consonantSequence.kind != ScriptShapingSelectionKind::Role ||
+            resolver.baseCandidate.kind != ScriptShapingSelectionKind::Role)
+        {
+            return false;
+        }
+
+        const ScriptRoleBinding* sequence = recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.consonantSequence.id));
+        const ScriptRoleBinding* base = recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.baseCandidate.id));
+
+        if (!base || base->span.empty() || base->span.first >= recognition.kindCount())
+            return false;
+
+        uint32_t lastHalant = 0;
+        bool haveLastHalant = false;
+
+        if (sequence)
+        {
+            const uint64_t sequenceEnd64 = uint64_t(sequence->span.first) + uint64_t(sequence->span.count);
+
+            if (sequenceEnd64 > recognition.kindCount())
+                return false;
+
+            const uint32_t sequenceEnd = static_cast<uint32_t>(sequenceEnd64);
+
+            for (uint32_t i = sequence->span.first; i < sequenceEnd; ++i)
+            {
+                const ScriptItemKindId kind = recognition.kindAt(i);
+
+                if (kind == resolver.halantKind)
+                {
+                    lastHalant = i;
+                    haveLastHalant = true;
+                    continue;
+                }
+
+                if (kind != resolver.raKind && kind != resolver.consonantKind)
+                    continue;
+
+                ScriptShapingIndicBaseCandidate candidate{};
+                candidate.span.first = i;
+                candidate.span.count = 1;
+
+                if (i + 1 < sequenceEnd && recognition.kindAt(i + 1) == resolver.nuktaKind)
+                    candidate.span.count = 2;
+
+                candidate.hasPrecedingHalant = haveLastHalant;
+                candidate.precedingHalantOffset = lastHalant;
+
+                if (candidate.hasPrecedingHalant)
+                {
+                    for (uint32_t j = candidate.precedingHalantOffset + 1; j < candidate.span.first; ++j)
+                    {
+                        if (recognition.kindAt(j) == resolver.zwnjKind)
+                            candidate.precededByZwnj = true;
+                    }
+                }
+
+                const uint32_t searchFirst = candidate.span.first + candidate.span.count;
+
+                for (uint32_t j = searchFirst; j < sequenceEnd; ++j)
+                {
+                    const ScriptItemKindId nextKind = recognition.kindAt(j);
+
+                    if (nextKind == resolver.raKind || nextKind == resolver.consonantKind)
+                        break;
+
+                    if (nextKind == resolver.halantKind)
+                    {
+                        candidate.hasFollowingHalant = true;
+                        candidate.followingHalantOffset = j;
+                        break;
+                    }
+                }
+
+                candidates.push_back(candidate);
+            }
+        }
+
+        const ScriptItemKindId baseKind = recognition.kindAt(base->span.first);
+
+        if (baseKind != resolver.raKind && baseKind != resolver.consonantKind)
+            return false;
+
+        ScriptShapingIndicBaseCandidate candidate{};
+        candidate.span = base->span;
+        candidate.hasPrecedingHalant = haveLastHalant;
+        candidate.precedingHalantOffset = lastHalant;
+
+        if (candidate.hasPrecedingHalant)
+        {
+            for (uint32_t j = candidate.precedingHalantOffset + 1; j < candidate.span.first; ++j)
+            {
+                if (recognition.kindAt(j) == resolver.zwnjKind)
+                    candidate.precededByZwnj = true;
+            }
+        }
+
+        candidates.push_back(candidate);
+        return true;
+    }
+
+
+
+    [[nodiscard]]
+    static inline bool applyScriptShapingIRResolveIndicBase(
+        ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
+        const ScriptShapingIRResolveIndicBase& resolver,
+        bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
+        const OpenTypeGdefView& gdef,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        ScriptShapingSelectionState& selectionState,
+        const OpenTypeShapingBuffer& buffer)
+    {
+        if (resolver.baseCandidate.kind == ScriptShapingSelectionKind::Role &&
+            !recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.baseCandidate.id)))
+        {
+            return assignScriptShapingDerivedSelection(
+                selectionState,
+                resolver.outputBaseSelection,
+                nullptr,
+                0);
+        }
+
+        std::vector<ScriptShapingIndicBaseCandidate> candidates;
+
+        if (!resolveScriptShapingIndicCandidates(resolver, recognition, unit, candidates))
+            return false;
+
+        if (candidates.empty())
+            return false;
+
+        ScriptShapingIndicModel model = resolver.model;
+
+        if (model == ScriptShapingIndicModel::Auto)
+            model = scriptTag == OTAG("deva") ? ScriptShapingIndicModel::Old : ScriptShapingIndicModel::New;
+
+        const bool consonantFirst = model == ScriptShapingIndicModel::Old;
+        size_t baseIndex = candidates.size() - 1;
+
+        while (baseIndex > 0)
+        {
+            const ScriptShapingIndicBaseCandidate& candidate = candidates[baseIndex];
+            uint32_t halantOffset = 0;
+
+            if (candidate.precededByZwnj)
+                break;
+
+            if (consonantFirst)
+            {
+                if (candidate.hasPrecedingHalant)
+                    halantOffset = candidate.precedingHalantOffset;
+                else if (candidate.hasFollowingHalant)
+                    halantOffset = candidate.followingHalantOffset;
+                else
+                    break;
+            }
+            else
+            {
+                if (!candidate.hasPrecedingHalant)
+                    break;
+
+                halantOffset = candidate.precedingHalantOffset;
+            }
+
+            bool below = false;
+            bool post = false;
+            bool pre = false;
+
+            if (!scriptShapingIndicFeatureChangesPair(
+                tableData, scriptTag, languageTag, OTAG("blwf"),
+                fallbackToDefaultScript, fallbackToDefaultLanguage,
+                gdef, buffer, halantOffset, candidate.span.first, consonantFirst, below))
+            {
+                return false;
+            }
+
+            if (!scriptShapingIndicFeatureChangesPair(
+                tableData, scriptTag, languageTag, OTAG("pstf"),
+                fallbackToDefaultScript, fallbackToDefaultLanguage,
+                gdef, buffer, halantOffset, candidate.span.first, consonantFirst, post))
+            {
+                return false;
+            }
+
+            if (recognition.kindAt(candidate.span.first) == resolver.raKind)
+            {
+                if (!scriptShapingIndicFeatureChangesPair(
+                    tableData, scriptTag, languageTag, OTAG("pref"),
+                    fallbackToDefaultScript, fallbackToDefaultLanguage,
+                    gdef, buffer, halantOffset, candidate.span.first, consonantFirst, pre))
+                {
+                    return false;
+                }
+            }
+
+            if (!below && !post && !pre)
+                break;
+
+            --baseIndex;
+        }
+
+        const ScriptSpan baseSpan = candidates[baseIndex].span;
+        return assignScriptShapingDerivedSelection(selectionState, resolver.outputBaseSelection, &baseSpan, 1);
+    }
+
+
+    static inline bool scriptShapingGlyphSourceIsKind(
+        const OpenTypeShapingGlyph& glyph,
+        const ScriptRecognitionResult& recognition,
+        ScriptItemKindId kind) noexcept
+    {
+        if (glyph.scalarCount != 1 || glyph.scalarOffset >= recognition.kindCount())
+            return false;
+
+        return recognition.kindAt(glyph.scalarOffset) == kind;
+    }
+
+
+    static inline bool assignScriptShapingGlyphAnchor(
+        ScriptShapingSelectionState& state,
+        ScriptShapingSelectionId destination,
+        const OpenTypeShapingBuffer& buffer,
+        uint32_t glyphIndex)
+    {
+        if (glyphIndex >= buffer.size())
+            return false;
+
+        const ScriptSpan span = openTypeShapingGlyphSourceSpan(buffer[glyphIndex]);
+        return assignScriptShapingDerivedSelection(state, destination, &span, span.empty() ? 0 : 1);
+    }
+
+
+    static inline bool applyScriptShapingIRResolveIndicHalfCandidates(
+        const ScriptShapingIRResolveIndicHalfCandidates& resolver,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        ScriptShapingSelectionState& state)
+    {
+        if (resolver.consonantSequence.kind != ScriptShapingSelectionKind::Role)
+            return false;
+
+        const ScriptRoleBinding* sequence = recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.consonantSequence.id));
+        std::vector<ScriptSpan> spans;
+
+        if (!sequence)
+            return assignScriptShapingDerivedSelection(state, resolver.outputSelection, nullptr, 0);
+
+        const uint64_t end64 = uint64_t(sequence->span.first) + uint64_t(sequence->span.count);
+
+        if (end64 > recognition.kindCount())
+            return false;
+
+        const uint32_t end = static_cast<uint32_t>(end64);
+
+        for (uint32_t i = sequence->span.first; i < end; ++i)
+        {
+            const ScriptItemKindId kind = recognition.kindAt(i);
+
+            if (kind != resolver.raKind && kind != resolver.consonantKind)
+                continue;
+
+            ScriptSpan span{ i, 1 };
+
+            if (i + 1 < end && recognition.kindAt(i + 1) == resolver.nuktaKind)
+                span.count = 2;
+
+            bool haveHalant = false;
+            bool blocked = false;
+            uint32_t halantOffset = 0;
+
+            for (uint32_t j = span.first + span.count; j < end; ++j)
+            {
+                const ScriptItemKindId nextKind = recognition.kindAt(j);
+
+                if (nextKind == resolver.raKind || nextKind == resolver.consonantKind)
+                    break;
+
+                if (nextKind == resolver.zwnjKind)
+                    blocked = true;
+
+                if (nextKind == resolver.halantKind)
+                {
+                    haveHalant = true;
+                    halantOffset = j;
+                    break;
+                }
+            }
+
+            if (!haveHalant)
+                continue;
+
+            if (halantOffset + 1 < end && recognition.kindAt(halantOffset + 1) == resolver.zwnjKind)
+                blocked = true;
+
+            if (!blocked)
+                spans.push_back(span);
+        }
+
+        return assignScriptShapingDerivedSelection(state, resolver.outputSelection, spans.data(), spans.size());
+    }
+
+
+    static inline bool applyScriptShapingIRResolveIndicPreBaseInitialAnchor(
+        const ScriptShapingIRResolveIndicPreBaseInitialAnchor& resolver,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        ScriptShapingSelectionState& state)
+    {
+        if (resolver.consonantSequence.kind != ScriptShapingSelectionKind::Role ||
+            resolver.baseCandidate.kind != ScriptShapingSelectionKind::Role)
+        {
+            return false;
+        }
+
+        const ScriptRoleBinding* sequence = recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.consonantSequence.id));
+        const ScriptRoleBinding* base = recognition.roleFor(unit, static_cast<ScriptRoleId>(resolver.baseCandidate.id));
+
+        if (!base)
+            return assignScriptShapingDerivedSelection(state, resolver.outputAnchorSelection, nullptr, 0);
+
+        if (base->span.empty())
+            return false;
+
+        ScriptSpan anchor = sequence && !sequence->span.empty() ? ScriptSpan{ sequence->span.first, 1 } : base->span;
+        return assignScriptShapingDerivedSelection(state, resolver.outputAnchorSelection, &anchor, 1);
+    }
+
+
+    static inline bool applyScriptShapingIRResolveIndicPreBaseAnchor(
+        const ScriptShapingIRResolveIndicPreBaseAnchor& resolver,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        const ScriptShapingSelectionState& state,
+        ScriptShapingSelectionState& outputState,
+        const OpenTypeShapingBuffer& buffer)
+    {
+        ScriptShapingResolvedGlyphSelection base;
+        ScriptShapingResolvedGlyphSelection currentUnit;
+
+        if (!resolveScriptShapingGlyphSelection(resolver.base, recognition, unit, state, buffer, base) ||
+            !resolveScriptShapingGlyphSelection(scriptShapingUnitSelection(), recognition, unit, state, buffer, currentUnit))
+        {
+            return false;
+        }
+
+        if (base.empty())
+            return assignScriptShapingDerivedSelection(outputState, resolver.outputAnchorSelection, nullptr, 0);
+
+        const uint32_t baseFirst = base.glyphIndices.front();
+        uint32_t target = baseFirst;
+        bool foundHalant = false;
+        uint32_t halantIndex = 0;
+
+        for (uint32_t index : currentUnit.glyphIndices)
+        {
+            if (index >= baseFirst)
+                break;
+
+            if (scriptShapingGlyphSourceIsKind(buffer[index], recognition, resolver.halantKind))
+            {
+                foundHalant = true;
+                halantIndex = index;
+            }
+        }
+
+        if (foundHalant)
+        {
+            target = halantIndex + 1;
+
+            while (target < baseFirst &&
+                (scriptShapingGlyphSourceIsKind(buffer[target], recognition, resolver.zwjKind) ||
+                 scriptShapingGlyphSourceIsKind(buffer[target], recognition, resolver.zwnjKind)))
+            {
+                ++target;
+            }
+
+            if (target > baseFirst)
+                target = baseFirst;
+        }
+
+        return assignScriptShapingGlyphAnchor(outputState, resolver.outputAnchorSelection, buffer, target);
+    }
+
+
+    static inline bool applyScriptShapingIRResolveIndicRephAnchor(
+        const ScriptShapingIRResolveIndicRephAnchor& resolver,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        const ScriptShapingSelectionState& state,
+        ScriptShapingSelectionState& outputState,
+        const OpenTypeShapingBuffer& buffer)
+    {
+        ScriptShapingResolvedGlyphSelection reph;
+        ScriptShapingResolvedGlyphSelection base;
+        ScriptShapingResolvedGlyphSelection post;
+        ScriptShapingResolvedGlyphSelection currentUnit;
+
+        if (!resolveScriptShapingGlyphSelection(resolver.reph, recognition, unit, state, buffer, reph) ||
+            !resolveScriptShapingGlyphSelection(resolver.base, recognition, unit, state, buffer, base) ||
+            !resolveScriptShapingGlyphSelection(resolver.postBaseForms, recognition, unit, state, buffer, post) ||
+            !resolveScriptShapingGlyphSelection(scriptShapingUnitSelection(), recognition, unit, state, buffer, currentUnit))
+        {
+            return false;
+        }
+
+        if (reph.empty())
+            return assignScriptShapingDerivedSelection(outputState, resolver.outputAnchorSelection, nullptr, 0);
+
+        if (base.empty() || currentUnit.empty())
+            return false;
+
+        const uint32_t rephLast = reph.glyphIndices.back();
+        const uint32_t baseLast = base.glyphIndices.back();
+
+        for (uint32_t index : currentUnit.glyphIndices)
+        {
+            if (index <= rephLast || index > baseLast)
+                continue;
+
+            if (!scriptShapingGlyphSourceIsKind(buffer[index], recognition, resolver.halantKind))
+                continue;
+
+            uint32_t anchor = index;
+
+            while (anchor + 1 < buffer.size() && anchor + 1 <= baseLast &&
+                (scriptShapingGlyphSourceIsKind(buffer[anchor + 1], recognition, resolver.zwjKind) ||
+                 scriptShapingGlyphSourceIsKind(buffer[anchor + 1], recognition, resolver.zwnjKind)))
+            {
+                ++anchor;
+            }
+
+            return assignScriptShapingGlyphAnchor(outputState, resolver.outputAnchorSelection, buffer, anchor);
+        }
+
+        for (uint32_t index : post.glyphIndices)
+        {
+            if (index <= baseLast)
+                continue;
+
+            uint32_t anchor = index;
+
+            while (anchor > 0)
+            {
+                --anchor;
+
+                bool isReph = false;
+                for (uint32_t rephIndex : reph.glyphIndices)
+                    if (rephIndex == anchor) isReph = true;
+
+                if (!isReph)
+                    return assignScriptShapingGlyphAnchor(outputState, resolver.outputAnchorSelection, buffer, anchor);
+            }
+        }
+
+        for (uint32_t index : currentUnit.glyphIndices)
+        {
+            if (index <= baseLast || index >= buffer.size())
+                continue;
+
+            const OpenTypeShapingGlyph& glyph = buffer[index];
+
+            if (glyph.scalarCount != 1 || glyph.scalarOffset >= recognition.kindCount())
+                continue;
+
+            const ScriptItemKindId kind = recognition.kindAt(glyph.scalarOffset);
+
+            if (kind == resolver.raKind || kind == resolver.consonantKind ||
+                kind == resolver.nuktaKind || kind == resolver.halantKind ||
+                kind == resolver.zwjKind || kind == resolver.zwnjKind)
+            {
+                continue;
+            }
+
+            if (index == 0)
+                break;
+
+            return assignScriptShapingGlyphAnchor(outputState, resolver.outputAnchorSelection, buffer, index - 1);
+        }
+
+        for (size_t i = currentUnit.glyphIndices.size(); i != 0; --i)
+        {
+            const uint32_t index = currentUnit.glyphIndices[i - 1];
+            bool isReph = false;
+
+            for (uint32_t rephIndex : reph.glyphIndices)
+                if (rephIndex == index) isReph = true;
+
+            if (!isReph)
+                return assignScriptShapingGlyphAnchor(outputState, resolver.outputAnchorSelection, buffer, index);
+        }
+
+        return false;
+    }
+
+
+
+    // ========================================================================
+    // applyScriptShapingIRMoveSelection
+    //
+    // Resolve both semantic selections against current glyph provenance,
+    // remove the moving glyphs, then reinsert them immediately before or after
+    // the anchor selection.
+    //
+    // Empty selections are legal no-ops. Overlapping selections are invalid.
+    // ========================================================================
+
+    [[nodiscard]]
+    static inline bool applyScriptShapingIRMoveSelection(
+        const ScriptShapingIRMoveSelection& move,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        const ScriptShapingSelectionState& selectionState,
+        OpenTypeShapingBuffer& buffer)
+    {
+        ScriptShapingResolvedGlyphSelection moving;
+        ScriptShapingResolvedGlyphSelection anchor;
+
+        if (!resolveScriptShapingGlyphSelection(
+            move.move,
+            recognition,
+            unit,
+            selectionState,
+            buffer,
+            moving))
+        {
+            return false;
+        }
+
+        if (!resolveScriptShapingGlyphSelection(
+            move.anchor,
+            recognition,
+            unit,
+            selectionState,
+            buffer,
+            anchor))
+        {
+            return false;
+        }
+
+        if (moving.glyphIndices.empty() || anchor.glyphIndices.empty())
+            return true;
+
+        const size_t glyphCount = buffer.size();
+
+        std::vector<uint8_t> movingMask(glyphCount, 0);
+        std::vector<uint8_t> anchorMask(glyphCount, 0);
+
+        for (uint32_t index : moving.glyphIndices)
+        {
+            if (index >= glyphCount)
+                return false;
+
+            movingMask[index] = 1;
+        }
+
+        for (uint32_t index : anchor.glyphIndices)
+        {
+            if (index >= glyphCount || movingMask[index])
+                return false;
+
+            anchorMask[index] = 1;
+        }
+
+        std::vector<OpenTypeShapingGlyph> movedGlyphs;
+        movedGlyphs.reserve(moving.glyphIndices.size());
+
+        for (size_t i = 0; i < glyphCount; ++i)
+        {
+            if (movingMask[i])
+                movedGlyphs.push_back(buffer[i]);
+        }
+
+        std::vector<OpenTypeShapingGlyph> remaining;
+        remaining.reserve(glyphCount - movedGlyphs.size());
+
+        size_t firstAnchor = size_t(-1);
+        size_t lastAnchor = size_t(-1);
+
+        for (size_t i = 0; i < glyphCount; ++i)
+        {
+            if (movingMask[i])
+                continue;
+
+            const size_t outputIndex = remaining.size();
+
+            if (anchorMask[i])
+            {
+                if (firstAnchor == size_t(-1))
+                    firstAnchor = outputIndex;
+
+                lastAnchor = outputIndex;
+            }
+
+            remaining.push_back(buffer[i]);
+        }
+
+        if (firstAnchor == size_t(-1))
+            return true;
+
+        size_t insertion = 0;
+
+        switch (move.placement)
+        {
+        case ScriptShapingIRMovePlacement::Before:
+            insertion = firstAnchor;
+            break;
+
+        case ScriptShapingIRMovePlacement::After:
+            insertion = lastAnchor + 1;
+            break;
+
+        default:
+            return false;
+        }
+
+        remaining.insert(
+            remaining.begin() + insertion,
+            movedGlyphs.begin(),
+            movedGlyphs.end());
+
+        buffer.glyphs() = std::move(remaining);
         return true;
     }
 
@@ -334,7 +1272,11 @@ namespace waavs
         ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
         const ScriptShapingIR& ir,
         bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
-        const OpenTypeGdefView& gdef, OpenTypeShapingBuffer& buffer)
+        const OpenTypeGdefView& gdef,
+        const ScriptRecognitionResult& recognition,
+        const ScriptRecognitionUnit& unit,
+        ScriptShapingSelectionState& selectionState,
+        OpenTypeShapingBuffer& buffer)
     {
         if (!tableData || scriptTag == 0)
             return false;
@@ -364,9 +1306,107 @@ namespace waavs
                     return false;
                 }
 
-                if (selected &&
-                    !compileAndApplyOpenTypeGsubIRPlan(
-                        plan, gdef, buffer))
+                if (!selected)
+                    break;
+
+                OpenTypeShapingIRPlan shapingPlan;
+
+                if (!compileOpenTypeGsubIRPlan(
+                    plan, gdef, shapingPlan))
+                {
+                    return false;
+                }
+
+                if (!applyScriptShapingIRGsubPlan(
+                    shapingPlan,
+                    *stage,
+                    recognition,
+                    unit,
+                    selectionState,
+                    buffer))
+                {
+                    return false;
+                }
+
+                break;
+            }
+
+            case ScriptShapingIROp::ResolveIndicBase:
+            {
+                const ScriptShapingIRResolveIndicBase* resolver =
+                    ir.indicBaseResolver(instruction.payloadIndex);
+
+                if (!resolver)
+                    return false;
+
+                if (!applyScriptShapingIRResolveIndicBase(
+                    tableData, scriptTag, languageTag,
+                    *resolver,
+                    fallbackToDefaultScript, fallbackToDefaultLanguage,
+                    gdef,
+                    recognition,
+                    unit,
+                    selectionState,
+                    buffer))
+                {
+                    return false;
+                }
+
+                break;
+            }
+
+            case ScriptShapingIROp::ResolveIndicHalfCandidates:
+            {
+                const auto* resolver = ir.indicHalfCandidatesResolver(instruction.payloadIndex);
+                if (!resolver || !applyScriptShapingIRResolveIndicHalfCandidates(*resolver, recognition, unit, selectionState))
+                    return false;
+                break;
+            }
+
+            case ScriptShapingIROp::ResolveIndicPreBaseInitialAnchor:
+            {
+                const auto* resolver = ir.indicPreBaseInitialAnchorResolver(instruction.payloadIndex);
+                if (!resolver || !applyScriptShapingIRResolveIndicPreBaseInitialAnchor(*resolver, recognition, unit, selectionState))
+                    return false;
+                break;
+            }
+
+            case ScriptShapingIROp::ResolveIndicPreBaseAnchor:
+            {
+                const auto* resolver = ir.indicPreBaseAnchorResolver(instruction.payloadIndex);
+                if (!resolver || !applyScriptShapingIRResolveIndicPreBaseAnchor(
+                    *resolver, recognition, unit, selectionState, selectionState, buffer))
+                {
+                    return false;
+                }
+                break;
+            }
+
+            case ScriptShapingIROp::ResolveIndicRephAnchor:
+            {
+                const auto* resolver = ir.indicRephAnchorResolver(instruction.payloadIndex);
+                if (!resolver || !applyScriptShapingIRResolveIndicRephAnchor(
+                    *resolver, recognition, unit, selectionState, selectionState, buffer))
+                {
+                    return false;
+                }
+                break;
+            }
+
+            case ScriptShapingIROp::MoveSelection:
+            {
+                const ScriptShapingIRMoveSelection* move =
+                    ir.moveSelection(instruction.payloadIndex);
+
+                if (!move)
+                    return false;
+
+                if (!applyScriptShapingIRMoveSelection(
+                    *move,
+                    recognition,
+                    unit,
+                    selectionState,
+                    buffer))
                 {
                     return false;
                 }
@@ -385,6 +1425,61 @@ namespace waavs
         }
 
         return true;
+    }
+
+
+    [[nodiscard]]
+    static inline bool applyScriptShapingIRGsub(
+        ByteSpan tableData, uint32_t scriptTag, uint32_t languageTag,
+        const ScriptShapingIR& ir,
+        bool fallbackToDefaultScript, bool fallbackToDefaultLanguage,
+        const OpenTypeGdefView& gdef,
+        OpenTypeShapingBuffer& buffer)
+    {
+        // The legacy overload has no recognition or selection state, so it
+        // may execute only whole-buffer GSUB stages.
+        for (const ScriptShapingIRInstruction& instruction : ir.instructions)
+        {
+            if (instruction.op == ScriptShapingIROp::ResolveIndicBase ||
+                instruction.op == ScriptShapingIROp::ResolveIndicHalfCandidates ||
+                instruction.op == ScriptShapingIROp::ResolveIndicPreBaseInitialAnchor ||
+                instruction.op == ScriptShapingIROp::ResolveIndicPreBaseAnchor ||
+                instruction.op == ScriptShapingIROp::ResolveIndicRephAnchor ||
+                instruction.op == ScriptShapingIROp::MoveSelection)
+            {
+                return false;
+            }
+
+            if (instruction.op != ScriptShapingIROp::GsubFeatureStage)
+                continue;
+
+            const ScriptShapingIRFeatureStage* stage =
+                ir.featureStage(instruction.payloadIndex);
+
+            if (!stage)
+                return false;
+
+            if (stage->hasInputSelection() ||
+                stage->hasOutputChangedSelection())
+            {
+                return false;
+            }
+        }
+
+        ScriptRecognitionResult recognition;
+        ScriptRecognitionUnit unit;
+        ScriptShapingSelectionState selectionState;
+
+        return applyScriptShapingIRGsub(
+            tableData, scriptTag, languageTag,
+            ir,
+            fallbackToDefaultScript,
+            fallbackToDefaultLanguage,
+            gdef,
+            recognition,
+            unit,
+            selectionState,
+            buffer);
     }
 
 
@@ -434,6 +1529,12 @@ namespace waavs
             case ScriptShapingIROp::ScalarReplace:
             case ScriptShapingIROp::ScalarMoveLeftAcrossRange:
             case ScriptShapingIROp::GsubFeatureStage:
+            case ScriptShapingIROp::ResolveIndicBase:
+            case ScriptShapingIROp::ResolveIndicHalfCandidates:
+            case ScriptShapingIROp::ResolveIndicPreBaseInitialAnchor:
+            case ScriptShapingIROp::ResolveIndicPreBaseAnchor:
+            case ScriptShapingIROp::ResolveIndicRephAnchor:
+            case ScriptShapingIROp::MoveSelection:
                 break;
 
             default:

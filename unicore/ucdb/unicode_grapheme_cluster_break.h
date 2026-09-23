@@ -1,8 +1,8 @@
-
 // unicode_grapheme_cluster_break.h
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -34,16 +34,54 @@ namespace waavs
     static constexpr uint8_t kUnicodeGraphemeClusterBreakCount = 14;
 
 
+    inline constexpr std::array<const char*, kUnicodeGraphemeClusterBreakCount>
+        kUnicodeGraphemeClusterBreakNames =
+    {
+        "Other",
+
+        "CR",
+        "LF",
+        "Control",
+
+        "Extend",
+        "ZWJ",
+        "RegionalIndicator",
+        "Prepend",
+        "SpacingMark",
+
+        "L",
+        "V",
+        "T",
+        "LV",
+        "LVT"
+    };
+
+
     [[nodiscard]]
-    static constexpr bool unicodeGraphemeClusterBreakIsValid(uint8_t value) noexcept {
+    static constexpr bool unicodeGraphemeClusterBreakIsValid(uint8_t value) noexcept
+    {
         return value < kUnicodeGraphemeClusterBreakCount;
     }
 
 
     [[nodiscard]]
-    static constexpr bool unicodeGraphemeClusterBreakIsValid(UnicodeGraphemeClusterBreak value) noexcept
+    static constexpr bool unicodeGraphemeClusterBreakIsValid(
+        UnicodeGraphemeClusterBreak value) noexcept
     {
-        return unicodeGraphemeClusterBreakIsValid(static_cast<uint8_t>(value));
+        return unicodeGraphemeClusterBreakIsValid(
+            static_cast<uint8_t>(value));
+    }
+
+
+    [[nodiscard]]
+    static constexpr const char* unicodeGraphemeClusterBreakName(
+        UnicodeGraphemeClusterBreak value) noexcept
+    {
+        const uint8_t index = static_cast<uint8_t>(value);
+
+        return index < kUnicodeGraphemeClusterBreakNames.size()
+            ? kUnicodeGraphemeClusterBreakNames[index]
+            : nullptr;
     }
 
 
@@ -67,5 +105,10 @@ namespace waavs
             UnicodeGraphemeClusterBreak::LVT) + 1u ==
         kUnicodeGraphemeClusterBreakCount,
         "Unicode Grapheme_Cluster_Break count is inconsistent");
+
+    static_assert(
+        kUnicodeGraphemeClusterBreakNames.size() ==
+        kUnicodeGraphemeClusterBreakCount,
+        "Unicode Grapheme_Cluster_Break name table count is inconsistent");
 
 } // namespace waavs

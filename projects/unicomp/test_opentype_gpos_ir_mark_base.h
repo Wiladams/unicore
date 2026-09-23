@@ -12,7 +12,7 @@
 #include "opentype_gpos_attachment_state.h"
 #include "opentype_gpos_ir_compiler.h"
 #include "opentype_gpos_ir_executor.h"
-#include "opentype_gpos_lookup_apply.h"
+//#include "opentype_gpos_lookup_apply.h"
 #include "opentype_layout_view.h"
 
 namespace waavs

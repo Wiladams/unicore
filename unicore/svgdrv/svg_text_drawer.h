@@ -17,6 +17,16 @@
 #include "opentype_container.h"
 #include "opentype_glyf.h"
 #include "opentype_horizontal_shaper.h"
+#include "opentype_nominal_glyphs.h"
+#include "opentype_nominal_metrics.h"
+
+#include "item_classifier_devanagari.h"
+#include "recognition_devanagari.h"
+#include "script_item_classifier_validator.h"
+#include "script_item_recognition.h"
+#include "script_recognition_compiler.h"
+#include "script_shaping_ir_executor.h"
+#include "shaping_devanagari.h"
 
 #include "horizontal_bidi_positioning.h"
 #include "shaped_glyph_view.h"
@@ -218,6 +228,9 @@ namespace waavs
                 mDatabaseBytes.clear();
                 return false;
             }
+
+            if (!initializeDevanagariShaping())
+                return false;
 
 
             // ------------------------------------------------------------
@@ -447,6 +460,7 @@ namespace waavs
         //     Latn -> latn
         //     Hebr -> hebr
         //     Thai -> thai
+        //     Deva -> dev2
         //     Zyyy -> DFLT
         //     Zinh -> DFLT
         //
@@ -482,6 +496,12 @@ namespace waavs
                 return true;
             }
 
+            if (std::strcmp(scriptName, "Deva") == 0)
+            {
+                tag = OTAG("dev2");
+                return true;
+            }
+
             if (std::strcmp(scriptName, "Zyyy") == 0 ||
                 std::strcmp(scriptName, "Zinh") == 0)
             {
@@ -490,6 +510,206 @@ namespace waavs
             }
 
             return false;
+        }
+
+
+        // ================================================================
+        // initializeDevanagariShaping
+        //
+        // Compile classifier, recognition, and semantic shaping IR once.
+        // ================================================================
+
+        bool initializeDevanagariShaping()
+        {
+            ScriptRecognitionDSL grammar;
+            DevanagariItemKinds kinds{};
+            DevanagariRecognition recognition{};
+
+            if (!defineDevanagariItemKinds(grammar, kinds))
+                return false;
+
+            ScriptItemClassifierDSL classifier;
+
+            if (!defineDevanagariItemClassifier(classifier, kinds))
+                return false;
+
+            if (!defineDevanagariRecognition(grammar, kinds, recognition))
+                return false;
+
+            const ScriptItemClassifierValidationResult validation =
+                validateScriptItemClassifierDescription(
+                    classifier.description(),
+                    grammar.description());
+
+            if (!validation)
+                return false;
+
+            ScriptRecognitionIR recognitionIR;
+
+            if (!compileScriptRecognitionIR(grammar.description(), recognitionIR))
+                return false;
+
+            ScriptShapingIRBuilder builder;
+            DevanagariShapingSelections selections{};
+
+            if (!appendDevanagariShaping(kinds, recognition, builder, selections))
+                return false;
+
+            ScriptShapingIR shapingIR;
+
+            if (!builder.finalize(shapingIR) || !selections.valid())
+                return false;
+
+            mDevanagariClassifier = classifier.description();
+            mDevanagariRecognition = recognition;
+            mDevanagariRecognitionIR = std::move(recognitionIR);
+            mDevanagariShapingIR = std::move(shapingIR);
+            mDevanagariReady = true;
+            return true;
+        }
+
+
+        // ================================================================
+        // shapeDevanagariHorizontalRun
+        //
+        // Run the semantic Devanagari path proven by the end-to-end test:
+        //
+        // FontRunView
+        //   -> classify / recognize
+        //   -> ScriptShapingBuffer
+        //   -> cmap
+        //   -> unit-scoped semantic GSUB / reordering
+        //   -> nominal metrics
+        //   -> GPOS
+        // ================================================================
+
+        bool shapeDevanagariHorizontalRun(
+            const FontRunView& fontRun,
+            uint32_t scriptTag,
+            uint32_t languageTag,
+            ShapedGlyphBuffer& shaped)
+        {
+            shaped.clear();
+
+            if (!mDevanagariReady || !fontRun.face || scriptTag != OTAG("dev2"))
+                return false;
+
+            std::vector<uint32_t> values(fontRun.scalarCount);
+
+            for (size_t i = 0; i < values.size(); ++i)
+                values[i] = fontRun.scalars[i].value;
+
+            ScriptRecognitionResult recognized;
+
+            if (!recognizeScriptItems(
+                mDevanagariClassifier,
+                mDevanagariRecognitionIR,
+                mDatabase,
+                values.data(),
+                values.size(),
+                recognized))
+            {
+                std::printf("SVGTextDrawer: Devanagari recognition failed\n");
+                return false;
+            }
+
+            std::printf(
+                "SVGTextDrawer: Devanagari recognition PASS\n"
+                "  scalars: %zu\n"
+                "  units:   %zu\n",
+                values.size(),
+                recognized.unitCount());
+
+            ScriptShapingBuffer scriptInput;
+
+            if (!scriptInput.reset(fontRun))
+                return false;
+
+            if (!applyScriptShapingIRScalars(mDevanagariShapingIR, scriptInput))
+                return false;
+
+            OpenTypeShapingBuffer shaping;
+
+            if (!mapOpenTypeNominalGlyphs(scriptInput, shaping))
+                return false;
+
+            const FontRunView* shapingRun = shaping.input();
+
+            if (!shapingRun || !shapingRun->face)
+                return false;
+
+            OpenTypeHorizontalFaceTables tables;
+
+            if (!resolveOpenTypeHorizontalFaceTables(*shapingRun, tables))
+                return false;
+
+            if (tables.gsub)
+            {
+                for (size_t i = 0; i < recognized.unitCount(); ++i)
+                {
+                    const ScriptRecognitionUnit* unit = recognized.unit(i);
+
+                    if (!unit)
+                        return false;
+
+                    ScriptShapingSelectionState selectionState;
+
+                    if (!selectionState.reset(mDevanagariShapingIR.derivedSelectionCount))
+                        return false;
+
+                    std::printf(
+                        "SVGTextDrawer: Devanagari unit %zu\n"
+                        "  span: [%u,%u)\n"
+                        "  type: %u\n",
+                        i,
+                        static_cast<unsigned>(unit->span.first),
+                        static_cast<unsigned>(unit->span.first + unit->span.count),
+                        static_cast<unsigned>(unit->type));
+
+                    if (!applyScriptShapingIRGsub(
+                        tables.gsub->data,
+                        scriptTag,
+                        languageTag,
+                        mDevanagariShapingIR,
+                        true,
+                        true,
+                        tables.gdef,
+                        recognized,
+                        *unit,
+                        selectionState,
+                        shaping))
+                    {
+                        std::printf(
+                            "SVGTextDrawer: Devanagari GSUB/semantic IR failed\n"
+                            "  unit: %zu\n"
+                            "  span: [%u,%u)\n",
+                            i,
+                            static_cast<unsigned>(unit->span.first),
+                            static_cast<unsigned>(unit->span.first + unit->span.count));
+                        return false;
+                    }
+                }
+            }
+
+            if (!buildOpenTypeHorizontalShapedGlyphs(shaping, shaped))
+                return false;
+
+            if (tables.gpos &&
+                !applyScriptShapingIRGpos(
+                    tables.gpos->data,
+                    scriptTag,
+                    languageTag,
+                    mDevanagariShapingIR,
+                    true,
+                    true,
+                    tables.gdef,
+                    shaped,
+                    false))
+            {
+                return false;
+            }
+
+            return true;
         }
 
 
@@ -777,11 +997,12 @@ namespace waavs
                         */
 
 
-                        if (!shapeOpenTypeHorizontalRun(
-                            fontRun,
-                            scriptTag,
-                            0,
-                            shaped))
+                        const bool shapedOk =
+                            scriptTag == OTAG("dev2")
+                            ? shapeDevanagariHorizontalRun(fontRun, scriptTag, 0, shaped)
+                            : shapeOpenTypeHorizontalRun(fontRun, scriptTag, 0, shaped);
+
+                        if (!shapedOk)
                         {
                             std::printf(
                                 "SVGTextDrawer: OpenType shaping failed\n"
@@ -975,6 +1196,13 @@ namespace waavs
         // UnicodeDatabase directly maps this storage.
         std::vector<uint8_t> mDatabaseBytes{};
         UnicodeDatabase mDatabase{};
+
+        // Persistent compiled Devanagari semantic shaping state.
+        ScriptItemClassifierDescription mDevanagariClassifier{};
+        DevanagariRecognition mDevanagariRecognition{};
+        ScriptRecognitionIR mDevanagariRecognitionIR{};
+        ScriptShapingIR mDevanagariShapingIR{};
+        bool mDevanagariReady{ false };
 
         // FontFace retains the underlying shared OpenType resource.
         FontFace mFace{};

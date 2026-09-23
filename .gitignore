@@ -45,3 +45,5 @@
 /projects/ucdbgen/ARM64
 /projects/unicomp/ARM64
 /projects/scriptcomp/ARM64
+projects/ucdbtest/ARM64/Release/ucdbtest.cpp.obj.dt.module.json.command
+/projects/ucdbtest/ARM64

@@ -40,12 +40,18 @@ namespace waavs
     struct ScriptShapingIR
     {
         std::vector<ScriptShapingIRInstruction> instructions{};
+        uint32_t derivedSelectionCount{ 0 };
 
         // scalarReplacementValues and scalarReplacements are used by the ScalarReplace operation.
         std::vector<uint32_t> scalarReplacementValues{};
         std::vector<ScriptShapingIRScalarReplace> scalarReplacements{};
         std::vector<ScriptShapingIRScalarMoveLeftAcrossRange> scalarMoveLeftAcrossRanges{};
-
+        std::vector<ScriptShapingIRResolveIndicBase> indicBaseResolvers{};
+        std::vector<ScriptShapingIRResolveIndicHalfCandidates> indicHalfCandidateResolvers{};
+        std::vector<ScriptShapingIRResolveIndicPreBaseInitialAnchor> indicPreBaseInitialAnchorResolvers{};
+        std::vector<ScriptShapingIRResolveIndicPreBaseAnchor> indicPreBaseAnchorResolvers{};
+        std::vector<ScriptShapingIRResolveIndicRephAnchor> indicRephAnchorResolvers{};
+        std::vector<ScriptShapingIRMoveSelection> moveSelections{};
 
         std::vector<uint32_t> featureTags{};
         std::vector<ScriptShapingIRFeatureStage> featureStages{};
@@ -56,6 +62,7 @@ namespace waavs
         void clear() noexcept
         {
             instructions.clear();
+            derivedSelectionCount = 0;
 
             featureTags.clear();
             featureStages.clear();
@@ -63,6 +70,12 @@ namespace waavs
             scalarReplacementValues.clear();
             scalarReplacements.clear();
             scalarMoveLeftAcrossRanges.clear();
+            indicBaseResolvers.clear();
+            indicHalfCandidateResolvers.clear();
+            indicPreBaseInitialAnchorResolvers.clear();
+            indicPreBaseAnchorResolvers.clear();
+            indicRephAnchorResolvers.clear();
+            moveSelections.clear();
         }
 
 
@@ -83,6 +96,12 @@ namespace waavs
             return index < instructions.size() ? &instructions[index] : nullptr;
         }
 
+        [[nodiscard]]
+        bool hasDerivedSelection(ScriptShapingSelectionId id) const noexcept
+        {
+            return id != kScriptShapingSelectionInvalid &&
+                id <= derivedSelectionCount;
+        }
 
         // Accessors
         // Op: ScalarReplace
@@ -129,6 +148,56 @@ namespace waavs
                 : nullptr;
         }
 
+        // Op: ResolveIndicHalfCandidates
+        [[nodiscard]]
+        const ScriptShapingIRResolveIndicHalfCandidates* indicHalfCandidatesResolver(
+            ScriptShapingIRResolveIndicHalfCandidatesId id) const noexcept
+        {
+            return id < indicHalfCandidateResolvers.size() ? &indicHalfCandidateResolvers[id] : nullptr;
+        }
+
+        // Op: ResolveIndicPreBaseInitialAnchor
+        [[nodiscard]]
+        const ScriptShapingIRResolveIndicPreBaseInitialAnchor* indicPreBaseInitialAnchorResolver(
+            ScriptShapingIRResolveIndicPreBaseInitialAnchorId id) const noexcept
+        {
+            return id < indicPreBaseInitialAnchorResolvers.size() ? &indicPreBaseInitialAnchorResolvers[id] : nullptr;
+        }
+
+        // Op: ResolveIndicPreBaseAnchor
+        [[nodiscard]]
+        const ScriptShapingIRResolveIndicPreBaseAnchor* indicPreBaseAnchorResolver(
+            ScriptShapingIRResolveIndicPreBaseAnchorId id) const noexcept
+        {
+            return id < indicPreBaseAnchorResolvers.size() ? &indicPreBaseAnchorResolvers[id] : nullptr;
+        }
+
+        // Op: ResolveIndicRephAnchor
+        [[nodiscard]]
+        const ScriptShapingIRResolveIndicRephAnchor* indicRephAnchorResolver(
+            ScriptShapingIRResolveIndicRephAnchorId id) const noexcept
+        {
+            return id < indicRephAnchorResolvers.size() ? &indicRephAnchorResolvers[id] : nullptr;
+        }
+
+        // Op: MoveSelection
+        [[nodiscard]]
+        const ScriptShapingIRMoveSelection* moveSelection(uint32_t index) const noexcept
+        {
+            return index < moveSelections.size()
+                ? &moveSelections[index]
+                : nullptr;
+        }
+
+        // Op: ResolveIndicBase
+        [[nodiscard]]
+        const ScriptShapingIRResolveIndicBase* indicBaseResolver(
+            ScriptShapingIRResolveIndicBaseId id) const noexcept
+        {
+            return id < indicBaseResolvers.size()
+                ? &indicBaseResolvers[id]
+                : nullptr;
+        }
 
         // Op: GsubFeatureStage, GposFeatureStage
         [[nodiscard]] bool hasFeatureStages() const noexcept

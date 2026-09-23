@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <limits>
 
+#include "script_recognition_types.h"
+#include "script_shaping_selection_types.h"
+
 namespace waavs
 {
     // ========================================================================
@@ -18,6 +21,11 @@ namespace waavs
     using ScriptShapingIRFeatureStageId = uint32_t;
     using ScriptShapingIRScalarReplaceId = uint32_t;
     using ScriptShapingIRScalarMoveLeftAcrossRangeId = uint32_t;
+    using ScriptShapingIRResolveIndicBaseId = uint32_t;
+    using ScriptShapingIRResolveIndicHalfCandidatesId = uint32_t;
+    using ScriptShapingIRResolveIndicPreBaseInitialAnchorId = uint32_t;
+    using ScriptShapingIRResolveIndicPreBaseAnchorId = uint32_t;
+    using ScriptShapingIRResolveIndicRephAnchorId = uint32_t;
 
 
     // ========================================================================
@@ -58,6 +66,13 @@ namespace waavs
 
         ScalarReplace,
         ScalarMoveLeftAcrossRange,
+
+        ResolveIndicBase,
+        ResolveIndicHalfCandidates,
+        ResolveIndicPreBaseInitialAnchor,
+        ResolveIndicPreBaseAnchor,
+        ResolveIndicRephAnchor,
+        MoveSelection,
     };
 
 
@@ -114,13 +129,25 @@ namespace waavs
         uint32_t featureOffset{ 0 };
         uint32_t featureCount{ 0 };
 
+        ScriptShapingSelectionRef inputSelection{};
+        ScriptShapingSelectionId outputChangedSelection{ kScriptShapingSelectionInvalid };
+
         uint8_t includeRequiredFeature{ 0 };
         uint8_t reserved0{ 0 };
-        uint16_t reserved1{ 0 };
 
         [[nodiscard]] bool empty() const noexcept
         {
             return featureCount == 0;
+        }
+
+        [[nodiscard]] bool hasInputSelection() const noexcept
+        {
+            return inputSelection.valid();
+        }
+
+        [[nodiscard]] bool hasOutputChangedSelection() const noexcept
+        {
+            return outputChangedSelection != kScriptShapingSelectionInvalid;
         }
     };
 
@@ -145,6 +172,124 @@ namespace waavs
         uint32_t acrossFirst{ 0 };
         uint32_t acrossLast{ 0 };
     };
+
+    // ========================================================================
+    // ScriptShapingIRResolveIndicBase
+    //
+    // Resolve the main consonant of an Indic consonant syllable.
+    //
+    // consonantSequence:
+    //     Structural consonants preceding the final recognized candidate.
+    //
+    // baseCandidate:
+//     Final structural consonant candidate.
+//
+// reph:
+//     Optional derived selection identifying a successfully formed Reph.
+//     When present, its source consonant is excluded from base candidates.
+//
+// outputBaseSelection:
+//     Derived selection receiving the resolved base source span.
+//
+// Item-kind ids provide the script vocabulary needed to identify candidate
+// consonants and their structural attachments within recognition spans.
+    // ========================================================================
+
+    enum class ScriptShapingIndicModel : uint8_t
+    {
+        Auto = 0,
+        Old,
+        New
+    };
+
+
+    struct ScriptShapingIRResolveIndicBase
+    {
+        ScriptShapingSelectionRef consonantSequence{};
+        ScriptShapingSelectionRef baseCandidate{};
+        ScriptShapingSelectionRef reph{};
+
+        ScriptShapingSelectionId outputBaseSelection{ kScriptShapingSelectionInvalid };
+
+        ScriptItemKindId raKind{ kScriptItemKindInvalid };
+        ScriptItemKindId consonantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId nuktaKind{ kScriptItemKindInvalid };
+        ScriptItemKindId halantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwjKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwnjKind{ kScriptItemKindInvalid };
+
+        ScriptShapingIndicModel model{ ScriptShapingIndicModel::Auto };
+    };
+
+
+    struct ScriptShapingIRResolveIndicHalfCandidates
+    {
+        ScriptShapingSelectionRef consonantSequence{};
+        ScriptShapingSelectionId outputSelection{ kScriptShapingSelectionInvalid };
+
+        ScriptItemKindId raKind{ kScriptItemKindInvalid };
+        ScriptItemKindId consonantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId nuktaKind{ kScriptItemKindInvalid };
+        ScriptItemKindId halantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwjKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwnjKind{ kScriptItemKindInvalid };
+    };
+
+
+    struct ScriptShapingIRResolveIndicPreBaseInitialAnchor
+    {
+        ScriptShapingSelectionRef consonantSequence{};
+        ScriptShapingSelectionRef baseCandidate{};
+        ScriptShapingSelectionId outputAnchorSelection{ kScriptShapingSelectionInvalid };
+    };
+
+
+    struct ScriptShapingIRResolveIndicPreBaseAnchor
+    {
+        ScriptShapingSelectionRef base{};
+        ScriptShapingSelectionId outputAnchorSelection{ kScriptShapingSelectionInvalid };
+
+        ScriptItemKindId halantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwjKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwnjKind{ kScriptItemKindInvalid };
+    };
+
+
+    struct ScriptShapingIRResolveIndicRephAnchor
+    {
+        ScriptShapingSelectionRef reph{};
+        ScriptShapingSelectionRef base{};
+        ScriptShapingSelectionRef postBaseForms{};
+        ScriptShapingSelectionId outputAnchorSelection{ kScriptShapingSelectionInvalid };
+
+        ScriptItemKindId raKind{ kScriptItemKindInvalid };
+        ScriptItemKindId consonantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId nuktaKind{ kScriptItemKindInvalid };
+        ScriptItemKindId halantKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwjKind{ kScriptItemKindInvalid };
+        ScriptItemKindId zwnjKind{ kScriptItemKindInvalid };
+    };
+
+    // Op: MoveSelection
+    enum class ScriptShapingIRMovePlacement : uint8_t
+    {
+        Invalid = 0,
+        Before,
+        After
+    };
+
+
+    using ScriptShapingIRMoveSelectionId = uint32_t;
+
+
+    struct ScriptShapingIRMoveSelection
+    {
+        ScriptShapingSelectionRef move{};
+        ScriptShapingSelectionRef anchor{};
+        ScriptShapingIRMovePlacement placement{ ScriptShapingIRMovePlacement::Invalid };
+        uint8_t reserved[3]{};
+    };
+
 
     // ========================================================================
     // Operation classification helpers

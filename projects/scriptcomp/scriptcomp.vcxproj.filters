@@ -131,9 +131,6 @@
     <ClInclude Include="test_script_recognition_compiler.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\unicore\scriptir\test_script_recognition_compiler_control.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\unicore\scriptir\script_recognition_interpreter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -149,7 +146,160 @@
     <ClInclude Include="test_script_recognition_interpreter_models.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier.h">
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_description.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_dsl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_item_classifier_dsl.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_validator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_item_classifier_validator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_dump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\test_script_item_classifier_dump.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_ucdb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_classifier_eval.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_item_classifier_eval.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_item_classifier_ucdb.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_recognition_compiler_control.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_item_recognition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_item_recognition.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\item_classifier_devanagari.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_devanagari_item_classifier_dump.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_item_classifier_thai_dump.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\item_classifier_thai.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\recognition_devanagari.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_recognition_devanagari_dump.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_recognition_devanagari_integration.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\shaping_devanagari.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_provenance.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_provenance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_role_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_selection_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_selection_types.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_selection_assignment.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\scriptir\script_shaping_glyph_selection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_glyph_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_executor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_executor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir_plan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_gsub_ir_selected.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_gsub_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_ir_gsub_changed_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_shaping_devanagari.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_indic_base.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_indic_base_gsub.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\opentype_tags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_script_shaping_move_selection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_shaping_devanagari_end_to_end.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_svg_devanagari_gallery.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer_devanagari.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
