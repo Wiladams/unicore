@@ -256,6 +256,7 @@
     <ClInclude Include="..\..\unicore\scriptir\test_script_item_classifier_dump.h" />
     <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer_devanagari.h" />
     <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h" />
+    <ClInclude Include="..\..\unicore\unicode_script_analysis.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_compiler.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_executor.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gsub_ir_compiler.h" />
@@ -263,6 +264,7 @@
     <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_shaping_ir_plan.h" />
     <ClInclude Include="test_devanagari_item_classifier_dump.h" />
+    <ClInclude Include="test_devanagari_script_edge_cases.h" />
     <ClInclude Include="test_item_classifier_thai_dump.h" />
     <ClInclude Include="test_opentype_gsub_ir_selected.h" />
     <ClInclude Include="test_recognition_devanagari_dump.h" />

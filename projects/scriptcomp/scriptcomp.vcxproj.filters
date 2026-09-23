@@ -302,5 +302,11 @@
     <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer_devanagari.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="test_devanagari_script_edge_cases.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\unicode_script_analysis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

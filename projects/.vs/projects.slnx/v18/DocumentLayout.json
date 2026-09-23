@@ -9,6 +9,9 @@
     {
       "AbsoluteMoniker": "D:0:0:{C98B7128-2158-458B-971D-8C9D4AC4B109}|scriptcomp\\scriptcomp.vcxproj|C:\\repos\\unicore\\projects\\scriptcomp\\scriptcomp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{C98B7128-2158-458B-971D-8C9D4AC4B109}|scriptcomp\\scriptcomp.vcxproj|solutionrelative:scriptcomp\\scriptcomp.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C98B7128-2158-458B-971D-8C9D4AC4B109}|scriptcomp\\scriptcomp.vcxproj|C:\\repos\\unicore\\unicore\\unicode_script_analysis.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -28,7 +31,7 @@
               "RelativeDocumentMoniker": "scriptcomp\\test_svg_devanagari_gallery.h",
               "ToolTip": "C:\\repos\\unicore\\projects\\scriptcomp\\test_svg_devanagari_gallery.h",
               "RelativeToolTip": "scriptcomp\\test_svg_devanagari_gallery.h",
-              "ViewState": "AgIAAHcAAAAAAAAAAAAYwH0AAAAMAAAAAAAAAA==",
+              "ViewState": "AgIAAHYAAAAAAAAAAAAAAHwAAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2026-09-23T07:11:55.454Z",
               "IsPinned": true,
@@ -40,15 +43,29 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "unicode_script_analysis.h",
+              "DocumentMoniker": "C:\\repos\\unicore\\unicore\\unicode_script_analysis.h",
+              "RelativeDocumentMoniker": "..\\unicore\\unicode_script_analysis.h",
+              "ToolTip": "C:\\repos\\unicore\\unicore\\unicode_script_analysis.h",
+              "RelativeToolTip": "..\\unicore\\unicode_script_analysis.h",
+              "ViewState": "AgIAAAkCAAAAAAAAAAAIwBECAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-09-23T14:13:25.104Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
               "Title": "scriptcomp.cpp",
               "DocumentMoniker": "C:\\repos\\unicore\\projects\\scriptcomp\\scriptcomp.cpp",
               "RelativeDocumentMoniker": "scriptcomp\\scriptcomp.cpp",
               "ToolTip": "C:\\repos\\unicore\\projects\\scriptcomp\\scriptcomp.cpp",
               "RelativeToolTip": "scriptcomp\\scriptcomp.cpp",
-              "ViewState": "AgIAAIQAAAAAAAAAAAAAAI8AAAAQAAAAAAAAAA==",
+              "ViewState": "AgIAAH0AAAAAAAAAAAAAAJMAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-09-21T04:31:36.174Z"
+              "WhenOpened": "2026-09-21T04:31:36.174Z",
+              "EditorCaption": ""
             }
           ]
         }

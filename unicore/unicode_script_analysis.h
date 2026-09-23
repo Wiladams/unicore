@@ -25,12 +25,11 @@ namespace waavs
     //      Scripts in which this grapheme may participate.
     //
     // script:
+    //     Effective Script selected by local or contextual analysis.
     //
-    //      Effective Script when local analysis resolves the grapheme to one
-    //      Script value.
-    //
-    //      kUnicodeScriptIndexInvalid means that contextual resolution is
-    //      still required.
+    // fallbackScript:
+    //     Ordinary Unicode Script value used only if Script_Extensions
+    //     ambiguity remains unresolved when the grapheme must be emitted.
     //
     // ========================================================================
 
@@ -39,6 +38,7 @@ namespace waavs
         GraphemeClusterView grapheme{};
         UnicodeScriptSet candidates{};
         UnicodeScriptIndex script{ kUnicodeScriptIndexInvalid };
+        UnicodeScriptIndex fallbackScript{ kUnicodeScriptIndexInvalid };
 
         [[nodiscard]] bool resolved() const noexcept
         {
@@ -72,34 +72,56 @@ namespace waavs
             return false;
 
         bool haveCandidates = false;
+        UnicodeScriptIndex fallbackScript = kUnicodeScriptIndexInvalid;
+        bool fallbackAmbiguous = false;
 
         for (const UnicodeScalar& scalar : grapheme)
         {
-            const UnicodeScriptSet scalarScripts =
-                database.scriptExtensions(scalar.value);
+            const UnicodeScriptSet scalarScripts = database.scriptExtensions(scalar.value);
 
-            if (scalarScripts.empty())
+            if (!scalarScripts.empty())
+            {
+                if (!haveCandidates)
+                {
+                    out.candidates = scalarScripts;
+                    haveCandidates = true;
+                }
+                else
+                {
+                    const UnicodeScriptSet intersection = out.candidates.intersection(scalarScripts);
+
+                    if (!intersection.empty())
+                        out.candidates = intersection;
+                }
+            }
+
+            const UnicodeScriptIndex scalarScript = database.script(scalar.value);
+
+            if (scalarScript == kUnicodeScriptIndexInvalid)
                 continue;
 
-            if (!haveCandidates)
+            if (fallbackScript == kUnicodeScriptIndexInvalid)
             {
-                out.candidates = scalarScripts;
-                haveCandidates = true;
+                fallbackScript = scalarScript;
                 continue;
             }
 
-            UnicodeScriptSet intersection =
-                out.candidates.intersection(scalarScripts);
-
-            if (!intersection.empty())
-                out.candidates = intersection;
+            if (fallbackScript != scalarScript)
+                fallbackAmbiguous = true;
         }
 
         if (!haveCandidates)
             return true;
 
         if (out.candidates.isSingleton())
+        {
             out.script = out.candidates.first();
+            out.fallbackScript = out.script;
+            return true;
+        }
+
+        if (!fallbackAmbiguous)
+            out.fallbackScript = fallbackScript;
 
         return true;
     }
@@ -240,28 +262,20 @@ namespace waavs
 
         UnicodeScriptSet candidates{};
         UnicodeScriptIndex script{ kUnicodeScriptIndexInvalid };
+        UnicodeScriptIndex fallbackScript{ kUnicodeScriptIndexInvalid };
+
 
         [[nodiscard]] ScriptGrapheme view() const noexcept
         {
             ScriptGrapheme result{};
 
-            result.grapheme.scalars =
-                scalars.empty() ? nullptr : scalars.data();
-
-            result.grapheme.scalarCount =
-                static_cast<uint32_t>(scalars.size());
-
-            result.grapheme.normalizedBegin =
-                normalizedBegin;
-
-            result.grapheme.source =
-                source;
-
-            result.candidates =
-                candidates;
-
-            result.script =
-                script;
+            result.grapheme.scalars = scalars.empty() ? nullptr : scalars.data();
+            result.grapheme.scalarCount = static_cast<uint32_t>(scalars.size());
+            result.grapheme.normalizedBegin = normalizedBegin;
+            result.grapheme.source = source;
+            result.candidates = candidates;
+            result.script = script;
+            result.fallbackScript = fallbackScript;
 
             return result;
         }
@@ -421,6 +435,7 @@ namespace waavs
             pending.source = grapheme.source;
             pending.candidates = classified.candidates;
             pending.script = classified.script;
+            pending.fallbackScript = classified.fallbackScript;
 
 
             mPending.push_back(std::move(pending));
@@ -484,13 +499,13 @@ namespace waavs
         }
 
         // ====================================================================
-// emitFront
-//
-// Move the oldest pending grapheme into output-owned scalar storage and
-// return a borrowed ScriptGrapheme view.
-//
-// The returned view remains valid until the next stream pull.
-// ====================================================================
+        // emitFront
+        //
+        // Move the oldest pending grapheme into output-owned scalar storage and
+        // return a borrowed ScriptGrapheme view.
+        //
+        // The returned view remains valid until the next stream pull.
+        // ====================================================================
 
         bool emitFront(ScriptGrapheme& out)
         {
@@ -508,22 +523,15 @@ namespace waavs
                 ? nullptr
                 : mOutputScalars.data();
 
-            out.grapheme.scalarCount =
-                static_cast<uint32_t>(
-                    mOutputScalars.size());
-
-            out.grapheme.normalizedBegin =
-                pending.normalizedBegin;
-
-            out.grapheme.source =
-                pending.source;
-
-            out.candidates =
-                pending.candidates;
-
+            out.grapheme.scalarCount = static_cast<uint32_t>(mOutputScalars.size());
+            out.grapheme.normalizedBegin = pending.normalizedBegin;
+            out.grapheme.source = pending.source;
+            out.candidates = pending.candidates;
+            out.fallbackScript = pending.fallbackScript;
             out.script =
-                pending.script;
-
+                pending.script != kUnicodeScriptIndexInvalid
+                ? pending.script
+                : pending.fallbackScript;
             mPending.pop_front();
 
             return true;

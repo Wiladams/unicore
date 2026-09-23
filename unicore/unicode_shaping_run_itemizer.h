@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -311,10 +312,19 @@ namespace waavs
         [[nodiscard]] bool validateParagraph() const noexcept
         {
             if (!mDatabase || !(*mDatabase))
+            {
+                std::printf("ShapingRunItemizer validate FAIL: invalid database\n");
                 return false;
+            }
 
             if (mParagraph.scalarCount == 0)
+            {
+                if (mParagraph.clusterCount != 0)
+                    std::printf("ShapingRunItemizer validate FAIL: zero scalars but nonzero clusters=%u\n",
+                        static_cast<unsigned>(mParagraph.clusterCount));
+
                 return mParagraph.clusterCount == 0;
+            }
 
             if (!mParagraph.scalars ||
                 !mParagraph.originalTypes ||
@@ -323,6 +333,7 @@ namespace waavs
                 !mParagraph.scripts ||
                 mParagraph.clusterCount == 0)
             {
+                std::printf("ShapingRunItemizer validate FAIL: missing paragraph storage\n");
                 return false;
             }
 
@@ -336,19 +347,41 @@ namespace waavs
                 const ScriptClusterInfo& script = mParagraph.scripts[clusterIndex];
 
                 if (cluster.scalarCount == 0)
+                {
+                    std::printf("ShapingRunItemizer validate FAIL: cluster %u has zero scalars\n",
+                        static_cast<unsigned>(clusterIndex));
                     return false;
+                }
 
                 if (cluster.scalarOffset != expectedScalarOffset)
+                {
+                    std::printf("ShapingRunItemizer validate FAIL: cluster %u offset=%u expected=%u\n",
+                        static_cast<unsigned>(clusterIndex),
+                        static_cast<unsigned>(cluster.scalarOffset),
+                        static_cast<unsigned>(expectedScalarOffset));
                     return false;
+                }
 
                 if (cluster.scalarOffset > mParagraph.scalarCount)
+                {
+                    std::printf("ShapingRunItemizer validate FAIL: cluster %u offset out of range\n",
+                        static_cast<unsigned>(clusterIndex));
                     return false;
+                }
 
                 if (cluster.scalarCount > mParagraph.scalarCount - cluster.scalarOffset)
+                {
+                    std::printf("ShapingRunItemizer validate FAIL: cluster %u extent out of range\n",
+                        static_cast<unsigned>(clusterIndex));
                     return false;
+                }
 
                 if (script.script == kUnicodeScriptIndexInvalid)
+                {
+                    std::printf("ShapingRunItemizer validate FAIL: cluster %u has invalid script\n",
+                        static_cast<unsigned>(clusterIndex));
                     return false;
+                }
 
                 const UnicodeBidiLevel level = clusterLevel(clusterIndex);
 
@@ -362,7 +395,12 @@ namespace waavs
                     }
 
                     if (mParagraph.levels[scalarIndex] != level)
+                    {
+                        std::printf("ShapingRunItemizer validate FAIL: cluster %u mixed bidi levels at scalar %u\n",
+                            static_cast<unsigned>(clusterIndex),
+                            static_cast<unsigned>(scalarIndex));
                         return false;
+                    }
                 }
 
                 /*
@@ -378,7 +416,15 @@ namespace waavs
                 expectedScalarOffset += cluster.scalarCount;
             }
 
-            return expectedScalarOffset == mParagraph.scalarCount;
+            if (expectedScalarOffset != mParagraph.scalarCount)
+            {
+                std::printf("ShapingRunItemizer validate FAIL: final scalar extent mismatch expected=%u actual=%u\n",
+                    static_cast<unsigned>(expectedScalarOffset),
+                    static_cast<unsigned>(mParagraph.scalarCount));
+                return false;
+            }
+
+            return true;
         }
 
         static void extendSourceRange(SourceRange& destination,

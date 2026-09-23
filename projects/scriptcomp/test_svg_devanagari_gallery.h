@@ -119,10 +119,10 @@ namespace waavs
                 "Sanskrit forms"
             },
 
-            /*
+            
             {
-                "० १ २ ३ ४ ५ ६ ७ ८ ९   ०१२३४५६७८९",
-                "Devan numerals"
+                "० १ २ ३ ४ ५ ६ ७ ८ ९   0 1 2 3 4 5 6 7 8 9",
+                "Devanagari numerals"
             },
 
             {
@@ -139,7 +139,7 @@ namespace waavs
                 "कृपया सही आकार और संयोजन देखें।",
                 "sentence 2"
             },
-            */
+            
             {
                 "श्रेणी संयोजक ज्ञानी प्रार्थना संस्कृत कृपया ब्रह्म",
                 "stress line"

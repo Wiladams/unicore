@@ -54,7 +54,7 @@
 #include "test_script_shaping_indic_reordering.h"
 #include "test_shaping_devanagari_end_to_end.h"
 #include "test_svg_devanagari_gallery.h"
-
+#include "test_devanagari_script_edge_cases.h"
 
 
 
@@ -144,6 +144,9 @@ void testDevanagari()
     testSVGDevanagariGallery(
         "../resources/unicode.ucdb",
         "../resources/fonts/NotoSansDevanagari-Regular.ttf");
+
+    //testDevanagariScriptEdgeCases("../resources/unicode.ucdb");
+
 }
 
 int main(int argc, char** argv)
