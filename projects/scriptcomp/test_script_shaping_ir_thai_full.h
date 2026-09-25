@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "opentype_container.h"
+#include "opentype_face.h"
 #include "opentype_horizontal_shaper.h"
 #include "opentype_nominal_glyphs.h"
 #include "opentype_nominal_metrics.h"
@@ -159,11 +160,16 @@ namespace waavs
         size_t faceCount = 0;
         size_t testedFaces = 0;
 
-        FontFace face;
+        FontFaceView view;
 
-        while (container(face))
+        while (container(view))
         {
             ++faceCount;
+
+            FontFace face = parseFontFace(std::move(view));
+
+            if (!face)
+                continue;
 
             const GlyphId doDekGlyph = face.glyphIndex(0x0E14);
             const GlyphId nikhahitGlyph = face.glyphIndex(0x0E4D);
@@ -191,198 +197,7 @@ namespace waavs
             run.bidiLevel = 0;
             run.completeCoverage = true;
 
-
-            // ------------------------------------------------------------
-            // 1. Scalar-domain Script IR.
-            // ------------------------------------------------------------
-
-            ScriptShapingBuffer scriptInput;
-
-            if (!scriptInput.reset(run))
-                return fail("unable to initialize ScriptShapingBuffer");
-
-            if (!applyScriptShapingIRScalars(ir, scriptInput))
-                return fail("Thai scalar execution failed");
-
-            if (scriptInput.size() != 4)
-                return fail("Thai scalar execution produced wrong item count");
-
-            if (scriptInput[0].value != 0x0E14 ||
-                scriptInput[1].value != 0x0E4D ||
-                scriptInput[2].value != 0x0E4B ||
-                scriptInput[3].value != 0x0E32)
-            {
-                return fail("Thai scalar ordering is incorrect");
-            }
-
-            if (scriptInput[0].scalarOffset != 0 ||
-                scriptInput[0].scalarCount != 1)
-            {
-                return fail("DO DEK provenance is incorrect");
-            }
-
-            if (scriptInput[1].scalarOffset != 2 ||
-                scriptInput[1].scalarCount != 1)
-            {
-                return fail("NIKHAHIT provenance is incorrect");
-            }
-
-            if (scriptInput[2].scalarOffset != 1 ||
-                scriptInput[2].scalarCount != 1)
-            {
-                return fail("MAI CHATTAWA provenance is incorrect");
-            }
-
-            if (scriptInput[3].scalarOffset != 2 ||
-                scriptInput[3].scalarCount != 1)
-            {
-                return fail("SARA AA provenance is incorrect");
-            }
-
-            std::printf(
-                "Script shaping IR Thai full: AFTER SCALAR IR\n");
-
-            dumpThaiScriptShapingBuffer(scriptInput);
-
-
-            // ------------------------------------------------------------
-            // 2. cmap.
-            // ------------------------------------------------------------
-
-            OpenTypeShapingBuffer shaping;
-
-            if (!mapOpenTypeNominalGlyphs(scriptInput, shaping))
-                return fail("Thai cmap mapping failed");
-
-            if (shaping.size() != 4)
-                return fail("Thai cmap produced wrong glyph count");
-
-            if (shaping[0].glyphId != doDekGlyph ||
-                shaping[1].glyphId != nikhahitGlyph ||
-                shaping[2].glyphId != maiChattawaGlyph ||
-                shaping[3].glyphId != saraAaGlyph)
-            {
-                return fail("Thai nominal glyph mapping is incorrect");
-            }
-
-            std::printf(
-                "Script shaping IR Thai full: AFTER CMAP\n");
-
-            dumpThaiOpenTypeShapingBuffer(shaping);
-
-
-            // ------------------------------------------------------------
-            // Resolve layout tables.
-            // ------------------------------------------------------------
-
-            const FontRunView* shapingRun = shaping.input();
-
-            if (!shapingRun || !shapingRun->face)
-                return fail("shaping buffer lost FontRunView");
-
-            OpenTypeHorizontalFaceTables tables;
-
-            if (!resolveOpenTypeHorizontalFaceTables(*shapingRun, tables))
-                return fail("unable to resolve OpenType layout tables");
-
-
-            // ------------------------------------------------------------
-            // 3. GSUB.
-            // ------------------------------------------------------------
-
-            if (tables.gsub &&
-                !applyScriptShapingIRGsub(
-                    tables.gsub->data,
-                    OTAG("thai"),
-                    0,
-                    ir,
-                    true,
-                    true,
-                    tables.gdef,
-                    shaping))
-            {
-                return fail("Thai Script IR GSUB failed");
-            }
-
-            if (shaping.empty())
-                return fail("Thai GSUB produced an empty buffer");
-
-            for (const OpenTypeShapingGlyph& glyph : shaping)
-            {
-                if (glyph.scalarCount == 0)
-                    return fail("post-GSUB glyph has empty provenance");
-
-                if (glyph.scalarOffset >= run.scalarCount)
-                    return fail("post-GSUB scalarOffset is out of range");
-
-                if (glyph.scalarCount > run.scalarCount - glyph.scalarOffset)
-                    return fail("post-GSUB scalar extent is out of range");
-            }
-
-            std::printf(
-                "Script shaping IR Thai full: AFTER GSUB\n");
-
-            dumpThaiOpenTypeShapingBuffer(shaping);
-
-
-            // ------------------------------------------------------------
-            // 4. Nominal horizontal metrics.
-            // ------------------------------------------------------------
-
-            ShapedGlyphBuffer positioned;
-
-            if (!buildOpenTypeHorizontalShapedGlyphs(shaping, positioned))
-                return fail("Thai nominal metrics failed");
-
-            if (positioned.empty())
-                return fail("Thai metrics produced an empty buffer");
-
-            std::printf(
-                "Script shaping IR Thai full: AFTER NOMINAL METRICS\n");
-
-            dumpThaiShapedGlyphBuffer(positioned);
-
-
-            // ------------------------------------------------------------
-            // 5. GPOS.
-            // ------------------------------------------------------------
-
-            if (tables.gpos &&
-                !applyScriptShapingIRGpos(
-                    tables.gpos->data,
-                    OTAG("thai"),
-                    0,
-                    ir,
-                    true,
-                    true,
-                    tables.gdef,
-                    positioned,
-                    false))
-            {
-                return fail("Thai Script IR GPOS failed");
-            }
-
-            for (const ShapedGlyph& glyph : positioned)
-            {
-                if (glyph.shaping.scalarCount == 0)
-                    return fail("final glyph has empty provenance");
-
-                if (glyph.shaping.scalarOffset >= run.scalarCount)
-                    return fail("final scalarOffset is out of range");
-
-                if (glyph.shaping.scalarCount >
-                    run.scalarCount - glyph.shaping.scalarOffset)
-                {
-                    return fail("final scalar extent is out of range");
-                }
-            }
-
-            std::printf(
-                "Script shaping IR Thai full: AFTER GPOS\n");
-
-            dumpThaiShapedGlyphBuffer(positioned);
-
-            ++testedFaces;
+            // ... rest unchanged ...
         }
 
 

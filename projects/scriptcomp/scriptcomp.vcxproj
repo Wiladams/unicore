@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -142,7 +142,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -162,7 +162,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -180,7 +180,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -200,7 +200,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -254,7 +254,7 @@
     <ClInclude Include="..\..\unicore\scriptir\script_shaping_selection_types.h" />
     <ClInclude Include="..\..\unicore\scriptir\shaping_devanagari.h" />
     <ClInclude Include="..\..\unicore\scriptir\test_script_item_classifier_dump.h" />
-    <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer_devanagari.h" />
+    <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer.h" />
     <ClInclude Include="..\..\unicore\ucdb\unicode_indic_positional_category.h" />
     <ClInclude Include="..\..\unicore\unicode_script_analysis.h" />
     <ClInclude Include="..\..\unicore\unicomp\opentype_gpos_ir_compiler.h" />

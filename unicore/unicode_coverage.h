@@ -265,8 +265,7 @@ namespace waavs
         // --------------------------------------------------------------------
 
         [[nodiscard]]
-        bool containsAll(
-            const UnicodeCoverage& other) const noexcept
+        bool containsAll(const UnicodeCoverage& other) const noexcept
         {
             if (!other.mData)
                 return true;

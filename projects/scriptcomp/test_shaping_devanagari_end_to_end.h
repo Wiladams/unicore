@@ -11,6 +11,7 @@
 
 #include "item_classifier_devanagari.h"
 #include "opentype_container.h"
+#include "opentype_face.h"
 #include "opentype_horizontal_shaper.h"
 #include "opentype_nominal_glyphs.h"
 #include "opentype_nominal_metrics.h"
@@ -566,11 +567,16 @@ namespace waavs
         size_t testedFaces = 0;
         size_t passedCases = 0;
 
-        FontFace face;
+        FontFaceView view;
 
-        while (container(face))
+        while (container(view))
         {
             ++faceCount;
+
+            FontFace face = parseFontFace(std::move(view));
+
+            if (!face)
+                continue;
 
             // KA is enough to identify whether this face is relevant.
             if (face.glyphIndex(0x0915) == 0)

@@ -15,6 +15,7 @@
 
 #include "opentype_bytestream.h"
 #include "opentype_container.h"
+#include "opentype_face.h"
 #include "opentype_glyf.h"
 #include "opentype_horizontal_shaper.h"
 #include "opentype_nominal_glyphs.h"
@@ -238,15 +239,11 @@ namespace waavs
             //
             // FontFace retains the underlying OpenType resource.
             // ------------------------------------------------------------
-
-            SharedMemBuff fontBuffer(fontData.size());
-
-            if (!fontBuffer)
+            FontResource resource;
+            if (!makeFontResource(fontData, resource))
                 return false;
 
-            std::memcpy(fontBuffer.data(), fontData.begin(), fontData.size());
-
-            OpenTypeContainer container(fontBuffer);
+            OpenTypeContainer container(std::move(resource));
 
             if (!container.isValid())
                 return false;
@@ -256,17 +253,22 @@ namespace waavs
             // Select first usable TrueType glyf face.
             // ------------------------------------------------------------
 
-            FontFace candidate;
+            FontFaceView view;
 
-            while (container(candidate))
+            while (container(view))
             {
+                FontFace candidate = parseFontFace(std::move(view));
+
+                if (!candidate)
+                    continue;
+
                 OpenTypeGlyfDecoder decoder;
 
                 if (!makeGlyfDecoder(candidate, decoder))
                     continue;
 
-                mFace = candidate;
-                mDecoder = decoder;
+                mFace = std::move(candidate);
+                mDecoder = std::move(decoder);
                 mFontSize = fontSize;
                 mLoaded = true;
 
@@ -657,14 +659,14 @@ namespace waavs
                     if (!selectionState.reset(mDevanagariShapingIR.derivedSelectionCount))
                         return false;
 
-                    std::printf(
-                        "SVGTextDrawer: Devanagari unit %zu\n"
-                        "  span: [%u,%u)\n"
-                        "  type: %u\n",
-                        i,
-                        static_cast<unsigned>(unit->span.first),
-                        static_cast<unsigned>(unit->span.first + unit->span.count),
-                        static_cast<unsigned>(unit->type));
+                    //std::printf(
+                    //    "SVGTextDrawer: Devanagari unit %zu\n"
+                    //    "  span: [%u,%u)\n"
+                    //    "  type: %u\n",
+                    //    i,
+                    //    static_cast<unsigned>(unit->span.first),
+                    //    static_cast<unsigned>(unit->span.first + unit->span.count),
+                    //    static_cast<unsigned>(unit->type));
 
                     if (!applyScriptShapingIRGsub(
                         tables.gsub->data,

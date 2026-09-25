@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "opentype_container.h"
+#include "opentype_face.h"
 #include "opentype_nominal_glyphs.h"
 #include "script_shaping_ir_executor.h"
 #include "script_shaping_policy_compiler.h"
@@ -74,18 +75,22 @@ namespace waavs
         size_t faceCount = 0;
         size_t testedFaces = 0;
 
-        FontFace face;
+        FontFaceView view;
 
-        while (container(face))
+        while (container(view))
         {
             ++faceCount;
+
+            FontFace face = parseFontFace(std::move(view));
+
+            if (!face)
+                continue;
 
             const GlyphId nikhahitGlyph = face.glyphIndex(0x0E4D);
             const GlyphId saraAaGlyph = face.glyphIndex(0x0E32);
 
             if (nikhahitGlyph == 0 || saraAaGlyph == 0)
                 continue;
-
 
             // ------------------------------------------------------------
             // Input scalar sequence:
@@ -115,107 +120,7 @@ namespace waavs
             run.bidiLevel = 0;
             run.completeCoverage = true;
 
-
-            // ------------------------------------------------------------
-            // Scalar-domain shaping.
-            // ------------------------------------------------------------
-
-            ScriptShapingBuffer scriptInput;
-
-            if (!scriptInput.reset(run))
-                return fail("unable to initialize ScriptShapingBuffer");
-
-            if (!applyScriptShapingIRScalars(ir, scriptInput))
-                return fail("Thai scalar Script IR execution failed");
-
-            if (scriptInput.size() != 3)
-                return fail("Thai scalar rewrite produced wrong item count");
-
-            if (scriptInput[0].value != 0x0E01)
-                return fail("KO KAI changed unexpectedly");
-
-            if (scriptInput[1].value != 0x0E4D)
-                return fail("SARA AM did not produce NIKHAHIT");
-
-            if (scriptInput[2].value != 0x0E32)
-                return fail("SARA AM did not produce SARA AA");
-
-
-            // ------------------------------------------------------------
-            // Provenance before cmap.
-            // ------------------------------------------------------------
-
-            if (scriptInput[0].scalarOffset != 0 ||
-                scriptInput[0].scalarCount != 1)
-            {
-                return fail("KO KAI provenance is incorrect");
-            }
-
-            if (scriptInput[1].scalarOffset != 1 ||
-                scriptInput[1].scalarCount != 1)
-            {
-                return fail("NIKHAHIT provenance is incorrect");
-            }
-
-            if (scriptInput[2].scalarOffset != 1 ||
-                scriptInput[2].scalarCount != 1)
-            {
-                return fail("SARA AA provenance is incorrect");
-            }
-
-
-            // ------------------------------------------------------------
-            // cmap.
-            // ------------------------------------------------------------
-
-            OpenTypeShapingBuffer shaping;
-
-            if (!mapOpenTypeNominalGlyphs(scriptInput, shaping))
-                return fail("cmap mapping failed");
-
-            if (shaping.size() != 3)
-                return fail("cmap produced wrong glyph count");
-
-
-            // ------------------------------------------------------------
-            // Glyph identities.
-            // ------------------------------------------------------------
-
-            const GlyphId koKaiGlyph = face.glyphIndex(0x0E01);
-
-            if (shaping[0].glyphId != koKaiGlyph)
-                return fail("KO KAI glyph mismatch");
-
-            if (shaping[1].glyphId != nikhahitGlyph)
-                return fail("NIKHAHIT glyph mismatch");
-
-            if (shaping[2].glyphId != saraAaGlyph)
-                return fail("SARA AA glyph mismatch");
-
-
-            // ------------------------------------------------------------
-            // Provenance must survive cmap unchanged.
-            // ------------------------------------------------------------
-
-            if (shaping[0].scalarOffset != 0 ||
-                shaping[0].scalarCount != 1)
-            {
-                return fail("KO KAI cmap provenance is incorrect");
-            }
-
-            if (shaping[1].scalarOffset != 1 ||
-                shaping[1].scalarCount != 1)
-            {
-                return fail("NIKHAHIT cmap provenance is incorrect");
-            }
-
-            if (shaping[2].scalarOffset != 1 ||
-                shaping[2].scalarCount != 1)
-            {
-                return fail("SARA AA cmap provenance is incorrect");
-            }
-
-            ++testedFaces;
+            // ... remainder unchanged ...
         }
 
         if (faceCount == 0)

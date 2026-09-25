@@ -48,3 +48,6 @@
 projects/ucdbtest/ARM64/Release/ucdbtest.cpp.obj.dt.module.json.command
 /projects/ucdbtest/ARM64
 /projects/ucdbgen/ARM64
+/projects/fontify/ARM64
+/projects/ucdbtest/ARM64
+/projects/ucdbtest/ARM64

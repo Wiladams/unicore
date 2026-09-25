@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "opentype_container.h"
+#include "opentype_face.h"
 #include "opentype_horizontal_shaper.h"
 #include "opentype_nominal_glyphs.h"
 #include "opentype_nominal_metrics.h"
@@ -260,18 +261,21 @@ namespace waavs
         size_t testedFaces = 0;
         size_t comparedGlyphs = 0;
 
-        FontFace face;
+        FontFaceView view;
 
-        while (container(face))
+        while (container(view))
         {
             ++faceCount;
 
-            const IProvideOpenTypeTables* tables = openTypeTableProvider(face);
+            if (!view.hasTable(OTAG("hhea")) ||
+                !view.hasTable(OTAG("hmtx")))
+            {
+                continue;
+            }
 
-            if (!tables)
-                return fail("font face does not provide OpenType tables");
+            FontFace face = parseFontFace(std::move(view));
 
-            if (!tables->getTable(OTAG("hhea")) || !tables->getTable(OTAG("hmtx")))
+            if (!face)
                 continue;
 
 
