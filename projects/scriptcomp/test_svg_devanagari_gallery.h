@@ -22,7 +22,7 @@ namespace waavs
 
     static bool testSVGDevanagariGallery(
         const ByteSpan& databaseData,
-        const ByteSpan& fontData,
+        FontResource resource,
         std::string* svgOutput = nullptr)
     {
         auto fail = [](const char* message)
@@ -161,7 +161,7 @@ namespace waavs
 
         SVGTextDrawer drawer;
 
-        if (!drawer.load(databaseData, fontData, fontSize))
+        if (!drawer.load(databaseData, resource, fontSize))
             return fail("unable to initialize SVGTextDrawer");
 
 
@@ -301,7 +301,6 @@ namespace waavs
         const char* svgFilename = "test_svg_devanagari_gallery.svg")
     {
         std::vector<uint8_t> databaseBytes;
-        std::vector<uint8_t> fontBytes;
 
         if (!readFileData(databaseFilename, databaseBytes))
         {
@@ -313,7 +312,9 @@ namespace waavs
             return false;
         }
 
-        if (!readFileData(fontFilename, fontBytes))
+        FontResource resource;
+
+        if (!readByteResource(fontFilename, resource))
         {
             std::printf(
                 "SVG Devanagari text gallery: FAIL: unable to read font\n"
@@ -324,11 +325,10 @@ namespace waavs
         }
 
         const ByteSpan databaseData(databaseBytes.data(), databaseBytes.size());
-        const ByteSpan fontData(fontBytes.data(), fontBytes.size());
 
         std::string svg;
 
-        if (!testSVGDevanagariGallery(databaseData, fontData, &svg))
+        if (!testSVGDevanagariGallery(databaseData, resource, &svg))
             return false;
 
         if (!svgFilename || !*svgFilename)

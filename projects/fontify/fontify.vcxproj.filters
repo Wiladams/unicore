@@ -108,6 +108,15 @@
     <ClInclude Include="test_cmap_glyph_index_benchmark.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\unicore\win32\win32_handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\win32\read_only_mapped_file_win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\read_only_mapped_file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fontify.cpp">

@@ -13,17 +13,11 @@
 #include "opentype_gsub_edit.h"
 #include "opentype_gsub_sequence_state.h"
 #include "opentype_gsub_apply_state.h"
+#include "opentype_chain_context_match.h"
+#include "opentype_chain_context_execution_executor.h"
 
 namespace waavs
 {
-    enum class OpenTypeShapingIRResult : uint8_t
-    {
-        Invalid = 0,
-        NoMatch,
-        Match
-    };
-
-
     // ========================================================================
     // Common lookup helpers
     // ========================================================================
@@ -41,14 +35,6 @@ namespace waavs
 
         return true;
     }
-
-    enum class OpenTypeShapingIRGlyphSearchResult : uint8_t
-    {
-        Invalid = 0,
-        End,
-        Found
-    };
-
 
     [[nodiscard]] static inline bool openTypeShapingIRGlyphSetValid(
         const OpenTypeShapingIR& ir,
@@ -93,9 +79,11 @@ namespace waavs
     [[nodiscard]] static inline bool openTypeShapingIRGlyphSetContains(
         const OpenTypeShapingIR& ir,
         OpenTypeShapingIRGlyphSetId id,
-        uint16_t glyphId, bool& result) noexcept
+        uint16_t glyphId, bool& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = false;
+        if (stats) ++stats->glyphSetTests;
 
         if (!openTypeShapingIRGlyphSetValid(ir, id))
             return false;
@@ -108,6 +96,8 @@ namespace waavs
 
         while (first < last)
         {
+            if (stats) ++stats->glyphRangeTests;
+
             const size_t middle =
                 first + (last - first) / 2;
 
@@ -190,9 +180,11 @@ namespace waavs
     [[nodiscard]] static inline bool openTypeShapingIRLookupShouldSkip(
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookupFilter& filter,
-        uint32_t glyphId, bool& result) noexcept
+        uint32_t glyphId, bool& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = false;
+        if (stats) ++stats->filterTests;
 
         if (!openTypeShapingIRLookupFilterValid(ir, filter) ||
             glyphId > 0xFFFFu)
@@ -213,65 +205,41 @@ namespace waavs
             filter.markFilteringSet != kOpenTypeShapingIRInvalid;
 
         const bool needsGlyphClass =
-            ignoreBase ||
-            ignoreLigatures ||
-            ignoreMarks ||
-            useMarkFilteringSet ||
-            filter.markAttachmentType != 0;
+            ignoreBase || ignoreLigatures || ignoreMarks ||
+            useMarkFilteringSet || filter.markAttachmentType != 0;
 
         if (!needsGlyphClass)
             return true;
 
-        const uint16_t glyphClass =
-            ir.gdefGlyphClasses[glyphId];
+        const uint16_t glyphClass = ir.gdefGlyphClasses[glyphId];
 
         if (glyphClass == 1)
-        {
             result = ignoreBase;
-            return true;
-        }
-
-        if (glyphClass == 2)
-        {
+        else if (glyphClass == 2)
             result = ignoreLigatures;
-            return true;
-        }
-
-        if (glyphClass != 3)
-            return true;
-
-        if (ignoreMarks)
+        else if (glyphClass == 3)
         {
-            result = true;
-            return true;
-        }
-
-        if (useMarkFilteringSet)
-        {
-            bool member = false;
-
-            if (!openTypeShapingIRGlyphSetContains(
-                ir, filter.markFilteringSet,
-                static_cast<uint16_t>(glyphId), member))
+            if (ignoreMarks)
+                result = true;
+            else if (useMarkFilteringSet)
             {
-                return false;
+                bool member = false;
+                if (!openTypeShapingIRGlyphSetContains(
+                    ir, filter.markFilteringSet,
+                    static_cast<uint16_t>(glyphId), member, stats))
+                {
+                    return false;
+                }
+                result = !member;
             }
-
-            result = !member;
-            return true;
+            else if (filter.markAttachmentType != 0)
+            {
+                const uint16_t markClass = ir.gdefMarkAttachClasses[glyphId];
+                result = markClass != filter.markAttachmentType;
+            }
         }
 
-        if (filter.markAttachmentType != 0)
-        {
-            const uint16_t markClass =
-                ir.gdefMarkAttachClasses[glyphId];
-
-            result =
-                markClass != filter.markAttachmentType;
-
-            return true;
-        }
-
+        if (stats && result) ++stats->filterSkips;
         return true;
     }
 
@@ -281,7 +249,8 @@ namespace waavs
             const OpenTypeShapingIR& ir,
             const OpenTypeShapingIRLookupFilter& filter,
             const OpenTypeShapingBuffer& buffer,
-            size_t currentIndex, size_t& result) noexcept
+            size_t currentIndex, size_t& result,
+            OpenTypeShapingExecutionStats* stats) noexcept
     {
         result = buffer.size();
 
@@ -295,10 +264,11 @@ namespace waavs
             index < buffer.size();
             ++index)
         {
+            if (stats) ++stats->glyphVisits;
             bool skip = false;
 
             if (!openTypeShapingIRLookupShouldSkip(
-                ir, filter, buffer[index].glyphId, skip))
+                ir, filter, buffer[index].glyphId, skip, stats))
             {
                 return OpenTypeShapingIRGlyphSearchResult::Invalid;
             }
@@ -319,7 +289,8 @@ namespace waavs
             const OpenTypeShapingIR& ir,
             const OpenTypeShapingIRLookupFilter& filter,
             const OpenTypeShapingBuffer& buffer,
-            size_t currentIndex, size_t& result) noexcept
+            size_t currentIndex, size_t& result,
+            OpenTypeShapingExecutionStats* stats) noexcept
     {
         result = buffer.size();
 
@@ -334,11 +305,12 @@ namespace waavs
         while (index != 0)
         {
             --index;
+            if (stats) ++stats->glyphVisits;
 
             bool skip = false;
 
             if (!openTypeShapingIRLookupShouldSkip(
-                ir, filter, buffer[index].glyphId, skip))
+                ir, filter, buffer[index].glyphId, skip, stats))
             {
                 return OpenTypeShapingIRGlyphSearchResult::Invalid;
             }
@@ -492,7 +464,8 @@ namespace waavs
     static inline OpenTypeShapingIRResult resolveOpenTypeGsubIRSingleLookupUnchecked(
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookup& lookup,
-        uint16_t glyphId, uint16_t& replacement) noexcept
+        uint16_t glyphId, uint16_t& replacement,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         replacement = 0;
 
@@ -500,6 +473,7 @@ namespace waavs
 
         for (size_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRResult result =
                 resolveOpenTypeGsubIRSingleSubtableUnchecked(
                     ir,
@@ -753,7 +727,8 @@ namespace waavs
     static inline OpenTypeShapingIRResult resolveOpenTypeGsubIRMultipleLookupUnchecked(
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookup& lookup,
-        uint16_t glyphId, uint32_t& sequenceIndex) noexcept
+        uint16_t glyphId, uint32_t& sequenceIndex,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         sequenceIndex = kOpenTypeShapingIRInvalid;
 
@@ -761,6 +736,7 @@ namespace waavs
 
         for (size_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRResult result =
                 resolveOpenTypeGsubIRMultipleSubtableUnchecked(
                     ir,
@@ -1072,13 +1048,15 @@ namespace waavs
     static inline OpenTypeShapingIRResult resolveOpenTypeGsubIRAlternateLookupUnchecked(
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookup& lookup,
-        uint16_t glyphId, uint16_t& replacement) noexcept
+        uint16_t glyphId, uint16_t& replacement,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         replacement = 0;
         const size_t firstSubtable = lookup.payloadOffset;
 
         for (size_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             uint32_t setIndex = kOpenTypeShapingIRInvalid;
 
             const OpenTypeShapingIRResult result =
@@ -1345,9 +1323,11 @@ namespace waavs
             const OpenTypeShapingIRGsubLigatureSubtable& subtable,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRLigatureMatch& match) noexcept
+            OpenTypeGsubIRLigatureMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->subtableAttempts;
 
         if (glyphIndex >= buffer.size())
             return OpenTypeShapingIRResult::Invalid;
@@ -1371,6 +1351,7 @@ namespace waavs
             ligatureIndex < pair->ligatureCount;
             ++ligatureIndex)
         {
+            if (stats) ++stats->ligatureCandidates;
             const OpenTypeShapingIRGsubLigature& ligature =
                 ir.gsubLigatures[
                     pair->ligatureOffset + ligatureIndex];
@@ -1386,6 +1367,7 @@ namespace waavs
                 componentIndex < ligature.componentCount;
                 ++componentIndex)
             {
+                if (stats) ++stats->ligatureComponentTests;
                 const uint16_t expectedGlyph =
                     ir.gsubLigatureComponents[
                         ligature.componentOffset +
@@ -1396,7 +1378,7 @@ namespace waavs
                 const OpenTypeShapingIRGlyphSearchResult search =
                     openTypeShapingIRLookupNext(
                         ir, filter, buffer,
-                        position, nextPosition);
+                        position, nextPosition, stats);
 
                 if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                     return OpenTypeShapingIRResult::Invalid;
@@ -1450,7 +1432,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRLigatureMatch& match) noexcept
+            OpenTypeGsubIRLigatureMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -1465,7 +1448,7 @@ namespace waavs
                     ir.gsubLigatureSubtables[firstSubtable + i],
                     buffer,
                     glyphIndex,
-                    match);
+                    match, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -1487,7 +1470,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const OpenTypeShapingBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGsubIRLigatureMatch& match) noexcept
+        OpenTypeGsubIRLigatureMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -1495,7 +1479,7 @@ namespace waavs
             return OpenTypeShapingIRResult::Invalid;
 
         return resolveOpenTypeGsubIRLigatureLookupUnchecked(
-            ir, lookup, buffer, glyphIndex, match);
+            ir, lookup, buffer, glyphIndex, match, stats);
     }
 
 
@@ -2073,9 +2057,11 @@ namespace waavs
             const OpenTypeShapingIRLookupFilter& filter,
             const OpenTypeShapingIRGsubReverseChainSingleSubtable& subtable,
             const OpenTypeShapingBuffer& buffer,
-            size_t glyphIndex, uint16_t& replacement) noexcept
+            size_t glyphIndex, uint16_t& replacement,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         replacement = 0;
+        if (stats) ++stats->subtableAttempts;
 
         if (glyphIndex >= buffer.size() || buffer[glyphIndex].glyphId > 0xFFFFu)
             return OpenTypeShapingIRResult::Invalid;
@@ -2097,7 +2083,7 @@ namespace waavs
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupPrevious(
-                    ir, filter, buffer, position, previousPosition);
+                    ir, filter, buffer, position, previousPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2111,7 +2097,7 @@ namespace waavs
                 !openTypeShapingIRGlyphSetContains(
                     ir,
                     ir.gsubReverseChainSingleSets[subtable.backtrackSetOffset + i],
-                    static_cast<uint16_t>(glyphId), member))
+                    static_cast<uint16_t>(glyphId), member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2130,7 +2116,7 @@ namespace waavs
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupNext(
-                    ir, filter, buffer, position, nextPosition);
+                    ir, filter, buffer, position, nextPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2144,7 +2130,7 @@ namespace waavs
                 !openTypeShapingIRGlyphSetContains(
                     ir,
                     ir.gsubReverseChainSingleSets[subtable.lookaheadSetOffset + i],
-                    static_cast<uint16_t>(glyphId), member))
+                    static_cast<uint16_t>(glyphId), member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2165,7 +2151,8 @@ namespace waavs
             const OpenTypeShapingIR& ir,
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
-            size_t glyphIndex, uint16_t& replacement) noexcept
+            size_t glyphIndex, uint16_t& replacement,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         replacement = 0;
         const size_t firstSubtable = lookup.payloadOffset;
@@ -2176,7 +2163,7 @@ namespace waavs
                 resolveOpenTypeGsubIRReverseChainSingleSubtableUnchecked(
                     ir, lookup.filter,
                     ir.gsubReverseChainSingleSubtables[firstSubtable + i],
-                    buffer, glyphIndex, replacement);
+                    buffer, glyphIndex, replacement, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -2396,9 +2383,11 @@ namespace waavs
             const OpenTypeShapingIRGsubContextRule& rule,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRContextMatch& match) noexcept
+            OpenTypeGsubIRContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->contextRuleAttempts;
 
         if (glyphIndex >= buffer.size() || rule.inputCount == 0)
             return OpenTypeShapingIRResult::Invalid;
@@ -2409,12 +2398,13 @@ namespace waavs
             return OpenTypeShapingIRResult::Invalid;
 
         bool member = false;
+        if (stats) ++stats->contextPositionTests;
 
         if (!openTypeShapingIRGlyphSetContains(
             ir,
             ir.gsubContextInputSets[rule.inputSetOffset],
             static_cast<uint16_t>(firstGlyph),
-            member))
+            member, stats))
         {
             return OpenTypeShapingIRResult::Invalid;
         }
@@ -2431,11 +2421,12 @@ namespace waavs
             sequenceIndex < rule.inputCount;
             ++sequenceIndex)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupNext(
-                    ir, filter, buffer, position, nextPosition);
+                    ir, filter, buffer, position, nextPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2457,7 +2448,7 @@ namespace waavs
                 ir.gsubContextInputSets[
                     rule.inputSetOffset + sequenceIndex],
                     static_cast<uint16_t>(glyphId),
-                    member))
+                    member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2474,6 +2465,7 @@ namespace waavs
 
         match.lookupOffset = rule.lookupOffset;
         match.lookupCount = rule.lookupCount;
+        if (stats) ++stats->contextMatches;
 
         return OpenTypeShapingIRResult::Match;
     }
@@ -2492,9 +2484,11 @@ namespace waavs
             const OpenTypeShapingIRGsubContextSubtable& subtable,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRContextMatch& match) noexcept
+            OpenTypeGsubIRContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->subtableAttempts;
 
         for (size_t i = 0; i < subtable.ruleCount; ++i)
         {
@@ -2503,7 +2497,7 @@ namespace waavs
 
             const OpenTypeShapingIRResult result =
                 matchOpenTypeGsubIRContextRuleUnchecked(
-                    ir, filter, rule, buffer, glyphIndex, match);
+                    ir, filter, rule, buffer, glyphIndex, match, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -2528,7 +2522,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRContextMatch& match) noexcept
+            OpenTypeGsubIRContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -2543,7 +2538,7 @@ namespace waavs
                     ir.gsubContextSubtables[firstSubtable + i],
                     buffer,
                     glyphIndex,
-                    match);
+                    match, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -2562,7 +2557,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRContextMatch& match) noexcept
+            OpenTypeGsubIRContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -2570,31 +2566,13 @@ namespace waavs
             return OpenTypeShapingIRResult::Invalid;
 
         return resolveOpenTypeGsubIRContextLookupUnchecked(
-            ir, lookup, buffer, glyphIndex, match);
+            ir, lookup, buffer, glyphIndex, match, stats);
     }
 
 
     // ========================================================================
     // GSUB Chain Context
     // ========================================================================
-
-    struct OpenTypeGsubIRChainContextMatch
-    {
-        std::vector<size_t> inputPositions{};
-        uint32_t lookupOffset{ 0 };
-        uint32_t lookupCount{ 0 };
-
-        void clear() noexcept
-        {
-            inputPositions.clear();
-            lookupOffset = 0;
-            lookupCount = 0;
-        }
-
-        [[nodiscard]] bool empty() const noexcept { return inputPositions.empty(); }
-        [[nodiscard]] size_t size() const noexcept { return inputPositions.size(); }
-    };
-
 
     // ========================================================================
     // openTypeGsubIRChainContextRuleValid
@@ -2766,9 +2744,11 @@ namespace waavs
             const OpenTypeShapingIRGsubChainContextRule& rule,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRChainContextMatch& match) noexcept
+            OpenTypeGsubIRChainContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->contextRuleAttempts;
 
         if (glyphIndex >= buffer.size() || rule.inputCount == 0)
             return OpenTypeShapingIRResult::Invalid;
@@ -2779,11 +2759,12 @@ namespace waavs
             return OpenTypeShapingIRResult::Invalid;
 
         bool member = false;
+        if (stats) ++stats->contextPositionTests;
 
         if (!openTypeShapingIRGlyphSetContains(
             ir,
             ir.gsubChainContextSets[rule.inputSetOffset],
-            static_cast<uint16_t>(firstGlyph), member))
+            static_cast<uint16_t>(firstGlyph), member, stats))
         {
             return OpenTypeShapingIRResult::Invalid;
         }
@@ -2801,11 +2782,12 @@ namespace waavs
             backtrackIndex < rule.backtrackCount;
             ++backtrackIndex)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t previousPosition = 0;
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupPrevious(
-                    ir, filter, buffer, position, previousPosition);
+                    ir, filter, buffer, position, previousPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2825,7 +2807,7 @@ namespace waavs
                 ir,
                 ir.gsubChainContextSets[
                     rule.backtrackSetOffset + backtrackIndex],
-                    static_cast<uint16_t>(glyphId), member))
+                    static_cast<uint16_t>(glyphId), member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2846,11 +2828,12 @@ namespace waavs
             inputIndex < rule.inputCount;
             ++inputIndex)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupNext(
-                    ir, filter, buffer, position, nextPosition);
+                    ir, filter, buffer, position, nextPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2870,7 +2853,7 @@ namespace waavs
                 ir,
                 ir.gsubChainContextSets[
                     rule.inputSetOffset + inputIndex],
-                    static_cast<uint16_t>(glyphId), member))
+                    static_cast<uint16_t>(glyphId), member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2892,11 +2875,12 @@ namespace waavs
             lookaheadIndex < rule.lookaheadCount;
             ++lookaheadIndex)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeShapingIRGlyphSearchResult search =
                 openTypeShapingIRLookupNext(
-                    ir, filter, buffer, position, nextPosition);
+                    ir, filter, buffer, position, nextPosition, stats);
 
             if (search == OpenTypeShapingIRGlyphSearchResult::Invalid)
                 return OpenTypeShapingIRResult::Invalid;
@@ -2916,7 +2900,7 @@ namespace waavs
                 ir,
                 ir.gsubChainContextSets[
                     rule.lookaheadSetOffset + lookaheadIndex],
-                    static_cast<uint16_t>(glyphId), member))
+                    static_cast<uint16_t>(glyphId), member, stats))
             {
                 return OpenTypeShapingIRResult::Invalid;
             }
@@ -2932,6 +2916,7 @@ namespace waavs
 
         match.lookupOffset = rule.lookupOffset;
         match.lookupCount = rule.lookupCount;
+        if (stats) ++stats->contextMatches;
 
         return OpenTypeShapingIRResult::Match;
     }
@@ -2948,7 +2933,8 @@ namespace waavs
             const OpenTypeShapingIRGsubChainContextSubtable& subtable,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRChainContextMatch& match) noexcept
+            OpenTypeGsubIRChainContextMatch& match,
+            OpenTypeShapingExecutionStats* stats) noexcept
     {
         match.clear();
 
@@ -2959,7 +2945,7 @@ namespace waavs
 
             const OpenTypeShapingIRResult result =
                 matchOpenTypeGsubIRChainContextRuleUnchecked(
-                    ir, filter, rule, buffer, glyphIndex, match);
+                    ir, filter, rule, buffer, glyphIndex, match, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -2982,7 +2968,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRChainContextMatch& match) noexcept
+            OpenTypeGsubIRChainContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -2990,6 +2977,7 @@ namespace waavs
 
         for (size_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRResult result =
                 resolveOpenTypeGsubIRChainContextSubtableUnchecked(
                     ir,
@@ -2997,7 +2985,7 @@ namespace waavs
                     ir.gsubChainContextSubtables[firstSubtable + i],
                     buffer,
                     glyphIndex,
-                    match);
+                    match, stats);
 
             if (result == OpenTypeShapingIRResult::Invalid ||
                 result == OpenTypeShapingIRResult::Match)
@@ -3016,7 +3004,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             const OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubIRChainContextMatch& match) noexcept
+            OpenTypeGsubIRChainContextMatch& match,
+            OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -3024,7 +3013,7 @@ namespace waavs
             return OpenTypeShapingIRResult::Invalid;
 
         return resolveOpenTypeGsubIRChainContextLookupUnchecked(
-            ir, lookup, buffer, glyphIndex, match);
+            ir, lookup, buffer, glyphIndex, match, stats);
     }
 
 
@@ -3071,7 +3060,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubEditLog& edits)
+            OpenTypeGsubEditLog& edits,
+            OpenTypeShapingExecutionStats* stats = nullptr)
     {
         if (!openTypeGsubIRSingleLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size() ||
@@ -3086,7 +3076,7 @@ namespace waavs
             resolveOpenTypeGsubIRSingleLookupUnchecked(
                 ir, lookup,
                 static_cast<uint16_t>(buffer[glyphIndex].glyphId),
-                replacement);
+                replacement, stats);
 
         if (result == OpenTypeShapingIRResult::NoMatch)
             return OpenTypeGsubApplyAtResult::NoMatch;
@@ -3114,7 +3104,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubEditLog& edits)
+            OpenTypeGsubEditLog& edits,
+            OpenTypeShapingExecutionStats* stats = nullptr)
     {
         if (!openTypeGsubIRMultipleLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size() ||
@@ -3129,7 +3120,7 @@ namespace waavs
             resolveOpenTypeGsubIRMultipleLookupUnchecked(
                 ir, lookup,
                 static_cast<uint16_t>(buffer[glyphIndex].glyphId),
-                sequenceIndex);
+                sequenceIndex, stats);
 
         if (result == OpenTypeShapingIRResult::NoMatch)
             return OpenTypeGsubApplyAtResult::NoMatch;
@@ -3170,7 +3161,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubEditLog& edits)
+            OpenTypeGsubEditLog& edits,
+            OpenTypeShapingExecutionStats* stats = nullptr)
     {
         if (!openTypeGsubIRLigatureLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size())
@@ -3182,7 +3174,7 @@ namespace waavs
 
         const OpenTypeShapingIRResult result =
             resolveOpenTypeGsubIRLigatureLookupUnchecked(
-                ir, lookup, buffer, glyphIndex, match);
+                ir, lookup, buffer, glyphIndex, match, stats);
 
         if (result == OpenTypeShapingIRResult::NoMatch)
             return OpenTypeGsubApplyAtResult::NoMatch;
@@ -3219,7 +3211,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubEditLog& edits)
+            OpenTypeGsubEditLog& edits,
+            OpenTypeShapingExecutionStats* stats = nullptr)
     {
         if (!openTypeGsubIRAlternateLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size() || buffer[glyphIndex].glyphId > 0xFFFFu)
@@ -3233,7 +3226,7 @@ namespace waavs
             resolveOpenTypeGsubIRAlternateLookupUnchecked(
                 ir, lookup,
                 static_cast<uint16_t>(buffer[glyphIndex].glyphId),
-                replacement);
+                replacement, stats);
 
         if (result == OpenTypeShapingIRResult::NoMatch)
             return OpenTypeGsubApplyAtResult::NoMatch;
@@ -3261,7 +3254,8 @@ namespace waavs
             const OpenTypeShapingIRLookup& lookup,
             OpenTypeShapingBuffer& buffer,
             size_t glyphIndex,
-            OpenTypeGsubEditLog& edits)
+            OpenTypeGsubEditLog& edits,
+            OpenTypeShapingExecutionStats* stats = nullptr)
     {
         if (!openTypeGsubIRReverseChainSingleLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size())
@@ -3273,7 +3267,7 @@ namespace waavs
 
         const OpenTypeShapingIRResult result =
             resolveOpenTypeGsubIRReverseChainSingleLookupUnchecked(
-                ir, lookup, buffer, glyphIndex, replacement);
+                ir, lookup, buffer, glyphIndex, replacement, stats);
 
         if (result == OpenTypeShapingIRResult::NoMatch)
             return OpenTypeGsubApplyAtResult::NoMatch;
@@ -3367,7 +3361,7 @@ namespace waavs
 
         const OpenTypeShapingIRResult matchResult =
             resolveOpenTypeGsubIRContextLookupUnchecked(
-                ir, lookup, buffer, glyphIndex, match);
+                ir, lookup, buffer, glyphIndex, match, state.stats);
 
         if (matchResult == OpenTypeShapingIRResult::Invalid)
             return OpenTypeGsubApplyAtResult::Invalid;
@@ -3417,6 +3411,8 @@ namespace waavs
 
             const size_t firstNewEdit =
                 edits.size();
+
+            if (state.stats) ++state.stats->nestedLookupCalls;
 
             const OpenTypeGsubApplyAtResult nestedResult =
                 applyOpenTypeGsubIRLookupAt(
@@ -3495,10 +3491,58 @@ namespace waavs
         }
 
         OpenTypeGsubIRChainContextMatch match;
+        OpenTypeShapingIRResult matchResult = OpenTypeShapingIRResult::Invalid;
 
-        const OpenTypeShapingIRResult matchResult =
-            resolveOpenTypeGsubIRChainContextLookupUnchecked(
-                ir, lookup, buffer, glyphIndex, match);
+        if (state.chainContextExec)
+        {
+            const OpenTypeShapingIRLookup* first = ir.lookups.data();
+            const OpenTypeShapingIRLookup* last = first + ir.lookups.size();
+
+            if (&lookup < first || &lookup >= last)
+                return OpenTypeGsubApplyAtResult::Invalid;
+
+            const OpenTypeShapingIRLookupId lookupId =
+                static_cast<OpenTypeShapingIRLookupId>(&lookup - first);
+
+            if (state.chainContextExec->lookup(lookupId))
+            {
+                OpenTypeChainExecSelectionStats chainStats;
+
+                matchResult = resolveOpenTypeChainExecLookup(
+                    ir, lookupId, *state.chainContextExec,
+                    buffer, glyphIndex, match, &chainStats);
+
+                if (state.stats)
+                {
+                    ++state.stats->chainExecLookups;
+                    state.stats->chainExecStatesVisited += chainStats.statesVisited;
+                    state.stats->chainExecTransitionsTested += chainStats.transitionsTested;
+                    state.stats->chainExecAcceptsVisited += chainStats.acceptsVisited;
+                    state.stats->chainExecCandidatesCollected += chainStats.candidatesCollected;
+                    state.stats->chainExecCandidatesTested += chainStats.candidatesTested;
+                    state.stats->chainExecCompiledRuleTests += chainStats.compiledRuleTests;
+                    state.stats->chainExecBacktrackPositionTests += chainStats.compiledBacktrackPositionTests;
+                    state.stats->chainExecLookaheadPositionTests += chainStats.compiledLookaheadPositionTests;
+                    state.stats->chainExecProvenBacktrackSkipped += chainStats.provenBacktrackPositionsSkipped;
+                    state.stats->chainExecProvenLookaheadSkipped += chainStats.provenLookaheadPositionsSkipped;
+                    state.stats->chainExecSemanticFallbackCalls += chainStats.semanticFallbackCalls;
+                }
+            }
+            else
+            {
+                if (state.stats) ++state.stats->chainExecFallbackLookups;
+
+                matchResult = resolveOpenTypeGsubIRChainContextLookupUnchecked(
+                    ir, lookup, buffer, glyphIndex, match, state.stats);
+            }
+        }
+        else
+        {
+            if (state.stats) ++state.stats->chainExecFallbackLookups;
+
+            matchResult = resolveOpenTypeGsubIRChainContextLookupUnchecked(
+                ir, lookup, buffer, glyphIndex, match, state.stats);
+        }
 
         if (matchResult == OpenTypeShapingIRResult::Invalid)
             return OpenTypeGsubApplyAtResult::Invalid;
@@ -3541,6 +3585,8 @@ namespace waavs
                 return OpenTypeGsubApplyAtResult::Invalid;
 
             const size_t firstNewEdit = edits.size();
+
+            if (state.stats) ++state.stats->nestedLookupCalls;
 
             const OpenTypeGsubApplyAtResult nestedResult =
                 applyOpenTypeGsubIRLookupAt(
@@ -3607,48 +3653,67 @@ namespace waavs
         if (glyphIndex >= buffer.size())
             return OpenTypeGsubApplyAtResult::Invalid;
 
-        const OpenTypeShapingIRLookup* lookup =
-            ir.lookup(lookupId);
-
+        const OpenTypeShapingIRLookup* lookup = ir.lookup(lookupId);
         if (!lookup)
             return OpenTypeGsubApplyAtResult::Invalid;
 
         OpenTypeGsubApplyScope scope(state);
-
         if (!scope || !state.consumeOperation())
             return OpenTypeGsubApplyAtResult::Invalid;
+
+        OpenTypeShapingExecutionStats* stats = state.stats;
+        if (stats)
+        {
+            ++stats->lookupAttempts;
+            ++stats->glyphVisits;
+        }
+
+        const size_t firstNewEdit = edits.size();
+
+        auto finish = [&](OpenTypeGsubApplyAtResult result) noexcept
+        {
+            if (!stats || result != OpenTypeGsubApplyAtResult::Match)
+                return result;
+
+            ++stats->lookupMatches;
+
+            if (lookup->op != OpenTypeShapingIROp::GsubContext &&
+                lookup->op != OpenTypeShapingIROp::GsubChainContext)
+            {
+                for (size_t i = firstNewEdit; i < edits.size(); ++i)
+                {
+                    const OpenTypeGsubEdit& edit = edits[i];
+                    if (!edit) continue;
+                    if (edit.outputCount > 1) stats->bufferInsertions += edit.outputCount - 1;
+                    if (edit.inputPositions.size() > 1) stats->bufferErasures += edit.inputPositions.size() - 1;
+                }
+            }
+
+            return result;
+        };
 
         switch (lookup->op)
         {
         case OpenTypeShapingIROp::GsubSingle:
-            return applyOpenTypeGsubIRSingleAt(
-                ir, *lookup, buffer, glyphIndex, edits);
+            return finish(applyOpenTypeGsubIRSingleAt(ir, *lookup, buffer, glyphIndex, edits, stats));
 
         case OpenTypeShapingIROp::GsubMultiple:
-            return applyOpenTypeGsubIRMultipleAt(
-                ir, *lookup, buffer, glyphIndex, edits);
+            return finish(applyOpenTypeGsubIRMultipleAt(ir, *lookup, buffer, glyphIndex, edits, stats));
 
         case OpenTypeShapingIROp::GsubAlternate:
-            return applyOpenTypeGsubIRAlternateAt(
-                ir, *lookup, buffer, glyphIndex, edits);
+            return finish(applyOpenTypeGsubIRAlternateAt(ir, *lookup, buffer, glyphIndex, edits, stats));
 
         case OpenTypeShapingIROp::GsubLigature:
-            return applyOpenTypeGsubIRLigatureAt(
-                ir, *lookup, buffer, glyphIndex, edits);
+            return finish(applyOpenTypeGsubIRLigatureAt(ir, *lookup, buffer, glyphIndex, edits, stats));
 
         case OpenTypeShapingIROp::GsubContext:
-            return applyOpenTypeGsubIRContextAt(
-                ir, *lookup, buffer, glyphIndex,
-                state, edits);
+            return finish(applyOpenTypeGsubIRContextAt(ir, *lookup, buffer, glyphIndex, state, edits));
 
         case OpenTypeShapingIROp::GsubChainContext:
-            return applyOpenTypeGsubIRChainContextAt(
-                ir, *lookup, buffer, glyphIndex,
-                state, edits);
+            return finish(applyOpenTypeGsubIRChainContextAt(ir, *lookup, buffer, glyphIndex, state, edits));
 
         case OpenTypeShapingIROp::GsubReverseChainSingle:
-            return applyOpenTypeGsubIRReverseChainSingleAt(
-                ir, *lookup, buffer, glyphIndex, edits);
+            return finish(applyOpenTypeGsubIRReverseChainSingleAt(ir, *lookup, buffer, glyphIndex, edits, stats));
 
         default:
             return OpenTypeGsubApplyAtResult::Invalid;

@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <limits>
 
+#include "opentype_shaping_execution_stats.h"
+
 namespace waavs
 {
     // ====================================================================
@@ -108,6 +110,8 @@ namespace waavs
         size_t operationBudget{
             std::numeric_limits<size_t>::max()
         };
+
+        OpenTypeShapingExecutionStats* stats{ nullptr };
 
         [[nodiscard]] bool enter() noexcept
         {

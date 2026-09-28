@@ -49,9 +49,11 @@ namespace waavs
 
     [[nodiscard]] static inline bool openTypeGposIRGlyphSetContains(
         const OpenTypeShapingIR& ir, OpenTypeShapingIRGlyphSetId id,
-        uint16_t glyphId, bool& result) noexcept
+        uint16_t glyphId, bool& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = false;
+        if (stats) ++stats->glyphSetTests;
 
         if (!openTypeGposIRGlyphSetValid(ir, id))
             return false;
@@ -63,6 +65,7 @@ namespace waavs
 
         while (first < last)
         {
+            if (stats) ++stats->glyphRangeTests;
             const size_t middle = first + (last - first) / 2;
             const OpenTypeShapingIRGlyphRange& range = ir.glyphRanges[middle];
 
@@ -96,7 +99,8 @@ namespace waavs
 
     [[nodiscard]] static inline bool openTypeGposIRGlyphClassValue(
         const OpenTypeShapingIR& ir, OpenTypeShapingIRGlyphClassMapId id,
-        uint16_t glyphId, uint16_t& result) noexcept
+        uint16_t glyphId, uint16_t& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = 0;
 
@@ -110,6 +114,7 @@ namespace waavs
 
         while (first < last)
         {
+            if (stats) ++stats->glyphRangeTests;
             const size_t middle = first + (last - first) / 2;
             const OpenTypeShapingIRGlyphClassRange& range = ir.glyphClassRanges[middle];
 
@@ -185,88 +190,54 @@ namespace waavs
 
     [[nodiscard]] static inline bool openTypeGposIRLookupShouldSkip(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookupFilter& filter,
-        uint32_t glyphId, bool& result) noexcept
+        uint32_t glyphId, bool& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = false;
+        if (stats) ++stats->filterTests;
 
         if (!openTypeGposIRLookupFilterValid(ir, filter) || glyphId > 0xFFFFu)
             return false;
 
-        const bool ignoreBase =
-            (filter.flags & OpenTypeShapingIRIgnoreBaseGlyphs) != 0;
+        const bool ignoreBase = (filter.flags & OpenTypeShapingIRIgnoreBaseGlyphs) != 0;
+        const bool ignoreLigatures = (filter.flags & OpenTypeShapingIRIgnoreLigatures) != 0;
+        const bool ignoreMarks = (filter.flags & OpenTypeShapingIRIgnoreMarks) != 0;
+        const bool useMarkFilteringSet = filter.markFilteringSet != kOpenTypeShapingIRInvalid;
+        const bool needsGlyphClass = ignoreBase || ignoreLigatures || ignoreMarks ||
+            useMarkFilteringSet || filter.markAttachmentType != 0;
 
-        const bool ignoreLigatures =
-            (filter.flags & OpenTypeShapingIRIgnoreLigatures) != 0;
-
-        const bool ignoreMarks =
-            (filter.flags & OpenTypeShapingIRIgnoreMarks) != 0;
-
-        const bool useMarkFilteringSet =
-            filter.markFilteringSet != kOpenTypeShapingIRInvalid;
-
-        const bool needsGlyphClass =
-            ignoreBase ||
-            ignoreLigatures ||
-            ignoreMarks ||
-            useMarkFilteringSet ||
-            filter.markAttachmentType != 0;
-
-        if (!needsGlyphClass)
-            return true;
+        if (!needsGlyphClass) return true;
 
         const uint16_t glyphClass = ir.gdefGlyphClasses[glyphId];
 
-        if (glyphClass == 1)
+        if (glyphClass == 1) result = ignoreBase;
+        else if (glyphClass == 2) result = ignoreLigatures;
+        else if (glyphClass == 3)
         {
-            result = ignoreBase;
-            return true;
-        }
-
-        if (glyphClass == 2)
-        {
-            result = ignoreLigatures;
-            return true;
-        }
-
-        if (glyphClass != 3)
-            return true;
-
-        if (ignoreMarks)
-        {
-            result = true;
-            return true;
-        }
-
-        if (useMarkFilteringSet)
-        {
-            bool member = false;
-
-            if (!openTypeGposIRGlyphSetContains(
-                ir, filter.markFilteringSet,
-                static_cast<uint16_t>(glyphId), member))
+            if (ignoreMarks) result = true;
+            else if (useMarkFilteringSet)
             {
-                return false;
+                bool member = false;
+                if (!openTypeGposIRGlyphSetContains(
+                    ir, filter.markFilteringSet, static_cast<uint16_t>(glyphId), member, stats))
+                {
+                    return false;
+                }
+                result = !member;
             }
-
-            result = !member;
-            return true;
+            else if (filter.markAttachmentType != 0)
+                result = ir.gdefMarkAttachClasses[glyphId] != filter.markAttachmentType;
         }
 
-        if (filter.markAttachmentType != 0)
-        {
-            result =
-                ir.gdefMarkAttachClasses[glyphId] != filter.markAttachmentType;
-
-            return true;
-        }
-
+        if (stats && result) ++stats->filterSkips;
         return true;
     }
 
 
     static inline OpenTypeGposIRGlyphSearchResult openTypeGposIRLookupNext(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookupFilter& filter,
-        const ShapedGlyphBuffer& buffer, size_t currentIndex, size_t& result) noexcept
+        const ShapedGlyphBuffer& buffer, size_t currentIndex, size_t& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = buffer.size();
 
@@ -278,10 +249,11 @@ namespace waavs
 
         for (size_t index = currentIndex + 1; index < buffer.size(); ++index)
         {
+            if (stats) ++stats->glyphVisits;
             bool skip = false;
 
             if (!openTypeGposIRLookupShouldSkip(
-                ir, filter, buffer[index].shaping.glyphId, skip))
+                ir, filter, buffer[index].shaping.glyphId, skip, stats))
             {
                 return OpenTypeGposIRGlyphSearchResult::Invalid;
             }
@@ -299,7 +271,8 @@ namespace waavs
 
     static inline OpenTypeGposIRGlyphSearchResult openTypeGposIRLookupPrevious(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookupFilter& filter,
-        const ShapedGlyphBuffer& buffer, size_t currentIndex, size_t& result) noexcept
+        const ShapedGlyphBuffer& buffer, size_t currentIndex, size_t& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = 0;
 
@@ -312,11 +285,12 @@ namespace waavs
         for (size_t index = currentIndex; index != 0;)
         {
             --index;
+            if (stats) ++stats->glyphVisits;
 
             bool skip = false;
 
             if (!openTypeGposIRLookupShouldSkip(
-                ir, filter, buffer[index].shaping.glyphId, skip))
+                ir, filter, buffer[index].shaping.glyphId, skip, stats))
             {
                 return OpenTypeGposIRGlyphSearchResult::Invalid;
             }
@@ -417,7 +391,8 @@ namespace waavs
 
     static inline OpenTypeGposIRResult resolveOpenTypeGposIRSingleLookup(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookup& lookup,
-        uint16_t glyphId, OpenTypeShapingIRPositionAdjustment& adjustment) noexcept
+        uint16_t glyphId, OpenTypeShapingIRPositionAdjustment& adjustment,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         adjustment = {};
 
@@ -426,6 +401,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposSingleSubtable& subtable =
                 ir.gposSingleSubtables[lookup.payloadOffset + i];
 
@@ -443,7 +419,8 @@ namespace waavs
 
     static inline OpenTypeGposIRResult applyOpenTypeGposIRSingleLookupAt(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookup& lookup,
-        ShapedGlyphBuffer& buffer, size_t glyphIndex) noexcept
+        ShapedGlyphBuffer& buffer, size_t glyphIndex,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (!openTypeGposIRSingleLookupValid(ir, lookup) ||
             glyphIndex >= buffer.size() ||
@@ -458,7 +435,7 @@ namespace waavs
             resolveOpenTypeGposIRSingleLookup(
                 ir, lookup,
                 static_cast<uint16_t>(buffer[glyphIndex].shaping.glyphId),
-                adjustment);
+                adjustment, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -652,7 +629,8 @@ namespace waavs
         const OpenTypeShapingIRGposPairClassSubtable& subtable,
         uint16_t firstGlyph, uint16_t secondGlyph,
         OpenTypeShapingIRPositionAdjustment& firstAdjustment,
-        OpenTypeShapingIRPositionAdjustment& secondAdjustment) noexcept
+        OpenTypeShapingIRPositionAdjustment& secondAdjustment,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         firstAdjustment = {};
         secondAdjustment = {};
@@ -663,7 +641,7 @@ namespace waavs
         bool covered = false;
 
         if (!openTypeGposIRGlyphSetContains(
-            ir, subtable.firstCoverage, firstGlyph, covered))
+            ir, subtable.firstCoverage, firstGlyph, covered, stats))
         {
             return OpenTypeGposIRResult::Invalid;
         }
@@ -675,9 +653,9 @@ namespace waavs
         uint16_t secondClass = 0;
 
         if (!openTypeGposIRGlyphClassValue(
-            ir, subtable.firstClassMap, firstGlyph, firstClass) ||
+            ir, subtable.firstClassMap, firstGlyph, firstClass, stats) ||
             !openTypeGposIRGlyphClassValue(
-                ir, subtable.secondClassMap, secondGlyph, secondClass))
+                ir, subtable.secondClassMap, secondGlyph, secondClass, stats))
         {
             return OpenTypeGposIRResult::Invalid;
         }
@@ -713,7 +691,8 @@ namespace waavs
         const OpenTypeShapingIRGposPairSubtable& subtable,
         uint16_t firstGlyph, uint16_t secondGlyph,
         OpenTypeShapingIRPositionAdjustment& firstAdjustment,
-        OpenTypeShapingIRPositionAdjustment& secondAdjustment) noexcept
+        OpenTypeShapingIRPositionAdjustment& secondAdjustment,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         firstAdjustment = {};
         secondAdjustment = {};
@@ -731,7 +710,7 @@ namespace waavs
         case OpenTypeShapingIRGposPairKind::Class:
             return resolveOpenTypeGposIRPairClassSubtable(
                 ir, ir.gposPairClassSubtables[subtable.payloadIndex],
-                firstGlyph, secondGlyph, firstAdjustment, secondAdjustment);
+                firstGlyph, secondGlyph, firstAdjustment, secondAdjustment, stats);
 
         default:
             return OpenTypeGposIRResult::Invalid;
@@ -742,7 +721,8 @@ namespace waavs
     static inline OpenTypeGposIRResult resolveOpenTypeGposIRPairLookup(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer, size_t glyphIndex,
-        OpenTypeGposIRPairMatch& match) noexcept
+        OpenTypeGposIRPairMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -762,7 +742,7 @@ namespace waavs
 
         const OpenTypeGposIRGlyphSearchResult search =
             openTypeGposIRLookupNext(
-                ir, lookup.filter, buffer, glyphIndex, secondIndex);
+                ir, lookup.filter, buffer, glyphIndex, secondIndex, stats);
 
         if (search == OpenTypeGposIRGlyphSearchResult::Invalid)
             return OpenTypeGposIRResult::Invalid;
@@ -781,6 +761,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposPairSubtable& subtable =
                 ir.gposPairSubtables[lookup.payloadOffset + i];
 
@@ -792,7 +773,7 @@ namespace waavs
                     ir, subtable,
                     static_cast<uint16_t>(firstGlyphId),
                     static_cast<uint16_t>(secondGlyphId),
-                    firstAdjustment, secondAdjustment);
+                    firstAdjustment, secondAdjustment, stats);
 
             if (result == OpenTypeGposIRResult::Invalid)
                 return result;
@@ -816,7 +797,8 @@ namespace waavs
     static inline OpenTypeGposIRResult applyOpenTypeGposIRPairLookupAt(
         const OpenTypeShapingIR& ir, const OpenTypeShapingIRLookup& lookup,
         ShapedGlyphBuffer& buffer, size_t glyphIndex,
-        size_t* resumeIndex = nullptr) noexcept
+        size_t* resumeIndex = nullptr,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (resumeIndex)
             *resumeIndex = glyphIndex;
@@ -825,7 +807,7 @@ namespace waavs
 
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRPairLookup(
-                ir, lookup, buffer, glyphIndex, match);
+                ir, lookup, buffer, glyphIndex, match, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -1009,7 +991,8 @@ namespace waavs
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer, size_t glyphIndex,
-        OpenTypeGposIRCursiveMatch& match) noexcept
+        OpenTypeGposIRCursiveMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -1030,7 +1013,7 @@ namespace waavs
         const OpenTypeGposIRGlyphSearchResult search =
             openTypeGposIRLookupNext(
                 ir, lookup.filter, buffer,
-                glyphIndex, secondIndex);
+                glyphIndex, secondIndex, stats);
 
         if (search == OpenTypeGposIRGlyphSearchResult::Invalid)
             return OpenTypeGposIRResult::Invalid;
@@ -1052,6 +1035,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposCursiveSubtable& subtable =
                 ir.gposCursiveSubtables[lookup.payloadOffset + i];
 
@@ -1188,7 +1172,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         ShapedGlyphBuffer& buffer, size_t glyphIndex,
         bool runRightToLeft,
-        OpenTypeGposAttachmentState& attachments) noexcept
+        OpenTypeGposAttachmentState& attachments,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (!attachments.matches(buffer.size()))
             return OpenTypeGposIRResult::Invalid;
@@ -1197,7 +1182,7 @@ namespace waavs
 
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRCursiveLookup(
-                ir, lookup, buffer, glyphIndex, match);
+                ir, lookup, buffer, glyphIndex, match, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -1507,7 +1492,8 @@ namespace waavs
     static inline OpenTypeGposIRResult findOpenTypeGposIRPreviousNonMark(
         const OpenTypeShapingIR& ir,
         const ShapedGlyphBuffer& buffer,
-        size_t glyphIndex, size_t& result) noexcept
+        size_t glyphIndex, size_t& result,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         result = 0;
 
@@ -1526,6 +1512,7 @@ namespace waavs
 
         for (size_t i = glyphIndex; i != 0; --i)
         {
+            if (stats) ++stats->glyphVisits;
             const size_t candidate = i - 1;
             const uint32_t glyphId =
                 buffer[candidate].shaping.glyphId;
@@ -1554,7 +1541,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRMarkBaseMatch& match) noexcept
+        OpenTypeGposIRMarkBaseMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -1576,6 +1564,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposMarkBaseSubtable& subtable =
                 ir.gposMarkBaseSubtables[
                     lookup.payloadOffset + i];
@@ -1593,7 +1582,7 @@ namespace waavs
                 const OpenTypeGposIRResult baseResult =
                     findOpenTypeGposIRPreviousNonMark(
                         ir, buffer,
-                        glyphIndex, baseIndex);
+                        glyphIndex, baseIndex, stats);
 
                 if (baseResult != OpenTypeGposIRResult::Match)
                     return baseResult;
@@ -1711,7 +1700,8 @@ namespace waavs
         const OpenTypeShapingIR& ir,
         const OpenTypeShapingIRLookup& lookup,
         ShapedGlyphBuffer& buffer, size_t glyphIndex,
-        OpenTypeGposAttachmentState& attachments) noexcept
+        OpenTypeGposAttachmentState& attachments,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (!attachments.matches(buffer.size()))
             return OpenTypeGposIRResult::Invalid;
@@ -1721,7 +1711,7 @@ namespace waavs
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRMarkBaseLookup(
                 ir, lookup, buffer,
-                glyphIndex, match);
+                glyphIndex, match, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -2050,7 +2040,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRMarkLigatureMatch& match) noexcept
+        OpenTypeGposIRMarkLigatureMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -2072,6 +2063,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposMarkLigatureSubtable& subtable =
                 ir.gposMarkLigatureSubtables[
                     lookup.payloadOffset + i];
@@ -2108,7 +2100,7 @@ namespace waavs
                 const OpenTypeGposIRResult parentResult =
                     findOpenTypeGposIRPreviousNonMark(
                         ir, buffer,
-                        glyphIndex, ligatureIndex);
+                        glyphIndex, ligatureIndex, stats);
 
                 if (parentResult != OpenTypeGposIRResult::Match)
                     return parentResult;
@@ -2244,7 +2236,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposAttachmentState& attachments) noexcept
+        OpenTypeGposAttachmentState& attachments,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (!attachments.matches(buffer.size()))
             return OpenTypeGposIRResult::Invalid;
@@ -2254,7 +2247,7 @@ namespace waavs
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRMarkLigatureLookup(
                 ir, lookup, buffer,
-                glyphIndex, match);
+                glyphIndex, match, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -2593,7 +2586,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRMarkMarkMatch& match) noexcept
+        OpenTypeGposIRMarkMarkMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -2615,6 +2609,7 @@ namespace waavs
 
         for (uint32_t i = 0; i < lookup.payloadCount; ++i)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposMarkMarkSubtable& subtable =
                 ir.gposMarkMarkSubtables[
                     lookup.payloadOffset + i];
@@ -2632,7 +2627,7 @@ namespace waavs
                 const OpenTypeGposIRGlyphSearchResult previousResult =
                     openTypeGposIRLookupPrevious(
                         ir, lookup.filter, buffer,
-                        glyphIndex, mark2Index);
+                        glyphIndex, mark2Index, stats);
 
                 if (previousResult ==
                     OpenTypeGposIRGlyphSearchResult::End)
@@ -2774,7 +2769,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposAttachmentState& attachments) noexcept
+        OpenTypeGposAttachmentState& attachments,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         if (!attachments.matches(buffer.size()))
             return OpenTypeGposIRResult::Invalid;
@@ -2784,7 +2780,7 @@ namespace waavs
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRMarkMarkLookup(
                 ir, lookup, buffer,
-                glyphIndex, match);
+                glyphIndex, match, stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -3021,9 +3017,11 @@ namespace waavs
         const OpenTypeShapingIRGposContextRule& rule,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRContextMatch& match) noexcept
+        OpenTypeGposIRContextMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->contextRuleAttempts;
 
         if (glyphIndex >= buffer.size() || rule.inputCount == 0)
             return OpenTypeGposIRResult::Invalid;
@@ -3035,12 +3033,13 @@ namespace waavs
             return OpenTypeGposIRResult::Invalid;
 
         bool member = false;
+        if (stats) ++stats->contextPositionTests;
 
         if (!openTypeGposIRGlyphSetContains(
             ir,
             ir.gposContextInputSets[rule.inputSetOffset],
             static_cast<uint16_t>(firstGlyph),
-            member))
+            member, stats))
         {
             return OpenTypeGposIRResult::Invalid;
         }
@@ -3057,12 +3056,13 @@ namespace waavs
             sequenceIndex < rule.inputCount;
             ++sequenceIndex)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeGposIRGlyphSearchResult nextResult =
                 openTypeGposIRLookupNext(
                     ir, filter, buffer,
-                    position, nextPosition);
+                    position, nextPosition, stats);
 
             if (nextResult == OpenTypeGposIRGlyphSearchResult::End)
                 return OpenTypeGposIRResult::NoMatch;
@@ -3084,7 +3084,7 @@ namespace waavs
                 ir.gposContextInputSets[
                     rule.inputSetOffset + sequenceIndex],
                     static_cast<uint16_t>(glyphId),
-                    member))
+                    member, stats))
             {
                 return OpenTypeGposIRResult::Invalid;
             }
@@ -3098,6 +3098,7 @@ namespace waavs
 
         match.lookupOffset = rule.lookupOffset;
         match.lookupCount = rule.lookupCount;
+        if (stats) ++stats->contextMatches;
 
         return OpenTypeGposIRResult::Match;
     }
@@ -3108,7 +3109,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRContextMatch& match) noexcept
+        OpenTypeGposIRContextMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -3122,6 +3124,7 @@ namespace waavs
             subtableIndex < lookup.payloadCount;
             ++subtableIndex)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposContextSubtable& subtable =
                 ir.gposContextSubtables[
                     lookup.payloadOffset + subtableIndex];
@@ -3137,7 +3140,7 @@ namespace waavs
                 const OpenTypeGposIRResult result =
                     matchOpenTypeGposIRContextRuleUnchecked(
                         ir, lookup.filter, rule,
-                        buffer, glyphIndex, match);
+                        buffer, glyphIndex, match, stats);
 
                 if (result == OpenTypeGposIRResult::Invalid)
                     return result;
@@ -3307,6 +3310,12 @@ namespace waavs
         if (!scope || !state.consumeOperation())
             return OpenTypeGposIRResult::Invalid;
 
+        if (state.stats)
+        {
+            ++state.stats->lookupAttempts;
+            ++state.stats->glyphVisits;
+        }
+
         ShapedGlyphBuffer localBuffer;
         OpenTypeGposAttachmentState localAttachments;
 
@@ -3394,6 +3403,22 @@ namespace waavs
             return OpenTypeGposIRResult::Invalid;
         }
 
+        if (state.stats)
+        {
+            ++state.stats->lookupMatches;
+            switch (lookup->op)
+            {
+            case OpenTypeShapingIROp::GposCursive:
+            case OpenTypeShapingIROp::GposMarkBase:
+            case OpenTypeShapingIROp::GposMarkLigature:
+            case OpenTypeShapingIROp::GposMarkMark:
+                ++state.stats->attachmentEdges;
+                break;
+            default:
+                break;
+            }
+        }
+
         return OpenTypeGposIRResult::Match;
     }
 
@@ -3415,7 +3440,7 @@ namespace waavs
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRContextLookup(
                 ir, lookup, buffer,
-                glyphIndex, match);
+                glyphIndex, match, state.stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -3459,6 +3484,8 @@ namespace waavs
 
             const size_t targetPosition =
                 match.positions[action.sequenceIndex];
+
+            if (state.stats) ++state.stats->nestedLookupCalls;
 
             const OpenTypeGposIRResult nestedResult =
                 applyOpenTypeGposIRNestedLookupAt(
@@ -3742,9 +3769,11 @@ namespace waavs
         const OpenTypeShapingIRGposChainContextRule& rule,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRChainContextMatch& match) noexcept
+        OpenTypeGposIRChainContextMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
+        if (stats) ++stats->contextRuleAttempts;
 
         if (glyphIndex >= buffer.size() || rule.inputCount == 0)
             return OpenTypeGposIRResult::Invalid;
@@ -3756,12 +3785,13 @@ namespace waavs
             return OpenTypeGposIRResult::Invalid;
 
         bool member = false;
+        if (stats) ++stats->contextPositionTests;
 
         if (!openTypeGposIRGlyphSetContains(
             ir,
             ir.gposChainContextInputSets[rule.inputSetOffset],
             static_cast<uint16_t>(firstGlyph),
-            member))
+            member, stats))
         {
             return OpenTypeGposIRResult::Invalid;
         }
@@ -3777,12 +3807,13 @@ namespace waavs
 
         for (uint32_t i = 1; i < rule.inputCount; ++i)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeGposIRGlyphSearchResult nextResult =
                 openTypeGposIRLookupNext(
                     ir, filter, buffer,
-                    position, nextPosition);
+                    position, nextPosition, stats);
 
             if (nextResult == OpenTypeGposIRGlyphSearchResult::End)
                 return OpenTypeGposIRResult::NoMatch;
@@ -3803,7 +3834,7 @@ namespace waavs
                 ir,
                 ir.gposChainContextInputSets[rule.inputSetOffset + i],
                 static_cast<uint16_t>(glyphId),
-                member))
+                member, stats))
             {
                 return OpenTypeGposIRResult::Invalid;
             }
@@ -3820,12 +3851,13 @@ namespace waavs
 
         for (uint32_t i = 0; i < rule.backtrackCount; ++i)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t previousPosition = 0;
 
             const OpenTypeGposIRGlyphSearchResult previousResult =
                 openTypeGposIRLookupPrevious(
                     ir, filter, buffer,
-                    position, previousPosition);
+                    position, previousPosition, stats);
 
             if (previousResult == OpenTypeGposIRGlyphSearchResult::End)
                 return OpenTypeGposIRResult::NoMatch;
@@ -3847,7 +3879,7 @@ namespace waavs
                 ir.gposChainContextBacktrackSets[
                     rule.backtrackSetOffset + i],
                     static_cast<uint16_t>(glyphId),
-                    member))
+                    member, stats))
             {
                 return OpenTypeGposIRResult::Invalid;
             }
@@ -3864,12 +3896,13 @@ namespace waavs
 
         for (uint32_t i = 0; i < rule.lookaheadCount; ++i)
         {
+            if (stats) ++stats->contextPositionTests;
             size_t nextPosition = 0;
 
             const OpenTypeGposIRGlyphSearchResult nextResult =
                 openTypeGposIRLookupNext(
                     ir, filter, buffer,
-                    position, nextPosition);
+                    position, nextPosition, stats);
 
             if (nextResult == OpenTypeGposIRGlyphSearchResult::End)
                 return OpenTypeGposIRResult::NoMatch;
@@ -3891,7 +3924,7 @@ namespace waavs
                 ir.gposChainContextLookaheadSets[
                     rule.lookaheadSetOffset + i],
                     static_cast<uint16_t>(glyphId),
-                    member))
+                    member, stats))
             {
                 return OpenTypeGposIRResult::Invalid;
             }
@@ -3904,6 +3937,7 @@ namespace waavs
 
         match.lookupOffset = rule.lookupOffset;
         match.lookupCount = rule.lookupCount;
+        if (stats) ++stats->contextMatches;
         return OpenTypeGposIRResult::Match;
     }
 
@@ -3913,7 +3947,8 @@ namespace waavs
         const OpenTypeShapingIRLookup& lookup,
         const ShapedGlyphBuffer& buffer,
         size_t glyphIndex,
-        OpenTypeGposIRChainContextMatch& match) noexcept
+        OpenTypeGposIRChainContextMatch& match,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
         match.clear();
 
@@ -3927,6 +3962,7 @@ namespace waavs
             subtableIndex < lookup.payloadCount;
             ++subtableIndex)
         {
+            if (stats) ++stats->subtableAttempts;
             const OpenTypeShapingIRGposChainContextSubtable& subtable =
                 ir.gposChainContextSubtables[
                     lookup.payloadOffset + subtableIndex];
@@ -3942,7 +3978,7 @@ namespace waavs
                 const OpenTypeGposIRResult result =
                     matchOpenTypeGposIRChainContextRuleUnchecked(
                         ir, lookup.filter, rule,
-                        buffer, glyphIndex, match);
+                        buffer, glyphIndex, match, stats);
 
                 if (result == OpenTypeGposIRResult::Invalid)
                     return result;
@@ -3973,7 +4009,7 @@ namespace waavs
         const OpenTypeGposIRResult result =
             resolveOpenTypeGposIRChainContextLookup(
                 ir, lookup, buffer,
-                glyphIndex, match);
+                glyphIndex, match, state.stats);
 
         if (result != OpenTypeGposIRResult::Match)
             return result;
@@ -4017,6 +4053,8 @@ namespace waavs
 
             const size_t targetPosition =
                 match.inputPositions[action.sequenceIndex];
+
+            if (state.stats) ++state.stats->nestedLookupCalls;
 
             const OpenTypeGposIRResult nestedResult =
                 applyOpenTypeGposIRNestedLookupAt(
@@ -4148,185 +4186,134 @@ namespace waavs
         const OpenTypeShapingIR& ir, OpenTypeShapingIRLookupId lookupId,
         ShapedGlyphBuffer& buffer, size_t glyphIndex,
         bool runRightToLeft, OpenTypeGposAttachmentState& attachments,
-        size_t* resumeIndex = nullptr) noexcept
+        size_t* resumeIndex = nullptr,
+        OpenTypeShapingExecutionStats* stats = nullptr) noexcept
     {
-        const OpenTypeShapingIRLookup* lookup =
-            ir.lookup(lookupId);
+        const OpenTypeShapingIRLookup* lookup = ir.lookup(lookupId);
 
-        if (!lookup ||
-            !attachments.matches(buffer.size()))
-        {
+        if (!lookup || !attachments.matches(buffer.size()))
             return OpenTypeGposIRResult::Invalid;
+
+        if (resumeIndex) *resumeIndex = glyphIndex;
+
+        if (stats)
+        {
+            ++stats->lookupAttempts;
+            ++stats->glyphVisits;
         }
 
-        if (resumeIndex)
-            *resumeIndex = glyphIndex;
+        auto finish = [&](OpenTypeGposIRResult result) noexcept
+        {
+            if (!stats || result != OpenTypeGposIRResult::Match)
+                return result;
+
+            ++stats->lookupMatches;
+
+            switch (lookup->op)
+            {
+            case OpenTypeShapingIROp::GposCursive:
+            case OpenTypeShapingIROp::GposMarkBase:
+            case OpenTypeShapingIROp::GposMarkLigature:
+            case OpenTypeShapingIROp::GposMarkMark:
+                ++stats->attachmentEdges;
+                break;
+            default:
+                break;
+            }
+
+            return result;
+        };
 
         switch (lookup->op)
         {
         case OpenTypeShapingIROp::GposSingle:
         {
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRSingleLookupAt(
-                    ir, *lookup, buffer, glyphIndex);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRSingleLookupAt(ir, *lookup, buffer, glyphIndex, stats);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposPair:
-            return applyOpenTypeGposIRPairLookupAt(
-                ir, *lookup, buffer,
-                glyphIndex, resumeIndex);
+            return finish(applyOpenTypeGposIRPairLookupAt(ir, *lookup, buffer, glyphIndex, resumeIndex, stats));
 
         case OpenTypeShapingIROp::GposCursive:
         {
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRCursiveLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, runRightToLeft,
-                    attachments);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRCursiveLookupAt(
+                ir, *lookup, buffer, glyphIndex, runRightToLeft, attachments, stats);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposMarkBase:
         {
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRMarkBaseLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, attachments);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRMarkBaseLookupAt(
+                ir, *lookup, buffer, glyphIndex, attachments, stats);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposMarkLigature:
         {
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRMarkLigatureLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, attachments);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRMarkLigatureLookupAt(
+                ir, *lookup, buffer, glyphIndex, attachments, stats);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposMarkMark:
         {
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRMarkMarkLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, attachments);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRMarkMarkLookupAt(
+                ir, *lookup, buffer, glyphIndex, attachments, stats);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposContext:
         {
             OpenTypeGposApplyState state;
-
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRContextLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, runRightToLeft,
-                    attachments, state);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            state.stats = stats;
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRContextLookupAt(
+                ir, *lookup, buffer, glyphIndex, runRightToLeft, attachments, state);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         case OpenTypeShapingIROp::GposChainContext:
         {
             OpenTypeGposApplyState state;
-
-            const OpenTypeGposIRResult result =
-                applyOpenTypeGposIRChainContextLookupAt(
-                    ir, *lookup, buffer,
-                    glyphIndex, runRightToLeft,
-                    attachments, state);
-
-            if (result == OpenTypeGposIRResult::Match &&
-                resumeIndex)
+            state.stats = stats;
+            const OpenTypeGposIRResult result = applyOpenTypeGposIRChainContextLookupAt(
+                ir, *lookup, buffer, glyphIndex, runRightToLeft, attachments, state);
+            if (result == OpenTypeGposIRResult::Match && resumeIndex)
             {
-                if (glyphIndex ==
-                    std::numeric_limits<size_t>::max())
-                {
-                    return OpenTypeGposIRResult::Invalid;
-                }
-
+                if (glyphIndex == std::numeric_limits<size_t>::max()) return OpenTypeGposIRResult::Invalid;
                 *resumeIndex = glyphIndex + 1;
             }
-
-            return result;
+            return finish(result);
         }
 
         default:

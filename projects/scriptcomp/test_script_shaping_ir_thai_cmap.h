@@ -17,7 +17,7 @@
 
 namespace waavs
 {
-    static bool runScriptShapingIRThaiCmap(const ByteSpan& fontData)
+    static bool runScriptShapingIRThaiCmap(FontResource resource)
     {
         auto fail =
             [](const char* message)
@@ -30,17 +30,8 @@ namespace waavs
                 return false;
             };
 
-        if (fontData.empty())
-            return fail("empty font data");
 
-        SharedMemBuff fontBuffer(fontData.size());
-
-        if (!fontBuffer)
-            return fail("unable to allocate font buffer");
-
-        std::memcpy(fontBuffer.data(), fontData.begin(), fontData.size());
-
-        OpenTypeContainer container(fontBuffer);
+        OpenTypeContainer container(resource);
 
         if (!container.isValid())
             return fail("invalid OpenType container");
@@ -144,21 +135,19 @@ namespace waavs
 
     static bool runScriptShapingIRThaiCmap(const char* fontFilename)
     {
-        std::vector<uint8_t> fontBytes;
+        FontResource resource;
 
-        if (!readFileData(fontFilename, fontBytes))
+        if (!readByteResource(fontFilename, resource))
         {
             std::printf(
                 "Script shaping IR Thai cmap: FAIL\n"
                 "  Unable to read font\n"
                 "  File: %s\n",
                 fontFilename ? fontFilename : "(null)");
-
             return false;
         }
 
-        return runScriptShapingIRThaiCmap(
-            ByteSpan(fontBytes.data(), fontBytes.size()));
+        return runScriptShapingIRThaiCmap(resource);
     }
 
 

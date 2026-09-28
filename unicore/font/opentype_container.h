@@ -3,7 +3,7 @@
 #pragma once
 
 #include "font_face_view.h"
-#include "font_resource.h"
+#include "byte_resource.h"
 #include "opentype_bytestream.h"
 
 
@@ -31,8 +31,6 @@ namespace waavs {
     class OpenTypeContainer
     {
     private:
-        //SharedMemBuff fSource;
-        //FontName fSourceLocation{ nullptr };
         FontResource fResource;
 
         // For TTC traversal this remains positioned at the next

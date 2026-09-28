@@ -1,1 +1,2 @@
-﻿
+﻿  In file included from unicode_database_demo.cpp:9:
+.\test_ucd_script_extensions.h(15,10): fatal  error : '../ucdbgen/unicode_database_builder.h' file not found

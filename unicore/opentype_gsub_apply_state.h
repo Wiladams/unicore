@@ -6,8 +6,12 @@
 #include <limits>
 
 
+#include "opentype_shaping_execution_stats.h"
+
 namespace waavs
 {
+    struct OpenTypeChainContextExecutionIR;
+
     // ====================================================================
     // OpenTypeGsubApplyAtResult
     //
@@ -46,6 +50,9 @@ namespace waavs
         uint32_t nestingDepth{ 0 };
         uint32_t maxNestingDepth{ kDefaultMaxNestingDepth };
         size_t operationBudget{ std::numeric_limits<size_t>::max() };
+
+        OpenTypeShapingExecutionStats* stats{ nullptr };
+        const OpenTypeChainContextExecutionIR* chainContextExec{ nullptr };
 
         [[nodiscard]] bool enter() noexcept
         {

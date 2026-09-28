@@ -14,14 +14,14 @@
 
 #include <cstdio>
 #include <cstring>
-#include <vector>
+//#include <vector>
 
 
 namespace waavs
 {
-    static bool testFindScriptFonts(const ByteSpan& databaseData, const char* fontDirectory, const char* scriptTag)
+    static bool testFindScriptFonts(DatabaseResource dbResource, const char* fontDirectory, const char* scriptTag)
     {
-        if (!databaseData ||
+        if (!dbResource ||
             !fontDirectory || !*fontDirectory ||
             !scriptTag || !*scriptTag)
         {
@@ -29,7 +29,7 @@ namespace waavs
         }
 
 
-        UnicodeDatabase database(databaseData);
+        UnicodeDatabase database(dbResource.data());
 
         if (!database)
         {
@@ -70,8 +70,7 @@ namespace waavs
         }
 
 
-        const UnicodeCoverage scriptCoverage =
-            database.scriptCoverage(script);
+        const UnicodeCoverage scriptCoverage = database.scriptCoverage(script);
 
         if (!scriptCoverage)
         {
@@ -84,8 +83,7 @@ namespace waavs
         }
 
 
-        const UnicodeCoverageStats scriptStats =
-            scriptCoverage.stats();
+        const UnicodeCoverageStats scriptStats = scriptCoverage.stats();
 
 
         std::printf(
@@ -146,8 +144,7 @@ namespace waavs
             const UnicodeCoverage& fontCoverage = coverageStorage.coverage();
 
 
-            const UnicodeCoverageStats fontStats =
-                fontCoverage.stats();
+            const UnicodeCoverageStats fontStats = fontCoverage.stats();
 
 
             if (cmapFaces <= kCandidateDiagnostics)
@@ -252,9 +249,9 @@ namespace waavs
 
     static bool testFindScriptFonts(const char* databaseFilename, const char* fontDirectory, const char* scriptTag)
     {
-        std::vector<uint8_t> fileData;
+        DatabaseResource databaseResource;
 
-        if (!readFileData(databaseFilename, fileData))
+        if (!readByteResource(databaseFilename, databaseResource))
         {
             std::printf(
                 "Script font search: FAIL: unable to read Unicode database\n"
@@ -267,9 +264,6 @@ namespace waavs
         }
 
 
-        return testFindScriptFonts(
-            ByteSpan(fileData.data(), fileData.size()),
-            fontDirectory,
-            scriptTag);
+        return testFindScriptFonts(std::move(databaseResource), fontDirectory, scriptTag);
     }
 }

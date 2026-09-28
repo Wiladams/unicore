@@ -308,5 +308,47 @@
     <ClInclude Include="..\..\unicore\svgdrv\svg_text_drawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\unicore\corebits\byte_resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\corebits\byte_resource_file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_shaping_analysis.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_shaping_benchmark.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opentype_shaping_workloads.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\unicore\font\font_directory_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_analysis.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_workloads.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_workload_corpus.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_benchmark.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_benchmark_corpus.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_rule_trie.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_shaping_chain_context_analysis.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_opentype_chain_context_execution_ir.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

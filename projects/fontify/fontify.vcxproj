@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -123,7 +123,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,7 +140,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -176,7 +176,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -195,7 +195,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>../../unicore;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../unicore;../../unicore/corebits;../../unicore/win32;../../unicore/font;../../unicore/ucdb;../../unicore/svgdrv;../../unicore/unicomp;../../unicore/scriptir;../unitils</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -230,6 +230,9 @@
     <ClInclude Include="..\..\unicore\font\opentype_maxp_view.h" />
     <ClInclude Include="..\..\unicore\font\opentype_name_view.h" />
     <ClInclude Include="..\..\unicore\lang_span.h" />
+    <ClInclude Include="..\..\unicore\read_only_mapped_file.h" />
+    <ClInclude Include="..\..\unicore\win32\win32_handle.h" />
+    <ClInclude Include="..\..\unicore\win32\read_only_mapped_file_win32.h" />
     <ClInclude Include="test_cmap_glyph_index_benchmark.h" />
     <ClInclude Include="test_cmap_lookup_startup.h" />
     <ClInclude Include="test_find_script_fonts.h" />

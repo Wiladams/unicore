@@ -1,1 +1,3 @@
-﻿
+﻿  In file included from ucdbtest.cpp:1:
+  In file included from .\test_unicode_database_indic_syllabic_category.h:5:
+../unitils\test_core.h(8,10): fatal  error : 'opentype_bytestream.h' file not found

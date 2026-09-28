@@ -9,6 +9,8 @@
 #include <cstring>
 #include <vector>
 
+#include "byte_resource_file.h"
+
 #include "opentype_container.h"
 #include "opentype_face.h"
 #include "opentype_horizontal_shaper.h"
@@ -209,7 +211,7 @@ namespace waavs
     // Final glyph identity, provenance and placement must match exactly.
     // ========================================================================
 
-    static bool testScriptShapingIRExecutor(const ByteSpan& fontData)
+    static bool testScriptShapingIRExecutor(FontResource resource)
     {
         auto fail =
             [](const char* message)
@@ -222,18 +224,10 @@ namespace waavs
                 return false;
             };
 
-        if (fontData.empty())
-            return fail("empty font data");
+        if (!resource)
+            return fail("invalid font resource");
 
-
-        SharedMemBuff fontBuffer(fontData.size());
-
-        if (!fontBuffer)
-            return fail("unable to allocate font buffer");
-
-        std::memcpy(fontBuffer.data(), fontData.begin(), fontData.size());
-
-        OpenTypeContainer container(fontBuffer);
+        OpenTypeContainer container(resource);
 
         if (!container.isValid())
             return fail("invalid OpenType container");
@@ -410,9 +404,9 @@ namespace waavs
 
     static bool testScriptShapingIRExecutor(const char* fontFilename)
     {
-        std::vector<uint8_t> fontBytes;
+        FontResource resource;
 
-        if (!readFileData(fontFilename, fontBytes))
+        if (!readByteResource(fontFilename, resource))
         {
             std::printf(
                 "Script shaping IR executor: FAIL\n"
@@ -423,7 +417,7 @@ namespace waavs
             return false;
         }
 
-        return testScriptShapingIRExecutor(ByteSpan(fontBytes.data(), fontBytes.size()));
+        return testScriptShapingIRExecutor(resource);
     }
 
 } // namespace waavs

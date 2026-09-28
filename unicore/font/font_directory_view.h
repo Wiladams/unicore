@@ -26,7 +26,7 @@
 #pragma once
 
 #include "font_face.h"
-#include "font_resource_file.h"
+#include "byte_resource_file.h"
 #include "opentype_container.h"
 #include "opentype_face.h"
 
@@ -92,8 +92,7 @@ namespace waavs
         // FontDirectoryView does not need to know which.
         // ============================================================
 
-        std::unique_ptr<OpenTypeContainer>
-            fCurrentContainer;
+        std::unique_ptr<OpenTypeContainer> fCurrentContainer;
 
 
     public:
@@ -416,7 +415,7 @@ namespace waavs
         {
             FontResource resource;
 
-            if (!readFontResource(path, resource))
+            if (!readByteResource(path, resource))
                 return false;
 
             auto container = std::make_unique<OpenTypeContainer>(std::move(resource));

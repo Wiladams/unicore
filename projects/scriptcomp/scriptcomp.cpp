@@ -56,6 +56,14 @@
 #include "test_svg_devanagari_gallery.h"
 #include "test_devanagari_script_edge_cases.h"
 
+// GSUB/GPOS shaping analysis
+#include "test_opentype_shaping_analysis.h"
+#include "test_opentype_shaping_workload_corpus.h"
+#include "test_opentype_shaping_benchmark_corpus.h"
+#include "test_opentype_shaping_rule_trie.h"
+#include "test_opentype_shaping_chain_context_analysis.h"
+#include "test_opentype_chain_context_execution_ir.h"
+
 
 
 using namespace waavs;
@@ -149,13 +157,28 @@ void testDevanagari()
 
 }
 
+void testShapingAnalysis()
+{
+    //testOpenTypeShapingAnalysis("../resources/fonts");
+    //testOpenTypeShapingAnalysis("w:/fonts/google/fonts");
+    //testOpenTypeShapingWorkloadCorpus("w:/fonts/google/fonts");
+    testOpenTypeShapingBenchmarkCorpus("w:/fonts/google/fonts");
+
+    // Trie experiments
+    //testOpenTypeShapingRuleTrieExperiment("w:/fonts/google/fonts");
+    //testOpenTypeShapingChainContextAnalysisExperiment("w:/fonts/google/fonts");
+
+    //testOpenTypeChainContextExecutionExperiment("w:/fonts/google/fonts");
+}
+
 int main(int argc, char** argv)
 {
     //testScriptShaping();
     //testScriptRecognition();
     //testScriptItemClassifier();
     //testScriptIntegration();
-    testDevanagari();
+    //testDevanagari();
+    testShapingAnalysis();
 
 
     return 0;

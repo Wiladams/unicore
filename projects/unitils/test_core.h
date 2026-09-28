@@ -7,6 +7,8 @@
 
 #include "opentype_bytestream.h"
 #include "font_interfaces.h"
+#include "read_only_mapped_file.h"
+
 
 namespace waavs
 {

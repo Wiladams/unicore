@@ -1,1 +1,6 @@
-﻿
+﻿  In file included from ucdbgen.cpp:3:
+  In file included from ../../unicore/ucdb\unicode_database_generator.h:14:
+  In file included from ../../unicore/ucdb\ucd_blocks_parser.h:9:
+  In file included from ../../unicore/ucdb\ucd_parser.h:7:
+../../unicore\lang_grammar.h(77,23): warning : unused function 'bspan_trim_matching_quotes' [-Wunused-function]
+  ucdbgen.vcxproj -> C:\repos\unicore\projects\ARM64\Release\ucdbgen.exe

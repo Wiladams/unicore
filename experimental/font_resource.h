@@ -5,9 +5,18 @@
 #include "lang_span.h"
 #include "core_nametable.h"
 #include "font_interfaces.h"
+#include "read_only_mapped_file.h"
+
+#include <memory>
+#include <filesystem>
+
+
 
 namespace waavs
 {
+    namespace fs = std::filesystem;
+
+
     // Retained bytes for one font resource.
     //
     // FontResource knows nothing about TTF, OTF, TTC, WOFF, or font faces.
@@ -15,15 +24,17 @@ namespace waavs
 
     class FontResource
     {
-    private:
-        SharedMemBuff fData;
+        ByteSpan fData;
+        std::shared_ptr< const void> fOwner;
         FontName fSourceLocation{ nullptr };
 
     public:
         FontResource() = default;
 
-        FontResource(SharedMemBuff data, FontName sourceLocation = nullptr) noexcept
+        template<typename T>
+        FontResource(ByteSpan data, std::shared_ptr<T> owner, FontName sourceLocation = nullptr) noexcept
             : fData(std::move(data))
+            , fOwner(std::move(owner))
             , fSourceLocation(sourceLocation)
         {}
 
@@ -39,7 +50,7 @@ namespace waavs
 
         [[nodiscard]] ByteSpan data() const noexcept
         {
-            return ByteSpan(fData.data(), fData.size());
+            return fData;
         }
 
         [[nodiscard]] size_t size() const noexcept
@@ -52,28 +63,7 @@ namespace waavs
             return fSourceLocation;
         }
 
-        [[nodiscard]] const SharedMemBuff& storage() const noexcept
-        {
-            return fData;
-        }
     };
 
 
-    inline bool makeFontResource(const ByteSpan& data, FontResource& out, FontName sourceLocation = nullptr)
-    {
-        out = {};
-
-        if (data.empty())
-            return false;
-
-        SharedMemBuff buffer(data.size());
-
-        if (!buffer)
-            return false;
-
-        std::memcpy(buffer.data(), data.begin(), data.size());
-
-        out = FontResource(std::move(buffer), sourceLocation);
-        return true;
-    }
 }

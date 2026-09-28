@@ -12,6 +12,7 @@
 
 #include "font_interfaces.h"
 #include "font_run_itemizer.h"
+#include "byte_resource.h"
 
 #include "opentype_bytestream.h"
 #include "opentype_container.h"
@@ -209,9 +210,10 @@ namespace waavs
         // load
         // ================================================================
 
-        bool load(const ByteSpan& databaseData, const ByteSpan& fontData, double fontSize)
+
+        bool load(const ByteSpan& databaseData, FontResource resource, double fontSize)
         {
-            if (mLoaded || databaseData.empty() || fontData.empty())
+            if (mLoaded || databaseData.empty() || !resource)
                 return false;
 
             if (!(fontSize > 0.0) || !std::isfinite(fontSize))
@@ -239,9 +241,9 @@ namespace waavs
             //
             // FontFace retains the underlying OpenType resource.
             // ------------------------------------------------------------
-            FontResource resource;
-            if (!makeFontResource(fontData, resource))
-                return false;
+            //FontResource resource;
+            //if (!makeFontResource(fontData, resource))
+            //    return false;
 
             OpenTypeContainer container(std::move(resource));
 
@@ -286,17 +288,17 @@ namespace waavs
         bool load(const char* databaseFilename, const char* fontFilename, double fontSize)
         {
             std::vector<uint8_t> databaseBytes;
-            std::vector<uint8_t> fontBytes;
 
             if (!readWholeFile(databaseFilename, databaseBytes))
                 return false;
 
-            if (!readWholeFile(fontFilename, fontBytes))
+            FontResource resource;
+            if (!readByteResource(fontFilename, resource))
                 return false;
 
             return load(
                 ByteSpan(databaseBytes.data(), databaseBytes.size()),
-                ByteSpan(fontBytes.data(), fontBytes.size()),
+                std::move(resource),
                 fontSize);
         }
 

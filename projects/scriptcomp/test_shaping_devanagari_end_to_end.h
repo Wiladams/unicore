@@ -344,9 +344,7 @@ namespace waavs
     }
 
 
-    static bool testDevanagariEndToEnd(
-        const ByteSpan& databaseData,
-        const ByteSpan& fontData)
+    static bool testDevanagariEndToEnd(const ByteSpan& databaseData, FontResource resource)
     {
         auto fail =
             [](const char* message)
@@ -362,13 +360,16 @@ namespace waavs
         if (!databaseData)
             return fail("empty Unicode database");
 
-        if (!fontData)
-            return fail("empty font data");
-
         UnicodeDatabase database(databaseData);
 
         if (!database)
             return fail("invalid Unicode database");
+
+
+
+        if (!resource)
+            return fail("invalid font resource");
+
 
 
         // ------------------------------------------------------------
@@ -450,17 +451,7 @@ namespace waavs
         // Open font container.
         // ------------------------------------------------------------
 
-        SharedMemBuff fontBuffer(fontData.size());
-
-        if (!fontBuffer)
-            return fail("unable to allocate font buffer");
-
-        std::memcpy(
-            fontBuffer.data(),
-            fontData.begin(),
-            fontData.size());
-
-        OpenTypeContainer container(fontBuffer);
+        OpenTypeContainer container(resource);
 
         if (!container.isValid())
             return fail("invalid OpenType container");
@@ -651,7 +642,6 @@ namespace waavs
         const char* fontFilename)
     {
         std::vector<uint8_t> databaseBytes;
-        std::vector<uint8_t> fontBytes;
 
         if (!readFileData(
             databaseFilename,
@@ -666,9 +656,9 @@ namespace waavs
             return false;
         }
 
-        if (!readFileData(
-            fontFilename,
-            fontBytes))
+        FontResource resource;
+
+        if (!readByteResource(fontFilename, resource))
         {
             std::printf(
                 "Devanagari end-to-end: FAIL\n"
@@ -680,12 +670,8 @@ namespace waavs
         }
 
         return testDevanagariEndToEnd(
-            ByteSpan(
-                databaseBytes.data(),
-                databaseBytes.size()),
-            ByteSpan(
-                fontBytes.data(),
-                fontBytes.size()));
+            ByteSpan(databaseBytes.data(),  databaseBytes.size()),
+            resource);
     }
 
 } // namespace waavs

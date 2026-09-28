@@ -1,0 +1,37 @@
+role,value,face,source
+gsub_single_max_mappings_per_subtable,2479,Kirang Haerang Regular,w:\fonts\google\fonts\ofl\kiranghaerang\KirangHaerang-Regular.ttf
+gsub_multiple_max_expansion,34,Noto Sans Duployan Regular,w:\fonts\google\fonts\ofl\notosansduployan\NotoSansDuployan-Regular.ttf
+gsub_alternate_max_set,119,Noto Sans Kannada Regular,"w:\fonts\google\fonts\ofl\notosanskannada\NotoSansKannada[wdth,wght].ttf"
+gsub_ligature_max_fanout,568,Noto Sans Grantha Regular,w:\fonts\google\fonts\ofl\notosansgrantha\NotoSansGrantha-Regular.ttf
+gsub_ligature_max_components,50,Shantell Sans Light,"w:\fonts\google\fonts\ofl\shantellsans\ShantellSans[BNCE,INFM,SPAC,wght].ttf"
+gsub_ligature_max_shared_prefix2,291,Noto Emoji Regular,w:\fonts\google\fonts\ofl\notoemoji\NotoEmoji[wght].ttf
+gsub_ligature_max_shared_prefix3,251,Signika Negative Light,w:\fonts\google\fonts\ofl\signikanegative\SignikaNegative[wght].ttf
+gsub_context_max_rules_per_subtable,2131,Noto Nastaliq Urdu Regular,w:\fonts\google\fonts\ofl\notonastaliqurdu\NotoNastaliqUrdu[wght].ttf
+gsub_context_max_input,12,Noto Nastaliq Urdu Regular,w:\fonts\google\fonts\ofl\notonastaliqurdu\NotoNastaliqUrdu[wght].ttf
+gsub_context_max_first_fanout,899,Noto Serif Dives Akuru Regular,w:\fonts\google\fonts\ofl\notoserifdivesakuru\NotoSerifDivesAkuru-Regular.ttf
+gsub_context_max_prefix2_same_set_fanout,30,Noto Serif Dives Akuru Regular,w:\fonts\google\fonts\ofl\notoserifdivesakuru\NotoSerifDivesAkuru-Regular.ttf
+gsub_chain_max_backtrack,13,Rosario Italic,w:\fonts\google\fonts\ofl\rosario\Rosario-Italic[wght].ttf
+gsub_chain_max_lookahead,71,Inspiration Regular,w:\fonts\google\fonts\ofl\inspiration\Inspiration-Regular.ttf
+gsub_chain_max_first_fanout,1435,Eczar Regular,w:\fonts\google\fonts\ofl\eczar\Eczar[wght].ttf
+gsub_chain_max_prefix2_same_set_fanout,191,Noto Nastaliq Urdu Regular,w:\fonts\google\fonts\ofl\notonastaliqurdu\NotoNastaliqUrdu[wght].ttf
+gpos_pair_max_explicit_pairs,38098,STIX Two Text Italic,w:\fonts\google\fonts\ofl\stixtwotext\STIXTwoText-Italic[wght].ttf
+gpos_pair_max_second_fanout,1336,Merriweather Light Italic,"w:\fonts\google\fonts\ofl\merriweather\Merriweather-Italic[opsz,wdth,wght].ttf"
+gpos_pair_class_max_nonzero_row_fanout,245,Lalezar Regular,w:\fonts\google\fonts\ofl\lalezar\Lalezar-Regular.ttf
+combined_filter_lookups,246,Noto Sans Duployan Regular,w:\fonts\google\fonts\ofl\notosansduployan\NotoSansDuployan-Regular.ttf
+gpos_pair_max_class_cells,32175,Alata Regular,w:\fonts\google\fonts\ofl\alata\Alata-Regular.ttf
+gpos_pair_max_class_dimension,327,Ubuntu Sans Regular,"w:\fonts\google\fonts\ufl\ubuntusans\UbuntuSans[wdth,wght].ttf"
+gpos_mark_base_max_classes,15,Mada Regular,w:\fonts\google\fonts\ofl\mada\Mada[wght].ttf
+gpos_mark_ligature_max_components,9,Outfit Thin,w:\fonts\google\fonts\ofl\outfit\Outfit[wght].ttf
+gpos_mark_mark_max_classes,6,Tiro Devanagari Hindi Regular,w:\fonts\google\fonts\ofl\tirodevanagarihindi\TiroDevanagariHindi-Regular.ttf
+max_glyph_set_members,65534,Noto Sans Bengali UI Regular,"w:\fonts\google\fonts\ofl\notosansbengaliui\NotoSansBengaliUI[wdth,wght].ttf"
+max_glyph_set_ranges,368,Jomolhari Regular,w:\fonts\google\fonts\ofl\jomolhari\Jomolhari-Regular.ttf
+gsub_ligature_max_fanout_median_nonzero,5,Wonky Regular,"w:\fonts\google\fonts\axisregistry\tests\data\Wonky[wdth,wght].ttf"
+gsub_ligature_max_fanout_p90_nonzero,29,Palanquin Regular,w:\fonts\google\fonts\ofl\palanquin\Palanquin-Regular.ttf
+gsub_context_max_first_fanout_median_nonzero,1,Roboto Flex Regular,"w:\fonts\google\fonts\axisregistry\tests\data\RobotoFlex[GRAD,XOPQ,XTRA,YOPQ,YTAS,YTDE,YTFI,YTLC,YTUC,opsz,slnt,wdth,wght].ttf"
+gsub_context_max_first_fanout_p90_nonzero,72,Noto Sans Devanagari UI Medium,w:\fonts\google\fonts\ofl\notosansdevanagariui\NotoSansDevanagariUI-Medium.ttf
+gsub_chain_max_first_fanout_median_nonzero,1,Wonky Regular,"w:\fonts\google\fonts\axisregistry\tests\data\Wonky[wdth,wght].ttf"
+gsub_chain_max_first_fanout_p90_nonzero,3,Noto Sans Kharoshthi Regular,w:\fonts\google\fonts\ofl\notosanskharoshthi\NotoSansKharoshthi-Regular.ttf
+gpos_pair_max_second_fanout_median_nonzero,60,Alan Sans Light,w:\fonts\google\fonts\ofl\alansans\AlanSans[wght].ttf
+gpos_pair_max_second_fanout_p90_nonzero,266,Barlow Light,w:\fonts\google\fonts\ofl\barlow\Barlow-Light.ttf
+filtered_lookups_median_nonzero,5,Suez One Regular,w:\fonts\google\fonts\ofl\suezone\SuezOne-Regular.ttf
+filtered_lookups_p90_nonzero,22,Playwrite HR Lijeva Guides Regular,w:\fonts\google\fonts\ofl\playwritehrlijevaguides\PlaywriteHRLijevaGuides-Regular.ttf

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "font_interfaces.h"
-#include "font_resource.h"
+#include "byte_resource.h"
 #include "opentype_bytestream.h"
 #include "core_openhashmap.h"
 
